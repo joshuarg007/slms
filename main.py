@@ -29,3 +29,7 @@ def create_lead(payload: schemas.LeadCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(lead)
     return lead
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("slms.main:app", host="127.0.0.1", port=8000, reload=True)

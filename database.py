@@ -1,18 +1,24 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
 
-# Replace these with your local credentials
-DB_USER = "postgres"
-DB_PASSWORD = "Porange333!!!"
-DB_HOST = "localhost"
-DB_PORT = "5432"
-DB_NAME = "slms_local"
+# Load environment variables from .env file in the current directory
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# Get the DATABASE_URL from the .env file
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# SQLAlchemy setup
+# Validate DATABASE_URL
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL is not set in the .env file.")
+
+# Create the SQLAlchemy engine
 engine = create_engine(DATABASE_URL)
+
+# Create a configured "Session" class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# Base class for models
 Base = declarative_base()
