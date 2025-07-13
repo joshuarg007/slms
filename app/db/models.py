@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime
 from datetime import datetime
-from database import Base
+from app.db.session import Base
 
 class Lead(Base):
     __tablename__ = "leads"

@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from models import Lead
-from schemas import LeadCreate
+from app.db.models import Lead
+from app.schemas.lead import LeadCreate
 
 def create_lead(db: Session, lead: LeadCreate):
     db_lead = Lead(**lead.dict())

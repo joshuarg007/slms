@@ -1,4 +1,4 @@
-from database import engine, Base
+from app.db.session import engine, Base
 
 print("Dropping all tables...")
 Base.metadata.drop_all(bind=engine)

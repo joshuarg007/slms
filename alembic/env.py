@@ -11,8 +11,8 @@ from alembic import context
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import your SQLAlchemy metadata
-from database import Base, engine  # engine from database.py
-from models import Lead  # add other models here as needed
+from app.db.session import Base, engine  # engine from database.py
+from app.db.models import Lead  # add other models here as needed
 
 # Alembic configuration object
 config = context.config
