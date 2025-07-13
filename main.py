@@ -1,35 +1,24 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, status
 from sqlalchemy.orm import Session
-from . import models, database, schemas        # ⬅ import the schemas
+from database import SessionLocal, engine, Base
+from models import Lead
+from schemas import LeadCreate
+from crud import create_lead
 
-models.Base.metadata.create_all(bind=database.engine)
+# Create DB tables
+Base.metadata.create_all(bind=engine)
 
+app = FastAPI()
+
+# Dependency
 def get_db():
-    db = database.SessionLocal()
+    db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
-app = FastAPI(title="SLMS API (v0.1)")
-
-@app.get("/")
-def root():
-    return {"msg": "SLMS is alive!"}
-
-# -------- LEADS --------
-@app.get("/leads", response_model=list[schemas.LeadOut])
-def list_leads(db: Session = Depends(get_db)):
-    return db.query(models.Lead).all()
-
-@app.post("/leads", response_model=schemas.LeadOut, status_code=201)
-def create_lead(payload: schemas.LeadCreate, db: Session = Depends(get_db)):
-    lead = models.Lead(**payload.dict())
-    db.add(lead)
-    db.commit()
-    db.refresh(lead)
-    return lead
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("slms.main:app", host="127.0.0.1", port=8000, reload=True)
+@app.post("/public/leads", status_code=status.HTTP_201_CREATED)
+def submit_lead(lead: LeadCreate, db: Session = Depends(get_db)):
+    db_lead = create_lead(db, lead)
+    return {"message": "Lead received", "lead_id": db_lead.id}
