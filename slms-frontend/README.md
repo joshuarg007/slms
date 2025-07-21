@@ -1,3 +1,6 @@
+Thanks for the clarification. Here's the updated `README.md` with your academic status accurately reflected:
+
+````markdown
 # Smart Lead Management System (SLMS)
 
 The **Smart Lead Management System (SLMS)** is a cloud-based SaaS platform designed to streamline the intake, distribution, and tracking of sales leads across organizations. It features a FastAPI backend and a React-based frontend with Tailwind CSS styling. SLMS supports CRM integration, embedded lead capture, and customizable dashboards.
@@ -136,5 +139,7 @@ This project is open source and available under the MIT License.
 ## Author
 
 Joshua R. Gutierrez  
-Master’s in AI & Data Science – Colorado State University Global  
+Bachelor of Science in Computer Science  
+Master’s in AI & Data Science (in progress) – Colorado State University Global  
 GitHub: [github.com/joshuargutierrez](https://github.com/joshuargutierrez)
+````
