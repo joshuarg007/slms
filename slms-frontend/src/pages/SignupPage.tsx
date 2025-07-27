@@ -31,8 +31,9 @@ const SignupPage: React.FC = () => {
 
       const data = await response.json();
       setMessage(data.message);
-      // Redirect to login page
-      navigate("/login");
+
+      // ✅ Correct: redirect to login after signup
+      navigate("/");
     } catch {
       setError("Server error");
     }

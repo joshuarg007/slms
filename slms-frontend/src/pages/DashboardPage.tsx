@@ -1,12 +1,7 @@
-import Navbar from "../components/Navbar";
-
-const DashboardPage = () => {
+const DashboardPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      <div className="p-8">
-        <h1 className="text-2xl font-bold">Welcome to the SLMS Dashboard</h1>
-      </div>
+    <div className="p-6">
+      <h1 className="text-2xl font-semibold">Welcome to your dashboard</h1>
     </div>
   );
 };
