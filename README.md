@@ -136,5 +136,6 @@ This project is open source and available under the MIT License.
 ## Author
 
 Joshua R. Gutierrez  
-Master’s in AI & Data Science – Colorado State University Global  
+Bachelor's in Computer Science – Colorado State University Global  
+Master's in Computer Science – Colorado State University Global (In Progress)
 GitHub: [github.com/joshuargutierrez](https://github.com/joshuargutierrez)
