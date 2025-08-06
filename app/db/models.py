@@ -7,6 +7,8 @@ class Lead(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
+    first_name = Column(String, nullable=True)  # Added
+    last_name = Column(String, nullable=True)   # Added
     email = Column(String, nullable=False)
     phone = Column(String, nullable=True)
     company = Column(String, nullable=True)

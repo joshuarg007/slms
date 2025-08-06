@@ -12,13 +12,17 @@ from app.schemas.user import UserCreate
 from app.schemas.token import Token
 from app.crud import lead as lead_crud
 
+from app.api import hubspot
+
 # Initialize FastAPI app
 app = FastAPI()
+
+app.include_router(hubspot.router, prefix="/api")
 
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all for dev; restrict in prod
+    allow_origins=["http://localhost:5173"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -99,11 +103,11 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     token = create_access_token(data={"sub": user.email})
     return {"access_token": token, "token_type": "bearer"}
 
-# Public Lead submission route
 @app.post("/public/leads", response_model=dict)
-def create_lead(lead: LeadCreate, db: Session = Depends(get_db)):
-    db_lead = lead_crud.create_lead(db=db, lead=lead)
+async def create_lead(lead: LeadCreate, db: Session = Depends(get_db)):
+    db_lead = await lead_crud.create_lead(db=db, lead=lead)  # add await here
     return {"message": "Lead received", "lead_id": db_lead.id}
+
 
 # Authenticated leads viewer
 @app.get("/leads")
