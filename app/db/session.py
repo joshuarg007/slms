@@ -1,19 +1,24 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-import os
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Replace with your actual DB URL (use PostgreSQL if deployed)
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"  # SQLite for local dev
 
-# Read from environment or fallback to hardcoded default
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost/lead_system")
+# If using SQLite, add connect_args; remove if using PostgreSQL
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+)
 
-# Create the SQLAlchemy engine
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-
-# Create a configured "Session" class
+# Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Base class for models
+# Base class for ORM models
 Base = declarative_base()
+
+# Dependency for routes — yields a DB session and closes it after use
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

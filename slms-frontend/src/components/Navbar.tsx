@@ -6,8 +6,8 @@ import { logout } from "../utils/auth";
 const Navbar: React.FC = () => {
   const location = useLocation();
 
-  // Hide navbar on login/signup pages
-  const hideOnRoutes = ["/login", "/signup"];
+  // Hide navbar on login/signup and root (where LoginPage lives)
+  const hideOnRoutes = ["/", "/login", "/signup"];
   if (hideOnRoutes.includes(location.pathname)) {
     return null;
   }
@@ -29,10 +29,7 @@ const Navbar: React.FC = () => {
         <Link to="/widget-test" className="hover:underline">
           Test Widget
         </Link>
-        <button
-          onClick={logout}
-          className="bg-red-500 px-4 py-2 rounded hover:bg-red-600"
-        >
+        <button onClick={logout} className="bg-red-500 px-4 py-2 rounded hover:bg-red-600">
           Sign Out
         </button>
       </div>

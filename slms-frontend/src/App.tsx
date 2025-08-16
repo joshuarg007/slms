@@ -6,17 +6,43 @@ import DashboardPage from "./pages/DashboardPage";
 import LeadsPage from "./pages/LeadsPage";
 import WidgetTestPage from "./pages/WidgetTestPage";
 import Navbar from "./components/Navbar";
+import PrivateRoute from "./components/PrivateRoute";
 
 function App() {
   return (
     <>
       <Navbar />
       <Routes>
+        {/* Public */}
         <Route path="/" element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/leads" element={<LeadsPage />} />
-        <Route path="/widget-test" element={<WidgetTestPage />} />
+
+        {/* Protected */}
+        <Route
+          path="/dashboard"
+          element={
+            <PrivateRoute>
+              <DashboardPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/leads"
+          element={
+            <PrivateRoute>
+              <LeadsPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/widget-test"
+          element={
+            <PrivateRoute>
+              <WidgetTestPage />
+            </PrivateRoute>
+          }
+        />
       </Routes>
     </>
   );

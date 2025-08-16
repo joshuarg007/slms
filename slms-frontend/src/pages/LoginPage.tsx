@@ -1,6 +1,11 @@
 import React, { useState } from "react";
+import { Navigate } from "react-router-dom";
+import { isAuthenticated, setAccessToken } from "../utils/auth";
 
 const LoginPage: React.FC = () => {
+  // If already logged in, don’t show login page
+  if (isAuthenticated()) return <Navigate to="/dashboard" replace />;
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -9,15 +14,11 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/token", {
+      const baseUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+      const response = await fetch(`${baseUrl}/token`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          username: email,
-          password: password,
-        }),
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ username: email, password }),
       });
 
       if (!response.ok) {
@@ -26,11 +27,14 @@ const LoginPage: React.FC = () => {
       }
 
       const data = await response.json();
-      localStorage.setItem("access_token", data.access_token);
-      setError("");
-      // TODO: Navigate to dashboard
+      if (!data?.access_token) {
+        setError("No access token returned");
+        return;
+      }
+
+      setAccessToken(data.access_token);
       window.location.href = "/dashboard";
-    } catch (err) {
+    } catch {
       setError("Server error");
     }
   };
@@ -49,6 +53,7 @@ const LoginPage: React.FC = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="username"
             />
           </div>
           <div>
@@ -59,6 +64,7 @@ const LoginPage: React.FC = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="current-password"
             />
           </div>
           <button
@@ -68,11 +74,10 @@ const LoginPage: React.FC = () => {
             Sign In
           </button>
           <div className="text-center mt-4">
-          <a href="/signup" className="text-indigo-600 hover:underline text-sm">
-            Don’t have an account? Sign up
-          </a>
-</div>
-         
+            <a href="/signup" className="text-indigo-600 hover:underline text-sm">
+              Don’t have an account? Sign up
+            </a>
+          </div>
         </form>
       </div>
     </div>
