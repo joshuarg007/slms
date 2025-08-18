@@ -1,51 +1,32 @@
 // src/App.tsx
-import { Routes, Route } from "react-router-dom";
-import LoginPage from "./pages/LoginPage";
-import SignupPage from "./pages/SignupPage";
-import DashboardPage from "./pages/DashboardPage";
-import LeadsPage from "./pages/LeadsPage";
-import WidgetTestPage from "./pages/WidgetTestPage";
-import Navbar from "./components/Navbar";
-import PrivateRoute from "./components/PrivateRoute";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import AppLayout from "@/components/AppLayout";              // ← add this
 
-function App() {
+import LoginPage from "@/pages/LoginPage";
+import SignupPage from "@/pages/SignupPage";
+import DashboardPage from "@/pages/DashboardPage";
+import LeadsPage from "@/pages/LeadsPage";
+
+export default function App() {
   return (
-    <>
-      <Navbar />
+    <BrowserRouter>
       <Routes>
         {/* Public */}
-        <Route path="/" element={<LoginPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
 
-        {/* Protected */}
-        <Route
-          path="/dashboard"
-          element={
-            <PrivateRoute>
-              <DashboardPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/leads"
-          element={
-            <PrivateRoute>
-              <LeadsPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/widget-test"
-          element={
-            <PrivateRoute>
-              <WidgetTestPage />
-            </PrivateRoute>
-          }
-        />
+        {/* Protected + layout with navbar */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppLayout />}>                     {/* ← wrap here */}
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/leads" element={<LeadsPage />} />
+          </Route>
+        </Route>
+
+        {/* Fallback */}
+        <Route path="*" element={<LoginPage />} />
       </Routes>
-    </>
+    </BrowserRouter>
   );
 }
-
-export default App;

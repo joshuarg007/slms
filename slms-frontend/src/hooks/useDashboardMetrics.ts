@@ -1,6 +1,6 @@
 // src/hooks/useDashboardMetrics.ts
 import { useEffect, useState } from "react";
-import { getAccessToken } from "../utils/auth";
+import { api } from "../utils/api";
 
 type MonthCount = { month: string; count: number };
 type SourceCount = { source: string; count: number };
@@ -24,53 +24,20 @@ export function useDashboardMetrics() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const ctrl = new AbortController();
-
-    async function fetchMetrics() {
+    const run = async () => {
       setLoading(true);
       setError(null);
-
       try {
-        const baseUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
-        const token = getAccessToken();
-        const res = await fetch(`${baseUrl}/dashboard/metrics`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          // If your auth uses cookies instead of Authorization header, keep this.
-          // If not, you can remove it.
-          credentials: "include",
-          signal: ctrl.signal,
-        });
-
-        if (res.status === 401) {
-          setMetrics(EMPTY);
-          setError("unauthorized");
-          return;
-        }
-
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(`Request failed: ${res.status} ${text}`);
-        }
-
-        const data = (await res.json()) as DashboardMetrics;
+        const data = await api<DashboardMetrics>("/dashboard/metrics");
         setMetrics(data ?? EMPTY);
       } catch (e: any) {
-        if (e?.name !== "AbortError") {
-          console.error("Failed to fetch dashboard metrics:", e);
-          setMetrics(EMPTY);
-          setError(e?.message || "error");
-        }
+        setError(e?.message || "error");
+        setMetrics(EMPTY);
       } finally {
         setLoading(false);
       }
-    }
-
-    fetchMetrics();
-    return () => ctrl.abort();
+    };
+    run();
   }, []);
 
   return { metrics, loading, error };

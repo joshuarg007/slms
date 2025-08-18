@@ -1,19 +1,10 @@
-// src/auth.ts
+// src/utils/auth.ts
+// With httpOnly cookies, JS can't read tokens; we rely on API responses.
 
-// Optional helpers if you later add login flows
-export function setAccessToken(token: string) {
-  localStorage.setItem("access_token", token);
-}
-
-export function getAccessToken(): string {
-  return localStorage.getItem("access_token") || "";
-}
-
-export function isAuthenticated(): boolean {
-  return !!getAccessToken();
-}
-
-export function logout() {
-  localStorage.removeItem("access_token");
-  window.location.href = "/";
+export async function logout() {
+  try {
+    const baseUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+    await fetch(`${baseUrl}/logout`, { method: "POST", credentials: "include" });
+  } catch {}
+  window.location.href = "/login";
 }

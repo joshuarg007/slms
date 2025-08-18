@@ -1,87 +1,76 @@
-import React, { useState } from "react";
-import { Navigate } from "react-router-dom";
-import { isAuthenticated, setAccessToken } from "../utils/auth";
+// src/pages/Login.tsx
+import { FormEvent, useState } from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import { api } from "@/utils/api";
 
-const LoginPage: React.FC = () => {
-  // If already logged in, don’t show login page
-  if (isAuthenticated()) return <Navigate to="/dashboard" replace />;
-
+export default function LoginPage() {
+  const nav = useNavigate();
+  const loc = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
-
+    setErr(null);
+    setLoading(true);
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
-      const response = await fetch(`${baseUrl}/token`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ username: email, password }),
-      });
-
-      if (!response.ok) {
-        setError("Invalid credentials");
-        return;
-      }
-
-      const data = await response.json();
-      if (!data?.access_token) {
-        setError("No access token returned");
-        return;
-      }
-
-      setAccessToken(data.access_token);
-      window.location.href = "/dashboard";
-    } catch {
-      setError("Server error");
+      await api.login(email, password); // stores Bearer token
+      const to = (loc.state as any)?.from?.pathname || "/";
+      nav(to, { replace: true });
+    } catch (e: any) {
+      setErr(e?.message || "Login failed");
+    } finally {
+      setLoading(false);
     }
-  };
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
-        <h2 className="text-2xl font-semibold mb-6 text-center">Login to SLMS</h2>
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              type="email"
-              className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-200"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="username"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
-            <input
-              type="password"
-              className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-200"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition"
-          >
-            Sign In
-          </button>
-          <div className="text-center mt-4">
-            <a href="/signup" className="text-indigo-600 hover:underline text-sm">
-              Don’t have an account? Sign up
-            </a>
-          </div>
-        </form>
-      </div>
+    <div className="min-h-screen grid place-items-center bg-gray-50 p-6">
+      <form
+        onSubmit={onSubmit}
+        className="w-full max-w-sm bg-white p-6 rounded-2xl shadow"
+      >
+        <h1 className="text-xl font-semibold mb-4">Sign in</h1>
+
+        {err && <div className="mb-3 text-sm text-red-600">{err}</div>}
+
+        <label className="block mb-2 text-sm">Email</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="w-full border rounded-md p-2 mb-4"
+          placeholder="you@company.com"
+        />
+
+        <label className="block mb-2 text-sm">Password</label>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          className="w-full border rounded-md p-2 mb-6"
+          placeholder="••••••••"
+        />
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-md bg-blue-600 text-white py-2 disabled:opacity-60"
+        >
+          {loading ? "Signing in…" : "Sign in"}
+        </button>
+
+        <div className="mt-4 text-sm text-gray-600">
+          Don’t have an account?{" "}
+          <Link to="/signup" className="font-medium text-blue-600 hover:underline">
+            Create one
+          </Link>
+        </div>
+      </form>
     </div>
   );
-};
-
-export default LoginPage;
+}

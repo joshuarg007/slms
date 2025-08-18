@@ -1,40 +1,43 @@
 // src/components/Navbar.tsx
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import { logout } from "../utils/auth";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { api } from "@/utils/api";
 
-const Navbar: React.FC = () => {
-  const location = useLocation();
+export default function Navbar() {
+  const nav = useNavigate();
+  const loc = useLocation();
 
-  // Hide navbar on login/signup and root (where LoginPage lives)
-  const hideOnRoutes = ["/", "/login", "/signup"];
-  if (hideOnRoutes.includes(location.pathname)) {
-    return null;
+  async function onSignOut() {
+    try {
+      await api.logout();   // clears server cookies
+    } catch {
+      /* ignore */
+    } finally {
+      // also clear local token and bounce to login
+      api.clearToken?.();
+      nav("/login", { replace: true, state: { from: loc } });
+    }
   }
 
+  const isActive = (p: string) =>
+    (loc.pathname === p || (p !== "/" && loc.pathname.startsWith(p)))
+      ? "text-blue-600"
+      : "text-gray-700";
+
   return (
-    <nav className="bg-indigo-700 text-white px-6 py-4 shadow-md flex justify-between items-center">
-      <div className="text-lg font-bold">
-        <Link to="/dashboard" className="hover:underline">
-          SLMS Dashboard
-        </Link>
-      </div>
-      <div className="space-x-4">
-        <Link to="/dashboard" className="hover:underline">
-          Dashboard
-        </Link>
-        <Link to="/leads" className="hover:underline">
-          Leads
-        </Link>
-        <Link to="/widget-test" className="hover:underline">
-          Test Widget
-        </Link>
-        <button onClick={logout} className="bg-red-500 px-4 py-2 rounded hover:bg-red-600">
-          Sign Out
+    <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b">
+      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+        <nav className="flex items-center gap-6">
+          <Link to="/" className="text-lg font-semibold">SLMS</Link>
+          <Link to="/" className={`text-sm hover:underline ${isActive("/")}`}>Dashboard</Link>
+          <Link to="/leads" className={`text-sm hover:underline ${isActive("/leads")}`}>Leads</Link>
+        </nav>
+        <button
+          onClick={onSignOut}
+          className="text-sm px-3 py-1.5 rounded-md border bg-gray-50 hover:bg-gray-100"
+        >
+          Sign out
         </button>
       </div>
-    </nav>
+    </header>
   );
-};
-
-export default Navbar;
+}
