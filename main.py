@@ -24,6 +24,9 @@ from app.api import hubspot
 from app.integrations.hubspot import create_contact
 from app.api.routes import dashboard
 
+from app.api.routes.hubspot_stats import router as hubspot_stats_router  
+
+from app.api.routes.public_leads import router as public_leads_router
 
 # -----------------------------------
 # App & CORS
@@ -41,6 +44,8 @@ app.add_middleware(
 # Routers
 app.include_router(hubspot.router, prefix="/api")
 app.include_router(dashboard.router, tags=["Dashboard"])
+app.include_router(hubspot_stats_router) 
+app.include_router(public_leads_router)
 
 # DB
 models.Base.metadata.create_all(bind=engine)
