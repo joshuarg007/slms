@@ -1,87 +1,20 @@
 # SLMS — Sales Lead Management System
 
-A pragmatic stack for capturing leads, syncing with your CRM, and turning activity into useful analytics. It starts simple (public lead capture + salesperson stats) and grows into lead analytics and ML‑driven scoring/coaching.
-
-> **CRM support**
-> - **Today:** HubSpot (private app token)
-> - **Next:** Pipedrive, Nutshell CRM, Salesforce
-> - Design: provider adapters behind a single interface (owners, contacts upsert, deals search). Switch providers via config without touching the app routes.
+A practical stack for capturing leads, syncing with your CRM, and turning activity into useful analytics. Start simple (public lead capture + salesperson stats), then add lead analytics and ML-driven scoring/coaching. HubSpot works today; Pipedrive, Nutshell, and Salesforce are on the roadmap.
 
 ---
 
-## What you get
+## Why the frontend matters
 
-**Today**
-- Lead capture API (`/public/leads`) that creates or updates a contact in the connected CRM (HubSpot now).
-- Salesperson analytics: owners, health checks, and per‑owner rollups (emails, calls, meetings, new deals).
-- Debug helpers to see the exact deal rows feeding the metrics.
-- Minimal, embeddable lead widget (static form) with a path to a drag‑and‑drop builder.
-
-**Next (planned)**
-- Drag‑and‑drop form builder to ship brand‑consistent widgets without code.
-- Lead analytics (trends, conversion by source/campaign, funnel views).
-- **AI/ML for leads and reps:** lead scoring, weekly summaries, rep activity quality, pipeline health, anomaly detection, coaching tips.
-- Scheduled jobs for daily refresh and weekly digests.
-- Admin UI for orgs, sources, and widget management.
-- **Multi‑CRM adapters:** Pipedrive/Nutshell/Salesforce implementations of the same interface.
+The frontend is not an afterthought. It is where teams see the numbers and act:
+- A clean dashboard for lead and salesperson analytics.
+- A test page and embeddable widget to capture leads directly from your site.
+- A foundation for future tools: drag‑and‑drop widget builder, funnel views, and AI insights.
+Keep the frontend running in dev as you wire new endpoints—feedback is immediate.
 
 ---
 
-## Architecture (short version)
-
-- **Backend:** FastAPI (Python), Pydantic models, Alembic migrations.
-- **CRM adapters:** `hubspot` (now), `pipedrive` / `nutshell` / `salesforce` (planned) behind a common interface:
-  - `list_owners()`, `upsert_contact()`, `search_deals(created_since=…, owner=…)`, `count_activity(kind=…)`
-- **Frontend:** React/Vite app (dashboard + simple embed widget).
-- **Database:** Postgres for local/prod analytics snapshots. Current slice reads directly from CRM.
-- **AI/ML (planned):** background worker for lead/revenue models, salesperson insights, summaries, report generation (PDF/HTML).
-
----
-
-## Setup
-
-### Requirements
-- Python 3.11+
-- Node 18+ (frontend/dashboard)
-- Postgres 14+
-- CRM credentials (HubSpot now; others later)
-
-### Environment
-Create `.env` in the repo root. The provider switch is explicit:
-
-```env
-# Core
-DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/slms_local
-
-# CRM provider selection
-CRM_PROVIDER=hubspot   # hubspot | pipedrive | nutshell | salesforce
-
-# HubSpot (current implementation)
-HUBSPOT_API_KEY=pat-na1-...your-token...
-```
-
-### HubSpot scopes (for the current adapter)
-
-**Required**
-- crm.objects.owners.read
-- crm.objects.contacts.write
-- crm.objects.deals.read
-
-**Optional (recommended)**
-- crm.objects.contacts.read        # upsert search by email
-- crm.objects.deals.write          # seed test deals from scripts
-- crm.objects.appointments.read    # meetings via Appointments where supported
-
-Restart the API after changing tokens or scopes.
-
-> **Future providers**
-> - **Pipedrive:** personal API token; permissions for deals, persons, activities.
-> - **Nutshell:** API key/secret; permissions for leads/contacts/activities.
-> - **Salesforce:** OAuth connected app; scopes for users, contacts/leads, opportunities, events/tasks.
-
----
-
-## Run it
+## Quick start
 
 ### Backend
 ```bash
@@ -92,42 +25,62 @@ alembic upgrade head
 uvicorn main:app --reload --port 8000
 ```
 
-### Frontend (dashboard + basic embed)
+### Frontend (recommended to run alongside the API)
 ```bash
 cd slms-frontend
-npm i
-# optional API override:
+npm install
+# optional: point to your API
 #   echo VITE_API_URL=http://127.0.0.1:8000 > .env.local
 npm run dev
 ```
 
 ---
 
+## Environment
+
+Create `.env` in the repo root:
+
+```env
+# Database
+DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/slms_local
+
+# CRM provider
+CRM_PROVIDER=hubspot   # hubspot | pipedrive | nutshell | salesforce
+
+# HubSpot (current adapter)
+HUBSPOT_API_KEY=pat-na1-...your-token...
+```
+
+### HubSpot scopes (current adapter)
+
+**Required**
+- crm.objects.owners.read
+- crm.objects.contacts.write
+- crm.objects.deals.read
+
+**Optional (recommended)**
+- crm.objects.contacts.read        # upsert search by email
+- crm.objects.deals.write          # seed test deals from scripts
+- crm.objects.appointments.read    # meetings where supported
+
+Restart the API after changing tokens or scopes.
+
+---
+
+## CRM support
+
+- **Today:** HubSpot with Private App token.
+- **Next:** Pipedrive, Nutshell CRM, Salesforce via pluggable adapters.
+- Design: provider modules behind a single interface (`list_owners`, `upsert_contact`, `search_deals`, etc.). Switch providers via `CRM_PROVIDER` without touching routes.
+
+---
+
 ## Lead capture
 
-### Public API (implemented)
-`POST /public/leads` — creates or updates a contact in the active CRM adapter.
+### Embeddable widget (implemented)
+Use the widget to POST to `/public/leads`. You can also post JSON directly from any form.
 
-Body (send what you have):
-```json
-{
-  "email": "alex@example.com",
-  "name": "Alex Example",
-  "first_name": "Alex",
-  "last_name": "Example",
-  "phone": "555-0100",
-  "company": "Acme"
-}
-```
-
-Response:
-```json
-{ "status": "ok | updated | exists", "crm_contact_id": "123456", "email": "alex@example.com" }
-```
-
-### Embeddable widget (basic, implemented)
-A minimal form that POSTs to `/public/leads` from any site:
-
+Minimal HTML example:
 ```html
 <form action="http://127.0.0.1:8000/public/leads" method="post">
   <input type="email" name="email" placeholder="Email" required />
@@ -138,83 +91,102 @@ A minimal form that POSTs to `/public/leads` from any site:
 </form>
 ```
 
-XHR/Fetch with JSON works too.
+API behavior: creates or updates a contact in the active CRM and returns `{ status: ok | updated | exists, crm_contact_id, email }`.
 
-### Drag‑and‑drop builder (planned)
-- Visual builder to assemble fields, copy an embed snippet, and track conversions per widget.
-- Hosted script: `<script src="https://cdn.yoursite/widget.js" data-endpoint="..."></script>`
-- Auto‑append `source`, `organization_id`, and campaign params in the background.
+### Drag‑and‑drop builder (roadmap)
+Visual builder to compose fields, generate an embed snippet, and track conversions per widget. Hosted script option with `data-*` attributes for source and organization.
 
 ---
 
-## Salesperson analytics (implemented)
+## Analytics
 
-**Endpoints**
+### Salesperson analytics (implemented)
+Endpoints:
 - `GET /integrations/hubspot/salespeople/stats?days=7&owner_id=...&owner_email=...`
 - `GET /integrations/hubspot/salespeople/owners`
 - `GET /integrations/hubspot/salespeople/health`
 - `GET /integrations/hubspot/salespeople/raw`
 - `GET /integrations/hubspot/salespeople/debug/deals?owner_id=...&days=...`
 
-**How it works (current adapter)**
-- New deals are counted by created date; owner is filtered in code (resilient on fresh portals).
-- Meetings come from the `appointments` object when available; otherwise remain zero.
-- Emails and calls are included when the portal exposes those engagement objects.
+Notes:
+- New deals are counted by created date; owner is filtered in code (reliable on fresh portals).
+- Meetings come from Appointments where available; emails/calls appear when the portal exposes those objects.
 
-**AI for salesperson stats (planned)**
-- **Activity quality score** per rep (weights emails/calls/meetings by recency, reply rates, and deal impact).
-- **Pipeline health** (stale deals, unusual stage time, sandbag/risk flags).
-- **Anomalies** (sudden drops vs historical baselines).
-- **Coaching tips** (next best actions by rep/account).
-
----
-
-## Lead analytics (planned)
-
-**Goals**
-- Capture rate over time, by source and campaign.
-- Form performance per widget (views → submits → valid contacts).
-- Funnel views from lead to deal with stage breakdowns.
+### Lead analytics (roadmap)
+- Capture rate by source/campaign and over time.
+- Form performance (views → submits → valid contacts).
+- Funnel from lead to deal with stage breakdowns.
 - Team and individual drill‑downs.
 
-**Data**
-- Mix of CRM reads + local aggregates (Postgres).
-- Daily job to snapshot metrics for fast dashboards.
+---
 
-**AI for leads (planned)**
-- **Lead scoring** using recency, source quality, and prior conversions.
-- **Summaries & reports** with highlights, outliers, and prioritized actions.
-- Export weekly reports to PDF/HTML.
+## AI/ML (roadmap)
+
+**For leads**
+- Lead scoring using recency, source quality, and prior conversions.
+- Weekly summaries and report generation (PDF/HTML).
+
+**For salesperson stats**
+- Activity quality scores by rep (weights emails/calls/meetings with recency and outcomes).
+- Pipeline health, anomalies, and coaching tips (next best actions).
+
+Draft APIs:
+- `POST /ai/score-lead`
+- `GET /reports/weekly?org_id=...`
+- `GET /analytics/salespeople/insights?org_id=...`
 
 ---
 
-## API sketch (AI/Reports — planned)
+## Project structure (high level)
 
-- `POST /ai/score-lead` — return a score and reasons.
-- `GET /reports/weekly?org_id=...` — prebuilt weekly summary (HTML/PDF).
-- `GET /analytics/salespeople/insights?org_id=...` — rep insights and coaching prompts.
-
----
-
-## Project layout
-
-```
+```text
 app/
   api/
     routes/            # FastAPI routers (stats, public leads, debug)
   integrations/
     hubspot.py         # current CRM adapter
-    # pipedrive.py, nutshell.py, salesforce.py  (planned)
+    # pipedrive.py, nutshell.py, salesforce.py  (planned adapters)
   schemas/
     lead.py            # public/internal lead payloads
     salesperson.py     # stats response models
+
 slms-frontend/
-  ...                  # React/Vite app (dashboard + basic embed)
+  public/
+    test_widget.html
+    vite.svg
+  src/
+    assets/
+    components/
+      AppLayout.tsx
+      DashboardCharts.tsx
+      ErrorBoundary.tsx
+      Navbar.tsx
+      PrivateRoute.tsx
+      ProtectedRoute.tsx
+    hooks/
+      useDashboardMetrics.ts
+    pages/
+      DashboardPage.tsx
+      LeadsPage.tsx
+      LoginPage.tsx
+      SignupPage.tsx
+      WidgetTestPage.tsx
+    utils/
+      api.ts
+      auth.ts
+    App.tsx
+    index.css
+    main.tsx
+    vite-env.d.ts
+  index.html
+  package.json
 ```
+
+Keep the tree shallow in the README (2–3 levels) so it stays readable.
 
 ---
 
-## Quick checks (PowerShell examples)
+## Quick checks (PowerShell)
 
 ```powershell
 $base = "http://127.0.0.1:8000"
@@ -237,11 +209,11 @@ $body = @{ email="test@example.com"; name="Test User"; phone="555-0100"; company
 ---
 
 ## Notes
-- Current implementation targets HubSpot; the adapter interface makes it straightforward to add Pipedrive/Nutshell/Salesforce.
+- Current implementation targets HubSpot; adapters make Pipedrive/Nutshell/Salesforce straightforward.
 - When engagement objects aren’t exposed in a portal, related counts return zero without errors.
 - The backend reads `.env` on startup; restart after changing it.
 - Keep tokens out of logs and commits.
 
 ---
 
-_last updated: 2025-08-27
+_Last updated: 2025-08-27_
