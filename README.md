@@ -1,231 +1,107 @@
-# SLMS — Multi‑Tenant Leads Management
+# SLMS — Multi‑Tenant Lead Management
 
-FastAPI + React/Vite reference implementation for a small, **multi‑tenant** leads system.
-
-- **Tenancy**: Every User and Lead belongs to an **Organization**. All reads & writes are scoped.
-- **Public intake**: 3rd‑party forms can create leads via `/public/leads` using an **org API key**.
-- **Auth**: Cookie + **Bearer** hybrid. SPA stores `access_token` and auto‑refreshes on 401.
-- **DB**: SQLite by default (Postgres recommended for prod). Alembic migrations included.
+FastAPI backend with a minimal React/Vite frontend for a small multi‑tenant lead system. 
+Local setup is quick; production uses Postgres. HubSpot integration is included for 
+salesperson stats and public lead intake.
 
 ---
 
-## Contents
+## What’s here
+- FastAPI app (`uvicorn`) with Pydantic models and Alembic migrations
+- HubSpot integration (owners, deals, basic engagement counts)
+- Public lead **upsert** endpoint (creates or updates contact in HubSpot)
+- Health/owners/debug endpoints to sanity‑check tokens and scopes
 
-- [Architecture](#architecture)
-- [Quick start](#quick-start)
-- [Backend (FastAPI)](#backend-fastapi)
-  - [Environment variables](#environment-variables)
-  - [Run locally](#run-locally)
-  - [Database & Alembic](#database--alembic)
-  - [API endpoints](#api-endpoints)
-  - [cURL recipes](#curl-recipes)
-- [Frontend (React/Vite)](#frontend-reactvite)
-  - [Dev server](#dev-server)
-  - [Routing & guards](#routing--guards)
-  - [API helper](#api-helper)
-- [Tenancy model](#tenancy-model)
-- [Troubleshooting](#troubleshooting)
-- [Production notes](#production-notes)
+## Requirements
+- Python 3.11+
+- Node 18+ (if running the optional frontend)
+- Postgres 14+ (for local/prod DB)
+- A HubSpot **Private App** token with scopes listed below
 
----
+## Environment
+Create `.env` in the project root:
 
-## Architecture
+```env
+# Database
+DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/slms_local
 
-```
-/ (repo root)
-├─ slms/                 # FastAPI backend (this may be your current root)
-│  ├─ main.py            # App entrypoint (cookie+Bearer auth, routes)
-│  ├─ app/db/models.py   # SQLAlchemy models (Lead, User, Organization)
-│  ├─ app/db/session.py  # Session/engine glue
-│  ├─ alembic/           # Migrations (SQLite-safe)
-│  └─ ...
-└─ slms-frontend/        # React + Vite + Tailwind
-   ├─ src/
-   │  ├─ App.tsx
-   │  ├─ main.tsx
-   │  ├─ utils/api.ts              # Bearer + refresh-on-401 helper
-   │  ├─ components/ProtectedRoute.tsx
-   │  ├─ components/AppLayout.tsx
-   │  ├─ components/Navbar.tsx
-   │  └─ pages/
-   │     ├─ LoginPage.tsx
-   │     ├─ SignupPage.tsx
-   │     ├─ DashboardPage.tsx
-   │     └─ LeadsPage.tsx
-   ├─ vite.config.ts               # @ alias → src
-   ├─ tsconfig.json                # paths config for alias
-   └─ index.html / index.css
+# HubSpot private app token
+HUBSPOT_API_KEY=pat-na1-...your-token...
 ```
 
----
-
-## Quick start
-
-### 1) Backend
+## Install & run (backend)
 ```bash
-# from: slms/  (or your backend folder)
 python -m venv venv
-./venv/Scripts/activate          # (Windows)  OR  source venv/bin/activate (mac/linux)
-
-pip install -r requirements.txt  # or: pip install fastapi uvicorn alembic sqlalchemy passlib[bcrypt] python-jose
-
-# env (optional; see below). For dev SQLite is fine.
-set SECRET_KEY=dev-secret-change-me
-
+# Windows: .\venv\Scripts\activate    # mac/linux: source venv/bin/activate
+pip install -r requirements.txt
 alembic upgrade head
 uvicorn main:app --reload --port 8000
 ```
 
-### 2) Frontend
-```bash
-# from: slms-frontend/
-npm i
-# point the SPA to the API (defaults to http://127.0.0.1:8000 if not set)
-# echo VITE_API_URL=http://127.0.0.1:8000 > .env.local   # optional
-npm run dev
-```
-
-Open: http://localhost:5173
-
----
-
-## Backend (FastAPI)
-
-### Environment variables
-
-| Name           | Default                 | Notes                                           |
-|----------------|-------------------------|-------------------------------------------------|
-| `SECRET_KEY`   | `dev-secret-change-me`  | HMAC for JWTs (access & refresh). Replace in prod. |
-| `DATABASE_URL` | `sqlite:///./test.db`   | Use Postgres in prod: `postgresql+psycopg://...` |
-| `CORS_ORIGINS` | `http://localhost:5173` | Configured directly in `main.py` for dev.       |
-
-### Run locally
-
-```bash
-uvicorn main:app --reload --port 8000
-# OpenAPI: http://127.0.0.1:8000/openapi.json
-# Docs:    http://127.0.0.1:8000/docs
-```
-
-### Database & Alembic
-
-The schema includes Organizations and FKs on Users and Leads. Migrations are **SQLite‑safe**.
-
-```bash
-# upgrade to latest
-alembic upgrade head
-
-# create a new migration after model changes
-alembic revision -m "your message"
-alembic upgrade head
-```
-
-### API endpoints
-
-**Auth & user**
-- `POST /signup` — create user; assigns **Organization** by email domain (creates org if needed).
-- `POST /token` — login (form‑encoded). Returns JSON `{ access_token, token_type }` and sets cookies.
-- `POST /token/refresh` — issues a **new access token** and sets cookies; returns `{ access_token, token_type }`.
-- `POST /logout` — clears cookies.
-- `GET /me` — returns `{ email }` for the current user.
-
-**Tenancy & data**
-- `GET /leads` — list leads **for your organization**. Supports `q`, `sort`, `dir`, `page`, `page_size`.
-- `GET /dashboard/metrics` — simple org‑scoped metrics.
-- `POST /orgs/key/rotate` — rotate and return your org’s **API key**.
-
-**Public intake**
-- `POST /public/leads` — create a lead for an org using header `X-Org-Key: <api_key>`. Server sets `organization_id`, ignoring any client attempt.
-
-### cURL recipes
-
-```bash
-API=http://127.0.0.1:8000
-
-# Signup
-curl -X POST "$API/signup" -H "Content-Type: application/json" \
-  -d '{"email":"alice@acme.com","password":"secret"}'
-
-# Login (saves cookies + returns access_token; both are supported)
-curl -c cookies.txt -b cookies.txt -X POST "$API/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  --data-urlencode "username=alice@acme.com" \
-  --data-urlencode "password=secret"
-
-# Rotate org key (requires auth; uses cookies)
-curl -b cookies.txt -X POST "$API/orgs/key/rotate"
-
-# Create public lead (copy api_key from rotate response)
-curl -X POST "$API/public/leads" -H "Content-Type: application/json" \
-  -H "X-Org-Key: <api_key>" \
-  -d '{"email":"demo.lead@example.com","name":"Demo Lead","source":"web"}'
-
-# List org leads (using Bearer from /token)
-TOKEN="<paste access_token>"
-curl -H "Authorization: Bearer $TOKEN" "$API/leads"
-```
-
----
-
-## Frontend (React/Vite)
-
-### Dev server
-
+## (Optional) Frontend
 ```bash
 cd slms-frontend
 npm i
+# set API URL if needed:
+#   echo VITE_API_URL=http://127.0.0.1:8000 > .env.local
 npm run dev
-# open http://localhost:5173
-# ensure VITE_API_URL matches your API if not default
 ```
 
-**Path alias**: `@` → `src` (configured in `vite.config.ts` + `tsconfig.json`).
+## HubSpot setup
+Private App → Scopes (minimum):
+- crm.objects.owners.read
+- crm.objects.contacts.write
+- crm.objects.deals.read
 
-### Routing & guards
+Nice to have:
+- crm.objects.contacts.read (upsert search by email)
+- crm.objects.deals.write (seed test deals from scripts)
+- crm.objects.appointments.read (meetings via Appointments where supported)
 
-- `ProtectedRoute` checks `/me` using the stored Bearer token.
-- Private routes are wrapped with `ProtectedRoute` and a simple `AppLayout` (Navbar w/ Sign out).
+Restart the API after changing scopes or tokens.
 
-### API helper
+## Key endpoints
 
-`src/utils/api.ts`:
-- Stores `access_token` (localStorage) and sends `Authorization: Bearer ...` on every request.
-- On **401**, calls `/token/refresh`, updates the Bearer token, and **retries once**.
-- Exposes helpers: `login`, `logout`, `me`, `getLeads`, `getDashboardMetrics`, `createPublicLead`, `refresh`.
+**Salesperson stats**
+- `GET /integrations/hubspot/salespeople/stats?days=7&owner_id=...&owner_email=...`
+  - returns per‑owner rollups: emails, calls, meetings, new deals
+- `GET /integrations/hubspot/salespeople/owners`
+- `GET /integrations/hubspot/salespeople/health`
+- `GET /integrations/hubspot/salespeople/debug/deals?owner_id=...&days=...`
+
+**Public intake**
+- `POST /public/leads`
+  - Body (any subset): `email`, `name`, `first_name`, `last_name`, `phone`, `company`
+  - Behavior: create or update HubSpot contact; returns `ok | updated | exists`
+
+## Quick tests (PowerShell)
+
+**Owners / health**
+```powershell
+$base = "http://127.0.0.1:8000"
+(Invoke-WebRequest -Uri "$base/integrations/hubspot/salespeople/health").Content | ConvertFrom-Json | Format-List
+(Invoke-WebRequest -Uri "$base/integrations/hubspot/salespeople/owners").Content  | ConvertFrom-Json | Format-Table id,email -AutoSize
+```
+
+**Stats**
+```powershell
+(Invoke-WebRequest -Uri "$base/integrations/hubspot/salespeople/stats?days=90" -Method GET).Content |
+  ConvertFrom-Json | Select-Object -ExpandProperty results |
+  Format-Table owner_id,owner_name,new_deals_last_n_days -AutoSize
+```
+
+**Public lead upsert**
+```powershell
+$body = @{ email="test@example.com"; name="Test User"; phone="555-0100"; company="Acme" } | ConvertTo-Json
+(Invoke-WebRequest -Uri "$base/public/leads" -Method POST -ContentType "application/json" -Body $body).Content |
+  ConvertFrom-Json | Format-List
+```
+
+## Notes
+- Meetings come from Appointments where available; if not, counts remain zero.
+- Deals are counted by created date; owner is filtered in code to tolerate fresh‑index delays.
+- The backend reads `.env` on startup; restart after changing it.
 
 ---
 
-## Tenancy model
-
-- `Organization` (name, domain, **api_key**)
-- `User.organization_id` (FK). **Login never changes org.**
-- `Lead.organization_id` (FK). All `/leads` queries are **org‑scoped**.
-- `/public/leads` requires `X-Org-Key`. The server **overwrites** `organization_id` to the key owner.
-
-**Result:** no cross‑org read or write is possible from the client.
-
----
-
-## Troubleshooting
-
-- **White/blank page**: make sure `src/main.tsx` imports `./index.css` and that your routes render.
-- **Stuck on login page**: check `ProtectedRoute` can call `/me`, and that `api.login()` stored a token.
-- **401 Not authenticated**: the SPA will refresh once automatically. If it persists, verify cookies are allowed for your dev origin and that `VITE_API_URL` points to the backend.
-- **“/token not found”**: ensure the `POST /token` route exists in `main.py` and the server was restarted.
-- **SQLite alter constraint errors**: migrations are batch‑mode/SQLite‑safe. If you wrote new ones, use Alembic batch ops for SQLite.
-
----
-
-## Production notes
-
-- Use **HTTPS** and set cookies `secure=True` in `main.py`.
-- Replace `SECRET_KEY` and switch to **Postgres** (`DATABASE_URL`).
-- Restrict **CORS** origins to your frontend domain(s).
-- Rotate org **api_key** from an admin‑only screen; never log or expose it elsewhere.
-- Consider rate limiting on `/public/leads` per API key and background delivery to CRMs.
-
----
-
-## License
-
-Private/internal project. Add your own license if you plan to distribute.
+Condensed README generated on 2025-08-27. Based on the original project README.
