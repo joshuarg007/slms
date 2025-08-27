@@ -1,7 +1,8 @@
-// src/pages/DashboardPage.tsx
 import { useEffect, useState } from "react";
 import { api, type DashboardMetrics } from "@/utils/api";
 import { Link } from "react-router-dom";
+import SalespersonStatsTable from "@/components/SalespersonStatsTable";
+import OwnersSelect from "@/components/OwnersSelect";
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardMetrics | null>(null);
@@ -25,9 +26,13 @@ export default function DashboardPage() {
     load();
   }, []);
 
+  // filters for salesperson section
+  const [days, setDays] = useState<number>(90);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
+
   if (loading) {
     return (
-      <div className="min-h-screen grid place-items-center">
+      <div className="min-h-[40vh] grid place-items-center">
         <div className="text-gray-600">Loading dashboard…</div>
       </div>
     );
@@ -35,16 +40,11 @@ export default function DashboardPage() {
 
   if (err) {
     return (
-      <div className="min-h-screen grid place-items-center">
-        <div className="bg-white shadow rounded-2xl p-6 max-w-md w-full">
-          <div className="text-red-600 mb-3">{err}</div>
-          <button
-            onClick={load}
-            className="rounded-md bg-blue-600 text-white px-4 py-2"
-          >
-            Retry
-          </button>
-        </div>
+      <div className="bg-white shadow rounded-2xl p-6 max-w-md">
+        <div className="text-red-600 mb-3">{err}</div>
+        <button onClick={load} className="rounded-md bg-blue-600 text-white px-4 py-2">
+          Retry
+        </button>
       </div>
     );
   }
@@ -53,19 +53,16 @@ export default function DashboardPage() {
   const bySource = data?.by_source ?? {};
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <header className="mb-6 flex items-center justify-between">
+    <div className="space-y-8">
+      <header className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <button
-          onClick={load}
-          className="rounded-md bg-blue-600 text-white px-4 py-2"
-        >
+        <button onClick={load} className="rounded-md bg-blue-600 text-white px-4 py-2">
           Refresh
         </button>
       </header>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-2xl shadow p-5">
           <div className="text-sm text-gray-500">Total Leads</div>
           <div className="text-3xl font-semibold mt-1">{total}</div>
@@ -82,7 +79,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Sources table */}
+      {/* Leads by Source (kept first) */}
       <div className="bg-white rounded-2xl shadow overflow-hidden">
         <div className="px-5 py-4 border-b">
           <h2 className="text-lg font-medium">Leads by Source</h2>
@@ -118,6 +115,32 @@ export default function DashboardPage() {
             </tbody>
           </table>
         )}
+      </div>
+
+      {/* Salesperson stats (filters inline since global sidebar is now persistent) */}
+      <div className="bg-white rounded-2xl shadow overflow-hidden">
+        <div className="px-5 py-4 border-b flex flex-wrap items-center gap-3 justify-between">
+          <h2 className="text-lg font-medium">Salesperson Stats</h2>
+          <div className="flex items-center gap-3">
+            <label className="text-sm text-gray-600">
+              <span className="mr-2">Window</span>
+              <select
+                value={days}
+                onChange={(e) => setDays(Number(e.target.value))}
+                className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+              >
+                <option value={7}>Last 7 days</option>
+                <option value={30}>Last 30 days</option>
+                <option value={90}>Last 90 days</option>
+              </select>
+            </label>
+            <div className="min-w-[220px]">
+              <OwnersSelect value={ownerId} onChange={setOwnerId} />
+            </div>
+          </div>
+        </div>
+
+        <SalespersonStatsTable days={days} ownerId={ownerId} />
       </div>
     </div>
   );
