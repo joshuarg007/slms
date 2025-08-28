@@ -1,11 +1,310 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Widget Test Page</title>
-  </head>
-  <body>
-    <h1>Embedded Lead Widget Demo</h1>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SLMS Lead Widget (Test)</title>
 
-    <script src="http://127.0.0.1:8000/static/widget.js"></script>
-  </body>
+  <!-- Let browsers auto-tint built-in UI -->
+  <meta name="color-scheme" content="light dark" />
+
+  <style>
+    :root { color-scheme: light dark; }
+    /* ---------- Base ---------- */
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      line-height: 1.4;
+    }
+
+    /* Page backdrop (not the card) */
+    body {
+      background: #f3f4f6;           /* gray-100 */
+      color: #111827;                /* gray-900 */
+    }
+    html.dark body {
+      background: #0b0f19;           /* near black */
+      color: #f3f4f6;                /* gray-100 */
+    }
+
+    /* Layout */
+    .wrap {
+      max-width: 720px;
+      margin: 24px auto;
+      padding: 0 16px;
+    }
+
+    /* ---------- Card ---------- */
+    .card {
+      background: #ffffff;           /* white card (light) */
+      border: 1px solid #e5e7eb;     /* gray-200 */
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow:
+        0 1px 2px rgba(0,0,0,.06),
+        0 8px 18px rgba(0,0,0,.06);
+    }
+    html.dark .card {
+      background: #18181b;           /* zinc-900 */
+      border-color: #3f3f46;         /* zinc-700 */
+      box-shadow:
+        0 1px 2px rgba(0,0,0,.5),
+        0 8px 18px rgba(0,0,0,.4);
+    }
+
+    .card h1 {
+      font-size: 20px;
+      margin: 0 0 8px;
+      color: inherit;                /* keep high contrast */
+    }
+    .card p.sub {
+      margin: 0 0 16px;
+      color: #374151;                /* gray-700 for readability */
+    }
+    html.dark .card p.sub {
+      color: #d1d5db;                /* gray-300 */
+    }
+
+    /* ---------- Form ---------- */
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 640px) {
+      .row { grid-template-columns: 1fr; }
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      margin: 10px 0 6px;
+      color: inherit;
+    }
+
+    .field {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;     /* gray-300 */
+      background: #ffffff;
+      color: #111827;
+      outline: none;
+    }
+    .field:focus {
+      border-color: #2563eb;         /* blue-600 */
+      box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+    }
+
+    html.dark .field {
+      border-color: #374151;         /* gray-700 */
+      background: #111827;           /* gray-900 */
+      color: #f3f4f6;                /* gray-100 */
+    }
+    html.dark .field:focus {
+      border-color: #60a5fa;         /* blue-400 */
+      box-shadow: 0 0 0 3px rgba(96,165,250,.25);
+    }
+
+    .actions {
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      background: #2563eb;           /* blue-600 */
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn:hover { filter: brightness(1.08); }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+
+    .muted {
+      font-size: 12px;
+      color: #6b7280;                /* gray-500 */
+    }
+    html.dark .muted { color: #9ca3af; } /* gray-400 */
+
+    /* ---------- Status ---------- */
+    .alert {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid;
+      font-size: 14px;
+    }
+    .ok {
+      background: #ecfdf5;           /* emerald-50 */
+      border-color: #10b981;         /* emerald-500 */
+      color: #065f46;                /* emerald-800 */
+    }
+    .warn {
+      background: #fffbeb;           /* amber-50 */
+      border-color: #f59e0b;         /* amber-500 */
+      color: #92400e;                /* amber-800 */
+    }
+    .err {
+      background: #fef2f2;           /* red-50 */
+      border-color: #ef4444;         /* red-500 */
+      color: #991b1b;                /* red-800 */
+    }
+    html.dark .ok   { background: #064e3b; border-color:#34d399; color:#d1fae5; }
+    html.dark .warn { background: #78350f; border-color:#fbbf24; color:#fffbeb; }
+    html.dark .err  { background: #7f1d1d; border-color:#f87171; color:#fee2e2; }
+  </style>
+
+  <script>
+    // 1) Theme: mirror parent (if same-origin) or use system preference.
+    (function () {
+      try {
+        var parentIsDark = window.parent &&
+          window.parent.document &&
+          window.parent.document.documentElement.classList.contains('dark');
+        var systemIsDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var isDark = parentIsDark || systemIsDark;
+        document.documentElement.classList.toggle('dark', isDark);
+      } catch (e) {
+        var systemIsDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.classList.toggle('dark', systemIsDark);
+      }
+    })();
+
+    // 2) Compute API base: ?api=... > parent localStorage > default.
+    function getApiBase() {
+      var qp = new URLSearchParams(location.search);
+      var qs = qp.get('api');
+      if (qs) return qs.replace(/\/$/, '');
+
+      try {
+        var fromParent = window.parent && window.parent.localStorage && window.parent.localStorage.getItem('slms.apiBase');
+        if (fromParent) return fromParent.replace(/\/$/, '');
+      } catch (e) {}
+      return 'http://127.0.0.1:8000';
+    }
+    window.SLMS_API_BASE = getApiBase();
+  </script>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card" role="region" aria-label="Lead capture">
+      <h1>Contact us</h1>
+      <p class="sub">Drop your info and we’ll get back to you shortly.</p>
+
+      <form id="leadForm" novalidate>
+        <label for="email">Email<span aria-hidden="true"> *</span></label>
+        <input id="email" name="email" type="email" required autocomplete="email" class="field" placeholder="you@company.com" />
+
+        <div class="row">
+          <div>
+            <label for="name">Full name</label>
+            <input id="name" name="name" type="text" autocomplete="name" class="field" placeholder="Ada Lovelace" />
+          </div>
+          <div>
+            <label for="phone">Phone</label>
+            <input id="phone" name="phone" type="tel" autocomplete="tel" class="field" placeholder="555-0100" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="company">Company</label>
+            <input id="company" name="company" type="text" autocomplete="organization" class="field" placeholder="Acme, Inc." />
+          </div>
+          <div>
+            <label for="source">Source</label>
+            <input id="source" name="source" type="text" class="field" value="site-widget" />
+          </div>
+        </div>
+
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" rows="4" class="field" placeholder="Anything else we should know?"></textarea>
+
+        <div class="actions">
+          <button class="btn" id="submitBtn" type="submit">Send</button>
+          <span class="muted">Posts to <code id="apiHint"></code>/public/leads</span>
+        </div>
+
+        <div id="status" aria-live="polite"></div>
+      </form>
+    </div>
+
+    <p class="muted" style="text-align:center; margin-top:10px;">Powered by SLMS</p>
+  </div>
+
+  <script>
+    // Write the API hint
+    document.getElementById('apiHint').textContent = window.SLMS_API_BASE;
+
+    const form = document.getElementById('leadForm');
+    const statusBox = document.getElementById('status');
+    const submitBtn = document.getElementById('submitBtn');
+
+    function showStatus(kind, msg) {
+      statusBox.className = 'alert ' + kind;
+      statusBox.textContent = msg;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      statusBox.className = '';
+      statusBox.textContent = '';
+
+      const email = (document.getElementById('email').value || '').trim();
+      if (!email) {
+        showStatus('err', 'Email is required.');
+        return;
+      }
+
+      const body = {
+        email,
+        name: (document.getElementById('name').value || '').trim() || undefined,
+        phone: (document.getElementById('phone').value || '').trim() || undefined,
+        company: (document.getElementById('company').value || '').trim() || undefined,
+        notes: (document.getElementById('notes').value || '').trim() || undefined,
+        source: (document.getElementById('source').value || 'site-widget').trim() || 'site-widget'
+      };
+
+      submitBtn.disabled = true;
+
+      try {
+        const res = await fetch(window.SLMS_API_BASE + '/public/leads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          credentials: 'omit'
+        });
+
+        const text = await res.text();
+        let data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch {}
+
+        if (!res.ok) {
+          const msg = (data && (data.detail || data.message)) || ('Request failed: ' + res.status);
+          showStatus('err', msg);
+        } else {
+          const status = data.status || 'ok';
+          if (status === 'created')      showStatus('ok', 'Thanks! Lead created.');
+          else if (status === 'updated') showStatus('ok', 'Thanks! Lead updated.');
+          else if (status === 'exists')  showStatus('warn', 'You’re already on our list. We’ll be in touch!');
+          else                           showStatus('ok', 'Thanks! Submitted.');
+          // Optional: clear non-email fields after success
+          // form.reset(); (uncomment if desired)
+        }
+      } catch (err) {
+        showStatus('err', 'Network error. Please try again.');
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
 </html>

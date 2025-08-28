@@ -1,5 +1,3 @@
-Thanks for the clarification. Here's the updated `README.md` with your academic status accurately reflected:
-
 ````markdown
 # Smart Lead Management System (SLMS)
 

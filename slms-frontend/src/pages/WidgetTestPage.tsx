@@ -1,47 +1,26 @@
-import React, { useEffect } from "react";
+import React from "react";
 
-const WidgetTestPage: React.FC = () => {
-  useEffect(() => {
-    const form = document.getElementById("leadForm") as HTMLFormElement;
-    const handler = async (e: Event) => {
-      e.preventDefault();
-
-      const formData = new FormData(form);
-      const data = Object.fromEntries(formData.entries());
-
-      try {
-        const response = await fetch("http://127.0.0.1:8000/public/leads", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
-
-        const result = await response.json();
-        alert("Server response: " + JSON.stringify(result));
-      } catch {
-        alert("Error submitting lead.");
-      }
-    };
-
-    form?.addEventListener("submit", handler);
-    return () => form?.removeEventListener("submit", handler);
-  }, []);
-
+export default function WidgetTestPage() {
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <h2 className="text-2xl font-bold mb-4">Test Public Lead Widget</h2>
+    <div className="min-h-[70vh] rounded-2xl p-4 sm:p-6 bg-gray-100 dark:bg-gray-950">
+      <div className="max-w-3xl mx-auto">
+        <header className="mb-4 sm:mb-6">
+          <h1 className="text-2xl font-semibold">Lead Capture Widget (Test)</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            This is an embedded preview of the public lead form.
+          </p>
+        </header>
 
-      <form id="leadForm" className="space-y-4 max-w-md bg-white p-6 rounded shadow">
-        <input name="name" placeholder="Name" required className="w-full border p-2" />
-        <input name="email" placeholder="Email" type="email" required className="w-full border p-2" />
-        <input name="phone" placeholder="Phone" className="w-full border p-2" />
-        <input name="company" placeholder="Company" className="w-full border p-2" />
-        <textarea name="notes" placeholder="Notes" className="w-full border p-2"></textarea>
-        <input name="source" placeholder="Source" className="w-full border p-2" />
-        <button type="submit" className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Submit</button>
-      </form>
+        {/* card wrapper for the iframe */}
+        <div className="rounded-2xl shadow border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+          <iframe
+            title="lead-widget"
+            src="/test_widget.html"
+            className="w-full"
+            style={{ height: 640, border: "0" }}
+          />
+        </div>
+      </div>
     </div>
   );
-};
-
-export default WidgetTestPage;
+}
