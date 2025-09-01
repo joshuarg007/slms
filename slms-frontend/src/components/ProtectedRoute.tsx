@@ -1,46 +1,27 @@
-import { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { api } from "@/utils/api";
+import { useAuth } from "@/context/AuthProvider";
 
 /**
- * Protects routes by verifying the session via /me.
- * Works with our Bearer token (stored in localStorage by api.login).
+ * Protects routes using AuthProvider state.
+ * - While loading  -> spinner
+ * - If unauth       -> redirect to /welcome (remember 'from')
+ * - If authenticated-> render children
  */
 export default function ProtectedRoute() {
+  const { user, loading } = useAuth();
   const location = useLocation();
-  const [status, setStatus] = useState<"checking" | "authed" | "unauth">("checking");
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        // If there is no token at all, skip the network call quickly.
-        const hasToken = typeof localStorage !== "undefined" && !!localStorage.getItem("access_token");
-        if (!hasToken) {
-          if (alive) setStatus("unauth");
-          return;
-        }
-        await api.me(); // sends Authorization: Bearer ...
-        if (alive) setStatus("authed");
-      } catch {
-        if (alive) setStatus("unauth");
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  if (status === "checking") {
+  if (loading) {
     return (
-      <div style={{ display: "grid", placeItems: "center", height: "100vh", fontFamily: "system-ui, sans-serif" }}>
-        <div>Loading…</div>
+      <div className="min-h-screen grid place-items-center">
+        <div className="text-gray-700 dark:text-gray-200">Loading…</div>
       </div>
     );
   }
 
-  if (status === "unauth") {
-    return <Navigate to="/login" replace state={{ from: location }} />;
+  if (!user) {
+    const from = location.pathname + location.search;
+    return <Navigate to="/welcome" replace state={{ from }} />;
   }
 
   return <Outlet />;

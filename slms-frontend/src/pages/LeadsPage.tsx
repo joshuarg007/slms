@@ -1,6 +1,6 @@
 // src/pages/LeadsPage.tsx
 import React, { useEffect, useRef, useState } from "react";
-import { api } from "../utils/api";
+import { api } from "@/utils/api";
 
 type Lead = {
   id: number;
@@ -42,7 +42,6 @@ const LeadsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  // Use ReturnType<typeof setTimeout> to satisfy both DOM and Node typings
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fullName = (l: Lead) =>
@@ -50,20 +49,25 @@ const LeadsPage: React.FC = () => {
       [l.first_name, l.last_name].filter(Boolean).join(" ").trim() ||
       "").trim();
 
-  const fetchData = () => {
+  const fetchData = async () => {
     setLoading(true);
     setErr(null);
-    const params = new URLSearchParams({
-      q: q.trim(),
-      sort,
-      dir,
-      page: String(page),
-      page_size: String(pageSize),
-    });
-    api<ApiResult>(`/leads?${params.toString()}`)
-      .then((json) => setData(json))
-      .catch((e) => setErr(e?.message || "Failed to load leads"))
-      .finally(() => setLoading(false));
+    try {
+      const json = await api.getLeads({
+        q: q.trim(),
+        sort,
+        dir,
+        page,
+        page_size: pageSize,
+      });
+      setData(json as unknown as ApiResult);
+    } catch (e: any) {
+      const msg = e?.message || "Failed to load leads";
+      if (/401|unauth/i.test(msg)) setErr("Not authenticated. Please sign in again.");
+      else setErr(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -102,7 +106,7 @@ const LeadsPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Lead Submissions</h1>
+      <h1 className="text-2xl font-bold mb-6">Lead Submissions</h1>
 
       {/* Controls */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
@@ -110,15 +114,14 @@ const LeadsPage: React.FC = () => {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search name, email, company, source, notes…"
-          className="w-full md:max-w-md rounded-lg border px-3 py-2 outline-none"
+          className="w-full md:max-w-md rounded-lg border px-3 py-2 outline-none bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
         />
-
         <div className="flex items-center gap-3">
-          <label className="text-sm text-gray-600">Rows:</label>
+          <label className="text-sm text-gray-600 dark:text-gray-300">Rows:</label>
           <select
             value={pageSize}
             onChange={(e) => setPageSize(Number(e.target.value))}
-            className="rounded-lg border px-2 py-1"
+            className="rounded-lg border px-2 py-1 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
           >
             {PAGE_SIZES.map((n) => (
               <option key={n} value={n}>
@@ -126,7 +129,7 @@ const LeadsPage: React.FC = () => {
               </option>
             ))}
           </select>
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-gray-600 dark:text-gray-300">
             {loading ? "Loading…" : `${total.toLocaleString()} total`}
           </div>
         </div>
@@ -134,15 +137,15 @@ const LeadsPage: React.FC = () => {
 
       {/* Error */}
       {err && (
-        <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:border-red-900 dark:text-red-300">
           {err}
         </div>
       )}
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-2xl border bg-white">
-        <table className="min-w-full">
-          <thead className="bg-indigo-600 text-white">
+      <div className="overflow-x-auto rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <table className="min-w-full text-sm">
+          <thead className="bg-gray-200 dark:bg-gray-800 text-left">
             <tr>
               <th className="px-4 py-3">{headerBtn("Name", "name")}</th>
               <th className="px-4 py-3">{headerBtn("Email", "email")}</th>
@@ -156,19 +159,22 @@ const LeadsPage: React.FC = () => {
           <tbody>
             {loading ? (
               <tr>
-                <td className="px-4 py-6 text-center text-gray-500" colSpan={7}>
+                <td className="px-4 py-6 text-center text-gray-600 dark:text-gray-300" colSpan={7}>
                   Loading leads…
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td className="px-4 py-6 text-center text-gray-500" colSpan={7}>
+                <td className="px-4 py-6 text-center text-gray-600 dark:text-gray-300" colSpan={7}>
                   No leads found.
                 </td>
               </tr>
             ) : (
               items.map((l) => (
-                <tr key={l.id} className="odd:bg-gray-50">
+                <tr
+                  key={l.id}
+                  className="border-t border-gray-100 dark:border-gray-800 odd:bg-gray-50 dark:odd:bg-gray-950/40"
+                >
                   <td className="px-4 py-3">{fullName(l) || "—"}</td>
                   <td className="px-4 py-3">{l.email || "—"}</td>
                   <td className="px-4 py-3">{formatPhone(l.phone)}</td>
@@ -187,15 +193,14 @@ const LeadsPage: React.FC = () => {
 
       {/* Pagination */}
       <div className="mt-4 flex items-center justify-between">
-        <div className="text-sm text-gray-600">
-          Page {data?.page ?? 1} of{" "}
-          {data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1}
+        <div className="text-sm text-gray-600 dark:text-gray-300">
+          Page {data?.page ?? 1} of {data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1}
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={!data?.has_prev || loading}
-            className="rounded-lg border px-3 py-1 disabled:opacity-50"
+            className="rounded-lg border px-3 py-1 disabled:opacity-50 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
             type="button"
           >
             Prev
@@ -203,7 +208,7 @@ const LeadsPage: React.FC = () => {
           <button
             onClick={() => setPage((p) => p + 1)}
             disabled={!data?.has_next || loading}
-            className="rounded-lg border px-3 py-1 disabled:opacity-50"
+            className="rounded-lg border px-3 py-1 disabled:opacity-50 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
             type="button"
           >
             Next
@@ -226,8 +231,7 @@ function formatDate(iso?: string | null) {
 function formatPhone(p?: string | null) {
   if (!p) return "—";
   const digits = String(p).replace(/\D/g, "");
-  if (digits.length === 10)
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  if (digits.length === 10) return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
   return p;
 }
 

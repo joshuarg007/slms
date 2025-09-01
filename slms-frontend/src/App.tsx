@@ -14,12 +14,17 @@ import AboutPage from "@/pages/AboutPage";
 import ReportsPage from "@/pages/ReportsPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import DocsPage from "@/pages/DocsPage";
+import AccountPage from "@/pages/AccountPage";
+import BillingPage from "@/pages/BillingPage";
+import IntegrationsPage from "@/pages/IntegrationsPage";
+import WelcomePage from "@/pages/WelcomePage";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         {/* Public */}
+        <Route path="/welcome" element={<WelcomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
 
@@ -35,11 +40,14 @@ export default function App() {
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/docs" element={<DocsPage />} />
+            <Route path="/account" element={<AccountPage />} />
+            <Route path="/billing" element={<BillingPage />} />
+            <Route path="/integrations" element={<IntegrationsPage />} />
           </Route>
         </Route>
 
         {/* Fallback */}
-        <Route path="*" element={<LoginPage />} />
+        <Route path="*" element={<WelcomePage />} />
       </Routes>
     </BrowserRouter>
   );
