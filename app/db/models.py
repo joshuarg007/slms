@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.session import Base
@@ -15,7 +15,12 @@ class Organization(Base):
 
     users = relationship("User", back_populates="organization")
     leads = relationship("Lead", back_populates="organization")
-
+    
+    stripe_customer_id = Column(String, index=True, nullable=True)
+    stripe_subscription_id = Column(String, index=True, nullable=True)
+    plan = Column(String, nullable=False, default="free")
+    subscription_status = Column(String, nullable=False, default="inactive")
+    current_period_end = Column(DateTime, nullable=True)
 
 class Lead(Base):
     __tablename__ = "leads"
@@ -56,3 +61,33 @@ class User(Base):
         nullable=False,
     )
     organization = relationship("Organization", back_populates="users")
+
+class IntegrationCredential(Base):
+    __tablename__ = "integration_credentials"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id", ondelete="RESTRICT"),
+        index=True,
+        nullable=False,
+    )
+
+    # e.g. "hubspot", "pipedrive", "salesforce", "nutshell"
+    provider = Column(String(50), nullable=False, index=True)
+
+    # "pat" (private app token), "api_key", or "oauth"
+    auth_type = Column(String(20), nullable=False, default="pat")
+
+    # For PAT/API key: store here. For OAuth: also use refresh_token + expires_at.
+    access_token = Column(Text, nullable=True)
+    refresh_token = Column(Text, nullable=True)
+    expires_at = Column(DateTime, nullable=True)
+
+    # Optional serialized metadata (e.g., scopes)
+    scopes = Column(Text, nullable=True)
+
+    is_active = Column(Boolean, nullable=False, default=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)

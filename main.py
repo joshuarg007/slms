@@ -9,6 +9,7 @@ sys.path.append(os.path.dirname(__file__))
 from fastapi import FastAPI, Depends, HTTPException, status, Body, BackgroundTasks, Query, Response, Cookie, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session
 import sqlalchemy as sa
 from jose import jwt, JWTError
@@ -22,11 +23,13 @@ from app.schemas.token import Token
 from app.crud import lead as lead_crud
 from app.api import hubspot
 from app.integrations.hubspot import create_contact
+
 from app.api.routes import dashboard
-
 from app.api.routes.hubspot_stats import router as hubspot_stats_router  
-
 from app.api.routes.public_leads import router as public_leads_router
+from app.api.routes.pipedrive_stats import router as pipedrive_stats_router
+from app.api.routes import reports
+from app.api.routes import integrations
 
 # -----------------------------------
 # App & CORS
@@ -46,6 +49,9 @@ app.include_router(hubspot.router, prefix="/api")
 app.include_router(dashboard.router, tags=["Dashboard"])
 app.include_router(hubspot_stats_router) 
 app.include_router(public_leads_router)
+app.include_router(pipedrive_stats_router)
+app.include_router(reports.router)
+app.include_router(integrations.router)
 
 # DB
 models.Base.metadata.create_all(bind=engine)
@@ -241,6 +247,29 @@ def logout(response: Response):
 def me(current_user: models.User = Depends(get_current_user)):
     return {"email": current_user.email}
 
+@app.get("/", include_in_schema=False)
+def home():
+    return HTMLResponse(
+        """
+        <!doctype html>
+        <html>
+          <head><meta charset="utf-8"><title>SLMS API</title></head>
+          <body style="font: 14px system-ui; margin: 2rem;">
+            <h1>SLMS API</h1>
+            <p>Backend is running.</p>
+            <ul>
+              <li><a href="/docs">Open API Docs</a></li>
+              <li><a href="http://127.0.0.1:5173/">Open Frontend (Vite)</a></li>
+            </ul>
+          </body>
+        </html>
+        """
+    )
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    # Avoid noisy favicon 404s during dev
+    return Response(status_code=204)
 
 # -----------------------------------
 # Public leads (requires X-Org-Key; server enforces org)
@@ -270,6 +299,7 @@ def public_create_lead(
         first_name=getattr(db_lead, "first_name", None),
         last_name=getattr(db_lead, "last_name", None),
         phone=getattr(db_lead, "phone", None),
+        organization_id=db_lead.organization_id,   
     )
     return {"message": "Lead received", "lead_id": db_lead.id}
 
@@ -396,3 +426,7 @@ def rotate_org_key(
     db.commit()
     db.refresh(org)
     return {"api_key": org.api_key}
+
+from app.api.routes import billing    
+app.include_router(billing.router) 
+

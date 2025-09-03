@@ -3,6 +3,8 @@
 // and automatic refresh-on-401 retry.
 
 export type SortDir = "asc" | "desc";
+export type Provider = "hubspot" | "pipedrive" | "salesforce" | "nutshell";
+export type AuthType = "pat" | "api_key" | "oauth";
 
 export interface Lead {
   id: number;
@@ -34,6 +36,17 @@ export interface LeadsResponse {
 export interface DashboardMetrics {
   total: number;
   by_source: Record<string, number>;
+}
+
+
+export interface IntegrationCredOut {
+  id: number;
+  provider: Provider;
+  auth_type: AuthType;
+  is_active: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+  token_suffix?: string | null; // last 4, never full token
 }
 
 const baseUrl =
@@ -200,11 +213,35 @@ export const api = {
   createPublicLead,
   getLeads,
   getDashboardMetrics,
+  listIntegrationCredentials,
+  saveIntegrationCredential,
 };
+
 
 export function getApiBase() {
   const stored = localStorage.getItem("slms.apiBase");
   return (stored || import.meta.env.VITE_API_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+}
+
+export async function listIntegrationCredentials(): Promise<IntegrationCredOut[]> {
+  return fetchJSON<IntegrationCredOut[]>(`${baseUrl}/integrations/credentials`);
+}
+
+export async function saveIntegrationCredential(payload: {
+  provider: Provider;
+  access_token: string;
+  auth_type?: AuthType;   // default "pat"
+  activate?: boolean;     // default true
+}): Promise<IntegrationCredOut> {
+  return fetchJSON<IntegrationCredOut>(`${baseUrl}/integrations/credentials`, {
+    method: "POST",
+    body: JSON.stringify({
+      provider: payload.provider,
+      access_token: payload.access_token,
+      auth_type: payload.auth_type ?? "pat",
+      activate: payload.activate ?? true,
+    }),
+  });
 }
 
 export default api;
