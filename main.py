@@ -30,6 +30,10 @@ from app.api.routes.public_leads import router as public_leads_router
 from app.api.routes.pipedrive_stats import router as pipedrive_stats_router
 from app.api.routes import reports
 from app.api.routes import integrations
+from app.api.routes import salesforce
+from app.api.routes.salespeople_stats_unified import router as salespeople_unified_router
+# near your other router imports
+from app.api.routes.salespeople_stats import router as salespeople_router
 
 # -----------------------------------
 # App & CORS
@@ -38,7 +42,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=["http://localhost:5173"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,6 +56,10 @@ app.include_router(public_leads_router)
 app.include_router(pipedrive_stats_router)
 app.include_router(reports.router)
 app.include_router(integrations.router)
+app.include_router(salesforce.router)
+app.include_router(salespeople_unified_router)
+app.include_router(salespeople_router)
+
 
 # DB
 models.Base.metadata.create_all(bind=engine)
@@ -66,7 +74,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 15
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")  # kept for Bearer fallback
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)  # kept for Bearer fallback
 
 
 def get_db():
@@ -127,13 +135,20 @@ def clear_auth_cookies(resp: Response):
     resp.delete_cookie("access_token", path="/")
     resp.delete_cookie("refresh_token", path="/")
 
-
 def get_current_user(
     db: Session = Depends(get_db),
-    bearer: str = Depends(oauth2_scheme),                                     # optional Bearer
-    access_cookie: Optional[str] = Cookie(default=None, alias="access_token") # preferred cookie
+    bearer: Optional[str] = Depends(oauth2_scheme),           # <- Optional
+    access_cookie: Optional[str] = Cookie(None, alias="access_token"),
 ):
+
     token = access_cookie or bearer or ""
+
+    # ⬇️ Fix: coerce Cookie objects or other non-str types to str
+    if hasattr(token, "value"):
+        token = token.value
+    if not isinstance(token, str):
+        token = str(token)
+
     if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
     try:
@@ -234,8 +249,8 @@ def refresh_token(
 
     new_access = create_access_token(email)
     set_auth_cookies(response, new_access, refresh_cookie)
-    # ⬇️ return the new token so the SPA can update its Bearer header
     return {"access_token": new_access, "token_type": "bearer"}
+
 
 @app.post("/logout")
 def logout(response: Response):
@@ -268,11 +283,11 @@ def home():
 
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon():
-    # Avoid noisy favicon 404s during dev
     return Response(status_code=204)
 
+
 # -----------------------------------
-# Public leads (requires X-Org-Key; server enforces org)
+# Public leads
 # -----------------------------------
 @app.post("/public/leads", response_model=dict)
 def public_create_lead(
@@ -288,9 +303,7 @@ def public_create_lead(
     if not org:
         raise HTTPException(status_code=401, detail="Invalid X-Org-Key")
 
-    # enforce tenancy: ignore any client org_id
     lead = LeadCreate(**lead.model_dump(exclude={"organization_id"}), organization_id=org.id)
-
     db_lead = lead_crud.create_lead(db, lead)
 
     background_tasks.add_task(
@@ -305,7 +318,7 @@ def public_create_lead(
 
 
 # -----------------------------------
-# Leads list (auth) with enforced org isolation + paging/sorting
+# Leads list
 # -----------------------------------
 def _lead_to_dict(l):
     return {
@@ -341,17 +354,14 @@ def get_leads(
 
     if q:
         q_lower = q.lower()
-
         def _hit(l: models.Lead) -> bool:
             return any(
                 (getattr(l, f) or "").lower().find(q_lower) >= 0
                 for f in ("email", "name", "first_name", "last_name", "phone", "company", "source", "notes")
             )
-
         items = [i for i in items if _hit(i)]
 
     reverse = (dir.lower() == "desc")
-
     def _key(l: models.Lead):
         v = getattr(l, sort, None)
         return (v is None, v)
@@ -384,7 +394,7 @@ def get_leads(
 
 
 # -----------------------------------
-# Dashboard metrics (auth, org-scoped)
+# Dashboard metrics
 # -----------------------------------
 @app.get("/dashboard/metrics", response_model=dict)
 def dashboard_metrics(
@@ -408,7 +418,7 @@ def dashboard_metrics(
 
 
 # -----------------------------------
-# Org key rotate (auth, org-scoped)
+# Org key rotate
 # -----------------------------------
 from uuid import uuid4
 
@@ -429,4 +439,3 @@ def rotate_org_key(
 
 from app.api.routes import billing    
 app.include_router(billing.router) 
-
