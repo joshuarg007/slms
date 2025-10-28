@@ -1,12 +1,11 @@
 # app/api/routes/integrations.py
 from typing import List, Literal, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 import sqlalchemy as sa
-
-from app.api.deps.auth import get_db, get_current_user
 from app.db import models
+from app.api.deps.auth import get_db, get_current_user
 
 router = APIRouter(prefix="/integrations", tags=["Integrations"])
 
@@ -121,3 +120,35 @@ def upsert_credential(
         updated_at=row.updated_at.isoformat() if row.updated_at else None,
         token_suffix=(row.access_token[-4:] if row.access_token else None),
     )
+
+CRMProvider = Literal["hubspot", "pipedrive", "salesforce"]
+
+class ActiveCRMOut(BaseModel):
+    provider: CRMProvider
+
+class ActiveCRMIn(BaseModel):
+    provider: CRMProvider
+
+@router.get("/crm/active", response_model=ActiveCRMOut)
+def get_active_crm(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    org = db.query(models.Organization).get(current_user.organization_id)
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    provider = (org.active_crm or "hubspot")  # type: ignore[assignment]
+    return ActiveCRMOut(provider=provider)     # type: ignore[arg-type]
+
+@router.post("/crm/active", response_model=ActiveCRMOut)
+def set_active_crm(
+    payload: ActiveCRMIn,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    org = db.query(models.Organization).get(current_user.organization_id)
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    org.active_crm = payload.provider           # type: ignore[assignment]
+    db.add(org); db.commit(); db.refresh(org)
+    return ActiveCRMOut(provider=org.active_crm)  # type: ignore[arg-type]

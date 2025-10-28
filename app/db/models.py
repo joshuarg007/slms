@@ -21,6 +21,7 @@ class Organization(Base):
     plan = Column(String, nullable=False, default="free")
     subscription_status = Column(String, nullable=False, default="inactive")
     current_period_end = Column(DateTime, nullable=True)
+    active_crm = Column(String(20), nullable=False, default="hubspot")  # "hubspot" | "pipedrive" | "salesforce"
 
 class Lead(Base):
     __tablename__ = "leads"

@@ -14,8 +14,8 @@ from app.db import models
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-change-me")
 ALGORITHM = "HS256"
 
-# We support Bearer (Authorization header) as a fallback, same as main.py
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+# Allow missing Authorization header so cookie auth can work
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 
 def get_db():
     db = SessionLocal()
@@ -26,8 +26,8 @@ def get_db():
 
 def get_current_user(
     db: Session = Depends(get_db),
-    bearer: str = Depends(oauth2_scheme),                                     # optional Bearer
-    access_cookie: Optional[str] = Cookie(default=None, alias="access_token") # preferred cookie
+    bearer: Optional[str] = Depends(oauth2_scheme),           # <- Optional now
+    access_cookie: Optional[str] = Cookie(default=None, alias="access_token"),
 ) -> models.User:
     token = access_cookie or bearer or ""
     if not token:
