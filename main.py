@@ -15,7 +15,7 @@ import sqlalchemy as sa
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 
-from app.db.session import SessionLocal, engine
+from app.db.session import SessionLocal, enginemailbir
 from app.db import models
 from app.schemas.lead import LeadCreate
 from app.schemas.user import UserCreate
@@ -150,7 +150,6 @@ def set_auth_cookies(resp: Response, access_token: str, refresh_token: str):
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600,
     )
 
-
 def clear_auth_cookies(resp: Response):
     resp.delete_cookie("access_token", path="/")
     resp.delete_cookie("refresh_token", path="/")
@@ -177,8 +176,4 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return user
-
-
-# -----------------------------------
-# Login (cookie auth)  does NOT change org
-# -----------------------------------
+# ci: trigger deploy
