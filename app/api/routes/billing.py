@@ -1,25 +1,37 @@
 # app/api/routes/billing.py
+from datetime import datetime
+import stripe
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from datetime import datetime
-import stripe
-import os
 
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.db import models
-from main import get_current_user, get_db  # reuse deps (main.py is top-level)
+from app.api.routes.auth import get_current_user  # reuse auth dependency (no main import)
 
 router = APIRouter(tags=["Billing"])
 
 stripe.api_key = settings.stripe_secret_key
 
+
+# Local DB dependency to avoid importing from main (prevents circular imports)
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 def _success_url():
     return f"{settings.frontend_base_url}/billing?status=success"
 
+
 def _cancel_url():
     return f"{settings.frontend_base_url}/billing?status=cancel"
+
 
 def _get_or_create_customer(db: Session, org: models.Organization, email: str) -> str:
     if org.stripe_customer_id:
@@ -32,6 +44,7 @@ def _get_or_create_customer(db: Session, org: models.Organization, email: str) -
     db.add(org)
     db.commit()
     return cust.id
+
 
 @router.post("/billing/checkout")
 def create_checkout_session(
@@ -58,11 +71,10 @@ def create_checkout_session(
         cancel_url=_cancel_url(),
         allow_promotion_codes=True,
         line_items=[{"price": price_id, "quantity": 1}],
-        subscription_data={
-            "metadata": {"org_id": str(org.id)},
-        },
+        subscription_data={"metadata": {"org_id": str(org.id)}},
     )
     return {"url": session.url}
+
 
 @router.post("/billing/portal")
 def create_portal_session(
@@ -77,6 +89,7 @@ def create_portal_session(
         return_url=f"{settings.frontend_base_url}/billing",
     )
     return {"url": ps.url}
+
 
 @router.post("/billing/webhook")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
@@ -94,6 +107,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     t = event["type"]
     data = event["data"]["object"]
 
+    # Best-effort updates; never fail webhook delivery
     try:
         if t == "checkout.session.completed":
             org_id = data.get("client_reference_id")
@@ -104,17 +118,20 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                     org.stripe_subscription_id = sub_id
                     org.subscription_status = "active"
                     org.plan = "pro"
-                    db.add(org); db.commit()
+                    db.add(org)
+                    db.commit()
 
         elif t in ("customer.subscription.created", "customer.subscription.updated"):
             sub_id = data.get("id")
             status = data.get("status")
             current_period_end = data.get("current_period_end")
             org_id = (data.get("metadata") or {}).get("org_id")
-            # fallback: look up by customer id if metadata is missing
+
             if not org_id:
                 cust_id = data.get("customer")
-                org = db.query(models.Organization).filter(models.Organization.stripe_customer_id == cust_id).first()
+                org = db.query(models.Organization).filter(
+                    models.Organization.stripe_customer_id == cust_id
+                ).first()
             else:
                 org = db.query(models.Organization).get(int(org_id))
 
@@ -123,18 +140,19 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 org.subscription_status = status or "active"
                 if current_period_end:
                     org.current_period_end = datetime.utcfromtimestamp(current_period_end)
-                db.add(org); db.commit()
+                db.add(org)
+                db.commit()
 
         elif t == "customer.subscription.deleted":
-            sub_id = data.get("id")
             cust_id = data.get("customer")
-            org = db.query(models.Organization).filter(models.Organization.stripe_customer_id == cust_id).first()
+            org = db.query(models.Organization).filter(
+                models.Organization.stripe_customer_id == cust_id
+            ).first()
             if org:
                 org.subscription_status = "canceled"
-                db.add(org); db.commit()
-
+                db.add(org)
+                db.commit()
     except Exception:
-        # don’t fail webhook delivery on internal errors
         pass
 
     return JSONResponse({"ok": True})
