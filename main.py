@@ -32,8 +32,8 @@ from app.api.routes import reports
 from app.api.routes import integrations
 from app.api.routes import salesforce
 from app.api.routes.salespeople_stats_unified import router as salespeople_unified_router
-# near your other router imports
 from app.api.routes.salespeople_stats import router as salespeople_router
+from fastapi.middleware.cors import CORSMiddleware
 from app.core.security import (
     get_password_hash,
     verify_password,
@@ -55,10 +55,11 @@ app = FastAPI()
 ALLOWED_ORIGINS = [
     o.strip() for o in os.getenv(
         "ALLOWED_ORIGINS",
-        "http://localhost:5173,https://site2crm.io"
+        "http://localhost:5173,https://site2crm.io,https://www.site2crm.io,https://api.site2crm.io"
     ).split(",")
     if o.strip()
 ]
+
 
 app.add_middleware(
     CORSMiddleware,
