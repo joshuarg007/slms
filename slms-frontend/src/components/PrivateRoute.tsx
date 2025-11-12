@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { api } from "@/utils/api"; // now works with the alias
+import { api } from "@/utils/api"; // api is an object with methods (get/post/etc.)
 
 type Props = { children: React.ReactNode };
 type MeResponse = { email: string };
@@ -14,8 +14,13 @@ const PrivateRoute: React.FC<Props> = ({ children }) => {
 
     (async () => {
       try {
-        await api<MeResponse>("/me");
-        if (!cancelled) setStatus("authed");
+        // adjust to your api wrapper shape; common patterns shown below:
+        // 1) axios-like: const { data } = await api.get<MeResponse>("/me");
+        // 2) fetch-like wrapper: const data = await api.get<MeResponse>("/me");
+        const res = await (api as any).get("/me");
+        const data: MeResponse = (res && "data" in res) ? (res as any).data : (res as any);
+
+        if (!cancelled && data?.email) setStatus("authed");
       } catch {
         if (!cancelled) setStatus("unauthed");
       }

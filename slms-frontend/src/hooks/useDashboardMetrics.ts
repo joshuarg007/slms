@@ -28,7 +28,9 @@ export function useDashboardMetrics() {
       setLoading(true);
       setError(null);
       try {
-        const data = await api<DashboardMetrics>("/dashboard/metrics");
+        const res = await (api as any).get("/dashboard/metrics");
+        const data = (res && "data" in res) ? (res as any).data : (res as any);
+
         setMetrics(data ?? EMPTY);
       } catch (e: any) {
         setError(e?.message || "error");
