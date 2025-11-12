@@ -1,9 +1,10 @@
 # app/api/routes/integrations.py
 from typing import List, Literal, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, HTTPException
+
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-import sqlalchemy as sa
+
 from app.db import models
 from app.api.deps.auth import get_db, get_current_user
 
@@ -40,18 +41,20 @@ def list_credentials(
     rows: List[models.IntegrationCredential] = (
         db.query(models.IntegrationCredential)
         .filter(models.IntegrationCredential.organization_id == org_id)
-        .order_by(models.IntegrationCredential.provider.asc(),
-                  models.IntegrationCredential.updated_at.desc())
+        .order_by(
+            models.IntegrationCredential.provider.asc(),
+            models.IntegrationCredential.updated_at.desc(),
+        )
         .all()
     )
     out: List[CredOut] = []
     for r in rows:
-        token_suffix = (r.access_token[-4:] if r.access_token else None)
+        token_suffix = r.access_token[-4:] if r.access_token else None
         out.append(
             CredOut(
                 id=r.id,
-                provider=r.provider,                  # type: ignore[arg-type]
-                auth_type=(r.auth_type or "pat"),     # type: ignore[arg-type]
+                provider=r.provider,  # type: ignore[arg-type]
+                auth_type=(r.auth_type or "pat"),  # type: ignore[arg-type]
                 is_active=bool(r.is_active),
                 created_at=r.created_at.isoformat() if r.created_at else None,
                 updated_at=r.updated_at.isoformat() if r.updated_at else None,
@@ -79,7 +82,7 @@ def upsert_credential(
             models.IntegrationCredential.is_active == True,  # noqa: E712
         ).update({models.IntegrationCredential.is_active: False})
 
-    # Upsert: if there’s already a row with same provider+org+auth_type and inactive,
+    # Upsert: if there’s already a row with same provider+org+auth_type,
     # update it; else insert a new one.
     existing = (
         db.query(models.IntegrationCredential)
@@ -113,14 +116,16 @@ def upsert_credential(
 
     return CredOut(
         id=row.id,
-        provider=row.provider,                 # type: ignore[arg-type]
-        auth_type=(row.auth_type or "pat"),    # type: ignore[arg-type]
+        provider=row.provider,  # type: ignore[arg-type]
+        auth_type=(row.auth_type or "pat"),  # type: ignore[arg-type]
         is_active=bool(row.is_active),
         created_at=row.created_at.isoformat() if row.created_at else None,
         updated_at=row.updated_at.isoformat() if row.updated_at else None,
         token_suffix=(row.access_token[-4:] if row.access_token else None),
     )
 
+
+# 🔹 ALLOW NUTSHELL AS ACTIVE CRM
 CRMProvider = Literal["hubspot", "pipedrive", "salesforce", "nutshell"]
 
 
@@ -141,7 +146,7 @@ def get_active_crm(
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
     provider = (org.active_crm or "hubspot")  # type: ignore[assignment]
-    return ActiveCRMOut(provider=provider)     # type: ignore[arg-type]
+    return ActiveCRMOut(provider=provider)  # type: ignore[arg-type]
 
 
 @router.post("/crm/active", response_model=ActiveCRMOut)
@@ -153,7 +158,7 @@ def set_active_crm(
     org = db.query(models.Organization).get(current_user.organization_id)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
-    org.active_crm = payload.provider           # type: ignore[assignment]
+    org.active_crm = payload.provider  # type: ignore[assignment]
     db.add(org)
     db.commit()
     db.refresh(org)
