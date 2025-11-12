@@ -8,10 +8,16 @@ from app.db.session import SessionLocal
 from app.db import models
 from app.schemas.lead import LeadCreate
 from app.crud import lead as lead_crud
-from app.integrations.hubspot import create_contact
 from app.api.routes.auth import get_current_user  # reuse auth dependency
 
+# CRM integrations
+from app.integrations.hubspot import create_contact as hubspot_create_contact
+from app.integrations import nutshell
+from app.integrations.pipedrive import create_lead as pipedrive_create_lead
+from app.integrations.salesforce import create_lead as salesforce_create_lead
+
 router = APIRouter()
+
 
 # Local DB dependency
 def get_db():
@@ -20,6 +26,7 @@ def get_db():
         yield db
     finally:
         db.close()
+
 
 # ---- Public lead intake ----
 @router.post("/public/leads", response_model=dict)
@@ -36,18 +43,67 @@ def public_create_lead(
     if not org:
         raise HTTPException(status_code=401, detail="Invalid X-Org-Key")
 
+    # Always store locally first
     lead = LeadCreate(**lead.model_dump(exclude={"organization_id"}), organization_id=org.id)
     db_lead = lead_crud.create_lead(db, lead)
 
-    background_tasks.add_task(
-        create_contact,
-        email=db_lead.email,
-        first_name=getattr(db_lead, "first_name", None),
-        last_name=getattr(db_lead, "last_name", None),
-        phone=getattr(db_lead, "phone", None),
-        organization_id=db_lead.organization_id,
-    )
+    provider = (org.active_crm or "hubspot").lower()
+
+    # Common fields
+    email = db_lead.email
+    first_name = getattr(db_lead, "first_name", None) or ""
+    last_name = getattr(db_lead, "last_name", None) or ""
+    phone = getattr(db_lead, "phone", None) or ""
+    company = getattr(db_lead, "company", None) or ""
+    name_field = getattr(db_lead, "name", None) or ""
+    display_name = name_field or f"{first_name} {last_name}".strip() or email
+
+    # HubSpot: create a contact (uses org-scoped token if present)
+    if provider == "hubspot":
+        background_tasks.add_task(
+            hubspot_create_contact,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            phone=phone,
+            organization_id=org.id,
+        )
+
+    # Pipedrive: person + lead
+    elif provider == "pipedrive":
+        title = f"{db_lead.source or 'Site2CRM'} lead from {email}"
+        background_tasks.add_task(
+            pipedrive_create_lead,
+            title=title,
+            name=display_name,
+            email=email,
+        )
+
+    # Salesforce: Lead sObject
+    elif provider == "salesforce":
+        background_tasks.add_task(
+            salesforce_create_lead,
+            org_id=org.id,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            company=company,
+        )
+
+    # Nutshell: JSON-RPC newLead
+    elif provider == "nutshell":
+        description = f"{db_lead.source or 'Site2CRM'} lead from {email}"
+        background_tasks.add_task(
+            nutshell.create_lead,
+            description=description,
+            contact_name=display_name,
+            contact_email=email,
+        )
+
+    # Unknown provider => just keep the local lead; no upstream push.
+
     return {"message": "Lead received", "lead_id": db_lead.id}
+
 
 # ---- Internal leads list ----
 def _lead_to_dict(l):
@@ -64,6 +120,7 @@ def _lead_to_dict(l):
         "organization_id": getattr(l, "organization_id", None),
         "created_at": getattr(l, "created_at", None).isoformat() if getattr(l, "created_at", None) else None,
     }
+
 
 @router.get("/leads")
 def get_leads(
@@ -83,14 +140,17 @@ def get_leads(
 
     if q:
         q_lower = q.lower()
+
         def _hit(l: models.Lead) -> bool:
             return any(
                 (getattr(l, f) or "").lower().find(q_lower) >= 0
                 for f in ("email", "name", "first_name", "last_name", "phone", "company", "source", "notes")
             )
+
         items = [i for i in items if _hit(i)]
 
-    reverse = (dir.lower() == "desc")
+    reverse = dir.lower() == "desc"
+
     def _key(l: models.Lead):
         v = getattr(l, sort, None)
         return (v is None, v)
@@ -120,6 +180,7 @@ def get_leads(
         "q": q or "",
         "organization_id": organization_id,
     }
+
 
 # ---- Dashboard metrics ----
 @router.get("/dashboard/metrics", response_model=dict)

@@ -1,6 +1,18 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
-from sqlalchemy.orm import relationship
 from datetime import datetime
+
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy.orm import relationship
+
 from app.db.session import Base
 
 
@@ -15,13 +27,16 @@ class Organization(Base):
 
     users = relationship("User", back_populates="organization")
     leads = relationship("Lead", back_populates="organization")
-    
+
     stripe_customer_id = Column(String, index=True, nullable=True)
     stripe_subscription_id = Column(String, index=True, nullable=True)
     plan = Column(String, nullable=False, default="free")
     subscription_status = Column(String, nullable=False, default="inactive")
     current_period_end = Column(DateTime, nullable=True)
-    active_crm = Column(String(20), nullable=False, default="hubspot")  # "hubspot" | "pipedrive" | "salesforce"
+
+    # "hubspot" | "pipedrive" | "salesforce" (stringly-typed; validated at app layer)
+    active_crm = Column(String(20), nullable=False, default="hubspot")
+
 
 class Lead(Base):
     __tablename__ = "leads"
@@ -63,6 +78,7 @@ class User(Base):
     )
     organization = relationship("Organization", back_populates="users")
 
+
 class IntegrationCredential(Base):
     __tablename__ = "integration_credentials"
 
@@ -85,10 +101,51 @@ class IntegrationCredential(Base):
     refresh_token = Column(Text, nullable=True)
     expires_at = Column(DateTime, nullable=True)
 
-    # Optional serialized metadata (e.g., scopes)
+    # Optional serialized metadata (e.g., scopes, instance_url, etc.)
     scopes = Column(Text, nullable=True)
 
     is_active = Column(Boolean, nullable=False, default=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class SalespersonDailyStats(Base):
+    __tablename__ = "salesperson_daily_stats"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    # Multitenant + CRM provider
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id", ondelete="RESTRICT"),
+        index=True,
+        nullable=False,
+    )
+    provider = Column(String(50), nullable=False, index=True)  # "hubspot" | "pipedrive" | "salesforce" | "nutshell"
+
+    # Owner identity as seen in the CRM
+    owner_id = Column(String(100), nullable=False, index=True)
+    owner_email = Column(String(255), nullable=True)
+    owner_name = Column(String(255), nullable=True)
+
+    # Day bucket in UTC
+    stats_date = Column(Date, nullable=False, index=True)
+
+    # KPIs (aligned with your existing stats responses)
+    emails_count = Column(Integer, nullable=False, default=0)
+    calls_count = Column(Integer, nullable=False, default=0)
+    meetings_count = Column(Integer, nullable=False, default=0)
+    new_deals_count = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id",
+            "provider",
+            "owner_id",
+            "stats_date",
+            name="uq_org_provider_owner_date",
+        ),
+    )

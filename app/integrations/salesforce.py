@@ -1,15 +1,19 @@
 # app/integrations/salesforce.py
 from __future__ import annotations
+
 from typing import List, Dict, Any, Optional, Tuple
-from fastapi import HTTPException
-from sqlalchemy.orm import Session
+
 import httpx
 import json
 import os
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 from app.db import models
+from app.db.session import SessionLocal  # for background tasks
 
 API_VERSION = os.getenv("SALESFORCE_API_VERSION", "60.0")  # safe default
+
 
 def _get_active_sf_credential(db: Session, org_id: int) -> Tuple[str, str]:
     """
@@ -185,3 +189,50 @@ async def get_salespeople_stats(*, db: Session, org_id: int, days: int) -> List[
     rows = list(owner_map.values())
     rows.sort(key=lambda r: (r.get("owner_name") or "", r.get("owner_id") or ""))
     return rows
+
+
+async def create_lead(
+    *,
+    org_id: int,
+    email: str,
+    first_name: str = "",
+    last_name: str = "",
+    company: str = "",
+) -> Dict[str, Any]:
+    """
+    Create a Lead in Salesforce for the given org.
+    Uses the active Salesforce IntegrationCredential for that org.
+    Intended to be called from a FastAPI BackgroundTask.
+    """
+    if not email:
+        raise HTTPException(status_code=400, detail="Salesforce lead requires an email")
+
+    # open a short-lived session just for this background task
+    db = SessionLocal()
+    try:
+        access_token, instance_url = _get_active_sf_credential(db, org_id)
+    finally:
+        db.close()
+
+    first = first_name or ""
+    last = last_name or "Unknown"
+    comp = company or "Unknown"
+
+    payload = {
+        "FirstName": first,
+        "LastName": last,
+        "Email": email,
+        "Company": comp,
+    }
+
+    url = f"{instance_url}/services/data/v{API_VERSION}/sobjects/Lead"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        r = await client.post(url, headers=headers, json=payload)
+        if r.status_code >= 400:
+            raise HTTPException(status_code=502, detail=f"Salesforce lead create failed: {r.text}")
+        return r.json() or {}

@@ -5,13 +5,41 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 from app.core.config import settings
+from app.db.session import SessionLocal
+from app.db import models
 
 HUBSPOT_BASE_URL = "https://api.hubapi.com"
 
 
-def _headers() -> Dict[str, str]:
+def _get_org_token(organization_id: int) -> Optional[str]:
+    """
+    Look up the active HubSpot IntegrationCredential for this org.
+    Falls back to None if not found; caller can decide whether to use
+    settings.hubspot_api_key instead.
+    """
+    db = SessionLocal()
+    try:
+        cred = (
+            db.query(models.IntegrationCredential)
+            .filter(
+                models.IntegrationCredential.organization_id == organization_id,
+                models.IntegrationCredential.provider == "hubspot",
+                models.IntegrationCredential.is_active == True,  # noqa: E712
+            )
+            .order_by(models.IntegrationCredential.updated_at.desc())
+            .first()
+        )
+        return cred.access_token if cred and cred.access_token else None
+    finally:
+        db.close()
+
+
+def _headers(token_override: Optional[str] = None) -> Dict[str, str]:
+    token = token_override or settings.hubspot_api_key
+    if not token:
+        raise RuntimeError("No HubSpot API token configured for this organization")
     return {
-        "Authorization": f"Bearer {settings.hubspot_api_key}",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
 
@@ -21,7 +49,18 @@ async def create_contact(
     first_name: str = "",
     last_name: str = "",
     phone: str = "",
+    organization_id: Optional[int] = None,
 ):
+    """
+    Create a contact in HubSpot.
+
+    If organization_id is provided, we first try that org's IntegrationCredential
+    (provider="hubspot"); if missing, we fall back to settings.hubspot_api_key.
+    """
+    token: Optional[str] = None
+    if organization_id is not None:
+        token = _get_org_token(organization_id)
+
     url = f"{HUBSPOT_BASE_URL}/crm/v3/objects/contacts"
     payload = {
         "properties": {
@@ -32,7 +71,7 @@ async def create_contact(
         }
     }
     async with httpx.AsyncClient(timeout=30.0) as client:
-        r = await client.post(url, json=payload, headers=_headers())
+        r = await client.post(url, json=payload, headers=_headers(token))
         r.raise_for_status()
         return r.json()
 
@@ -40,7 +79,7 @@ async def create_contact(
 async def get_owners(
     include_archived: bool = False,
     limit: int = 100,
-    organization_id: Optional[int] = None,  # accepted for multi-tenant callers; ignored here
+    organization_id: Optional[int] = None,  # accepted for multi-tenant callers; currently ignored
     **kwargs: Any,  # absorb future args safely
 ) -> List[Dict[str, Any]]:
     url = f"{HUBSPOT_BASE_URL}/crm/v3/owners/"
@@ -68,7 +107,7 @@ async def get_owners(
                 )
 
             paging = data.get("paging", {})
-            after = paging.get("next", {}).get("after")  # <-- fixed stray dot
+            after = paging.get("next", {}).get("after")
             if after:
                 params["after"] = after
             else:
