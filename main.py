@@ -14,8 +14,7 @@ from sqlalchemy.orm import Session
 import sqlalchemy as sa
 from jose import jwt, JWTError
 from passlib.context import CryptContext
-
-from app.db.session import SessionLocal, enginemailbir
+from app.db.session import SessionLocal, engine
 from app.db import models
 from app.schemas.lead import LeadCreate
 from app.schemas.user import UserCreate
