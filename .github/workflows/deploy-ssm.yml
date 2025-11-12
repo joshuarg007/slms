@@ -21,8 +21,7 @@ jobs:
       - name: Send SSM deploy command
         id: send
         run: |
-          "#!/bin/bash",
-          "set -euo pipefail",
+          set -euo pipefail
           CMD_ID=$(aws ssm send-command \
             --instance-ids ${{ secrets.SSM_INSTANCE_ID }} \
             --document-name "AWS-RunShellScript" \
@@ -43,7 +42,7 @@ jobs:
             ]' \
             --query "Command.CommandId" --output text)
           echo "command_id=$CMD_ID" >> $GITHUB_OUTPUT
-
+  
       - name: Wait for SSM command to finish
         run: |
           set -euo pipefail
