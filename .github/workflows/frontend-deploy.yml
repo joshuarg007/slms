@@ -19,11 +19,17 @@ jobs:
         id: detect
         run: |
           set -euo pipefail
-          if [ -f package.json ]; then echo "dir=." >> $GITHUB_OUTPUT
-          elif [ -f frontend/package.json ]; then echo "dir=frontend" >> $GITHUB_OUTPUT
-          elif [ -f apps/web/package.json ]; then echo "dir=apps/web" >> $GITHUB_OUTPUT
+          if [ -f slms-frontend/package.json ]; then
+            echo "dir=slms-frontend" >> $GITHUB_OUTPUT
+          elif [ -f package.json ]; then
+            echo "dir=." >> $GITHUB_OUTPUT
+          elif [ -f frontend/package.json ]; then
+            echo "dir=frontend" >> $GITHUB_OUTPUT
+          elif [ -f apps/web/package.json ]; then
+            echo "dir=apps/web" >> $GITHUB_OUTPUT
           else
-            echo "No package.json found at repo root, frontend/, or apps/web/"; exit 1
+            echo "No package.json found (checked slms-frontend/, ., frontend/, apps/web/)"
+            exit 1
           fi
 
       - name: Setup Node
@@ -33,7 +39,7 @@ jobs:
           cache: "npm"
           cache-dependency-path: "${{ steps.detect.outputs.dir }}/package-lock.json"
 
-      - name: Install deps
+      - name: Install dependencies
         working-directory: ${{ steps.detect.outputs.dir }}
         run: npm ci
 
