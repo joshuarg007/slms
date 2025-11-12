@@ -21,12 +21,14 @@ jobs:
       - name: Send SSM deploy command
         id: send
         run: |
-          set -euo pipefail
+          "#!/bin/bash",
+          "set -euo pipefail",
           CMD_ID=$(aws ssm send-command \
             --instance-ids ${{ secrets.SSM_INSTANCE_ID }} \
             --document-name "AWS-RunShellScript" \
             --comment "Deploy Site2CRM via SSM" \
             --parameters commands='[
+              "#!/bin/bash",
               "set -euo pipefail",
               "cd /home/ubuntu/site2crm",
               "git fetch --all --prune",
