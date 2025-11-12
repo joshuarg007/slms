@@ -50,6 +50,20 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen grid place-items-center px-4 bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
       <div className="w-full max-w-md">
+        {/* Top nav / escape hatch */}
+        <div className="mb-4 flex items-center justify-between text-sm">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+          >
+            <span className="text-lg">←</span>
+            <span>Back to home</span>
+          </Link>
+          <div className="font-semibold text-gray-700 dark:text-gray-200">
+            Site2CRM
+          </div>
+        </div>
+
         <div className="mb-6 text-center">
           <div className="text-2xl font-semibold">Create your account</div>
           <div className="mt-1 text-sm text-gray-600 dark:text-gray-300">
