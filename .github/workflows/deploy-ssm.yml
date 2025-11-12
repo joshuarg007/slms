@@ -3,6 +3,7 @@ name: Deploy Backend (SSM)
 on:
   push:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -32,7 +33,7 @@ jobs:
               "git reset --hard origin/main",
               "/opt/site2crm/.venv/bin/pip install --upgrade pip",
               "/opt/site2crm/.venv/bin/pip install -r requirements.txt",
-              "[ -f alembic.ini ] && /opt/site2crm/.venv/bin/alembic upgrade head || true",
+              "[ -f alembic.ini ] && /opt/site2crm/.venv/bin/alembic upgrade heads || true",
               "sudo systemctl daemon-reload",
               "sudo systemctl restart site2crm",
               "sudo systemctl reload nginx || true",
