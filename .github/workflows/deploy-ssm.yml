@@ -30,6 +30,7 @@ jobs:
               "#!/bin/bash",
               "set -euo pipefail",
               "cd /home/ubuntu/site2crm",
+              "git config --global --add safe.directory /home/ubuntu/site2crm",
               "git fetch --all --prune",
               "git reset --hard origin/main",
               "/opt/site2crm/.venv/bin/pip install --upgrade pip",
