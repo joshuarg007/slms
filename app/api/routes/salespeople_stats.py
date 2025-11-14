@@ -26,14 +26,12 @@ async def unified_salespeople_stats(
     current_user: models.User = Depends(get_current_user),
 ) -> SalespersonStatsResponse:
     """
-    Dispatches to the org's active CRM and caches 7-day stats per owner per day:
+    Dispatches to the org active CRM and caches 7 day stats per owner per day.
 
-      - hubspot    -> app.integrations.hubspot.get_salespeople_stats
-      - pipedrive  -> app.integrations.pipedrive.owners_stats
-      - salesforce -> app.integrations.salesforce.get_salespeople_stats
-      - nutshell   -> app.integrations.nutshell.owners_stats
-
-    CRM is source of truth; we only cache aggregated stats for faster dashboards.
+      hubspot    -> app.integrations.hubspot.get_salespeople_stats
+      pipedrive  -> app.integrations.pipedrive.owners_stats
+      salesforce -> app.integrations.salesforce.get_salespeople_stats
+      nutshell   -> app.integrations.nutshell.owners_stats
     """
     org = db.query(models.Organization).get(current_user.organization_id)
     if not org:
@@ -41,9 +39,30 @@ async def unified_salespeople_stats(
 
     provider = (org.active_crm or "hubspot").lower()
     today = date.today()
-
     results = []
 
+    # Require an active credential for the active provider
+    cred = (
+        db.query(models.IntegrationCredential)
+        .filter(
+            models.IntegrationCredential.organization_id == org.id,
+            models.IntegrationCredential.provider == provider,
+            models.IntegrationCredential.is_active.is_(True),
+        )
+        .first()
+    )
+
+    if not cred:
+        pretty = provider.capitalize()
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"No {pretty} credentials configured for this organization. "
+                f"Please add a token on the Integrations page."
+            ),
+        )
+
+    # Try to serve from cache for the simple seven day case
     if days == 7:
         cached_rows = (
             db.query(models.SalespersonDailyStats)
@@ -68,23 +87,47 @@ async def unified_salespeople_stats(
                 for r in cached_rows
             ]
 
+    # If no cached results, call the active integration
     if not results:
-        if provider == "hubspot":
-            results = await hubspot.get_salespeople_stats(days=days)
+        try:
+            if provider == "hubspot":
+                results = await hubspot.get_salespeople_stats(days=days)
 
-        elif provider == "pipedrive":
-            results = await pipedrive.owners_stats(days=days, owner_id=None)
+            elif provider == "pipedrive":
+                # pass org id so Pipedrive can use per organization credentials
+                results = await pipedrive.owners_stats(
+                    days=days,
+                    owner_id=None,
+                    organization_id=org.id,
+                )
 
-        elif provider == "salesforce":
-            results = await salesforce.get_salespeople_stats(db=db, org_id=org.id, days=days)
+            elif provider == "salesforce":
+                results = await salesforce.get_salespeople_stats(
+                    db=db,
+                    org_id=org.id,
+                    days=days,
+                )
 
-        elif provider == "nutshell":
-            results = await nutshell.owners_stats(days=days, owner_id=None)
+            elif provider == "nutshell":
+                results = await nutshell.owners_stats(days=days, owner_id=None)
 
-        else:
-            raise HTTPException(status_code=400, detail=f"Unsupported CRM provider: {provider}")
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Unsupported CRM provider: {provider}",
+                )
+        except RuntimeError as e:
+            # Things like "No Pipedrive API token configured" bubble up here
+            raise HTTPException(status_code=400, detail=str(e))
+        except Exception as e:
+            # Any other unexpected integration failure
+            raise HTTPException(
+                status_code=502,
+                detail=f"{provider} stats error: {e}",
+            )
 
-        if days == 7:
+        # Refresh cache only for the seven day window
+        if days == 7 and results:
             for row in results:
                 owner_id_val = str(row.get("owner_id") or "").strip()
                 if not owner_id_val:
@@ -120,10 +163,13 @@ async def unified_salespeople_stats(
 
             db.commit()
 
+    # Optional filters
     if owner_id:
         results = [r for r in results if str(r.get("owner_id")) == str(owner_id)]
     elif owner_email:
         eml = owner_email.strip().lower()
-        results = [r for r in results if (r.get("owner_email") or "").lower() == eml]
+        results = [
+            r for r in results if (r.get("owner_email") or "").lower() == eml
+        ]
 
     return SalespersonStatsResponse(days=days, results=results)

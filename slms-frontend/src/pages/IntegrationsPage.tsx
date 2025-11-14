@@ -21,23 +21,46 @@ type CredentialSummary = {
   updated_at?: string | null;
 };
 
+// Small helper that attaches Bearer from localStorage and includes cookies
+function authFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+  const headers: Record<string, string> = {
+    ...(init.headers as Record<string, string> | undefined),
+  };
+
+  try {
+    const tok =
+      typeof localStorage !== "undefined"
+        ? localStorage.getItem("access_token")
+        : null;
+    if (tok) headers.Authorization = `Bearer ${tok}`;
+  } catch {
+    // ignore localStorage errors
+  }
+
+  return fetch(input, {
+    credentials: "include",
+    ...init,
+    headers,
+  });
+}
+
 export default function IntegrationsPage() {
   const [activeCRM, setActiveCRM] = useState<CRM>("hubspot");
   const [editing, setEditing] = useState<CRM>("hubspot");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  // Org-level credentials state
+  // Org level credentials state
   const [creds, setCreds] = useState<CredentialSummary[]>([]);
   const [loadingCreds, setLoadingCreds] = useState(false);
 
-  // Token inputs for per-org PAT/API keys
+  // Token inputs for per org PAT or API keys
   const [hubspotToken, setHubspotToken] = useState("");
   const [pipedriveToken, setPipedriveToken] = useState("");
   const [nutshellToken, setNutshellToken] = useState("");
   const [tokenBusy, setTokenBusy] = useState<CRM | null>(null);
 
-  // Salesforce connection state (OAuth)
+  // Salesforce connection state
   const [sfConnected, setSfConnected] = useState(false);
   const [sfBusy, setSfBusy] = useState(false);
   const [sfErr, setSfErr] = useState<string | null>(null);
@@ -46,7 +69,7 @@ export default function IntegrationsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const r = await fetch(`${getApiBase()}/integrations/crm/active`, { credentials: "include" });
+        const r = await authFetch(`${getApiBase()}/integrations/crm/active`);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const j = (await r.json()) as { provider: CRM };
         setActiveCRM(j.provider);
@@ -57,11 +80,11 @@ export default function IntegrationsPage() {
     })();
   }, []);
 
-  // Load credentials (for all providers)
+  // Load credentials for all providers
   async function refreshCreds() {
     setLoadingCreds(true);
     try {
-      const res = await fetch(`${getApiBase()}/integrations/credentials`, { credentials: "include" });
+      const res = await authFetch(`${getApiBase()}/integrations/credentials`);
       if (!res.ok) return;
       const items = (await res.json()) as CredentialSummary[];
       setCreds(items || []);
@@ -71,7 +94,7 @@ export default function IntegrationsPage() {
         items.some((c) => c.provider === "salesforce" && c.is_active);
       setSfConnected(!!hasSF);
     } catch {
-      // ignore; non-blocking
+      // non blocking
     } finally {
       setLoadingCreds(false);
     }
@@ -120,9 +143,8 @@ export default function IntegrationsPage() {
     setSaving(true);
     setMsg(null);
     try {
-      const r = await fetch(`${getApiBase()}/integrations/crm/active`, {
+      const r = await authFetch(`${getApiBase()}/integrations/crm/active`, {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ provider: editing }),
       });
@@ -146,6 +168,7 @@ export default function IntegrationsPage() {
     setSfBusy(true);
     setSfErr(null);
     try {
+      // For OAuth redirects we can still just change location
       window.location.href = `${getApiBase()}/integrations/salesforce/auth`;
     } catch (e: any) {
       setSfErr(e?.message || "Failed to start Salesforce auth");
@@ -179,9 +202,8 @@ export default function IntegrationsPage() {
         auth_type: "pat",
         activate: true,
       };
-      const res = await fetch(`${getApiBase()}/integrations/credentials`, {
+      const res = await authFetch(`${getApiBase()}/integrations/credentials`, {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
@@ -229,7 +251,8 @@ export default function IntegrationsPage() {
         <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
           <h2 className="text-lg font-medium">Active CRM</h2>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Choose the primary CRM for lead capture and salesperson analytics. You’ll be asked to confirm before switching.
+            Choose the primary CRM for lead capture and salesperson analytics. You will be asked to
+            confirm before switching.
           </p>
         </div>
 
@@ -263,7 +286,7 @@ export default function IntegrationsPage() {
               Current: <span className="font-medium">{labelOf(activeCRM)}</span>
             </p>
             <p className="mt-1">
-              Make sure you’ve added API credentials for the selected CRM in the sections below.
+              Make sure you have added API credentials for the selected CRM in the sections below.
             </p>
           </div>
         </div>
@@ -288,7 +311,8 @@ export default function IntegrationsPage() {
             )}
           </div>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Private app token with: crm.objects.owners.read, crm.objects.deals.read, engagements read scopes.
+            Private app token with crm.objects.owners.read, crm.objects.deals.read, and engagements
+            read scopes.
           </p>
 
           <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
@@ -351,7 +375,7 @@ export default function IntegrationsPage() {
             )}
           </div>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Use a company-wide API token for now; OAuth coming soon.
+            Use a company wide API token for now. OAuth support will be added later.
           </p>
 
           <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
@@ -397,7 +421,7 @@ export default function IntegrationsPage() {
           </div>
         </section>
 
-        {/* Salesforce (OAuth) */}
+        {/* Salesforce */}
         <section
           className={`rounded-2xl border px-5 py-4 ${
             activeCRM === "salesforce"
@@ -414,7 +438,7 @@ export default function IntegrationsPage() {
             )}
           </div>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Connected App (OAuth 2.0). Click connect to authorize SLMS with your org.
+            Connected App with OAuth 2.0. Click connect to authorize SLMS with your org.
           </p>
 
           <div className="mt-3 flex items-center justify-between gap-3">

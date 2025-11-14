@@ -10,7 +10,6 @@ from app.db import models
 
 HUBSPOT_BASE_URL = "https://api.hubapi.com"
 
-
 def _get_org_token(organization_id: int) -> Optional[str]:
     """
     Look up the active HubSpot IntegrationCredential for this org.
@@ -42,7 +41,6 @@ def _headers(token_override: Optional[str] = None) -> Dict[str, str]:
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
-
 
 async def create_contact(
     email: str,
