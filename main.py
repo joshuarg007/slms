@@ -52,17 +52,21 @@ from app.core.security import (
 # -----------------------------------
 app = FastAPI()
 
-# In production, set in the environment:
-#   ALLOWED_ORIGINS="https://site2crm.io"
-# In dev (default), allow localhost + prod.
-ALLOWED_ORIGINS = [
-    o.strip() for o in os.getenv(
-        "ALLOWED_ORIGINS",
-        "http://localhost:5173,https://site2crm.io,https://www.site2crm.io,https://api.site2crm.io"
-    ).split(",")
-    if o.strip()
-]
+raw_origins = os.getenv("ALLOWED_ORIGINS")
 
+if raw_origins and raw_origins.strip():
+    ALLOWED_ORIGINS = [
+        o.strip()
+        for o in raw_origins.split(",")
+        if o.strip()
+    ]
+else:
+    ALLOWED_ORIGINS = [
+        "http://localhost:5173",
+        "https://site2crm.io",
+        "https://www.site2crm.io",
+        "https://api.site2crm.io",
+    ]
 
 app.add_middleware(
     CORSMiddleware,
