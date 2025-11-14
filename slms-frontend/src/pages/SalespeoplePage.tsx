@@ -32,7 +32,9 @@ export default function SalespeoplePage() {
 
     setLoading(true);
     setErr(null);
-    fetch(url)
+    fetch(url, {
+      credentials: "include",
+    })
       .then(async (r) => {
         if (!r.ok) {
           const txt = await r.text().catch(() => "");
