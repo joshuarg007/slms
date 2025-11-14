@@ -32,6 +32,11 @@ from app.api.routes import salesforce
 from app.api.routes.salespeople_stats_unified import router as salespeople_unified_router
 from app.api.routes.salespeople_stats import router as salespeople_router
 from fastapi.middleware.cors import CORSMiddleware
+from app.api.routes import core as core_routes
+from app.api.routes import orgs as orgs_routes
+from app.api.routes import leads as leads_routes
+from app.api.routes import auth as auth_routes
+from app.api.routes import billing as billing_routes
 from app.core.security import (
     get_password_hash,
     verify_password,
@@ -69,15 +74,11 @@ app.add_middleware(
 
 
 # Routers
-from app.api.routes import billing as billing_routes
+
 app.include_router(billing_routes.router, prefix="/api", tags=["Billing"])
-from app.api.routes import core as core_routes
 app.include_router(core_routes.router)
-from app.api.routes import orgs as orgs_routes
 app.include_router(orgs_routes.router, prefix="/api", tags=["Orgs"])
-from app.api.routes import leads as leads_routes
 app.include_router(leads_routes.router, prefix="/api", tags=["Leads"])
-from app.api.routes import auth as auth_routes
 app.include_router(auth_routes.router, prefix="/api", tags=["Auth"])
 app.include_router(hubspot_stats_router, prefix="/api", tags=["HubSpot"])
 app.include_router(pipedrive_stats_router, prefix="/api", tags=["Pipedrive"])

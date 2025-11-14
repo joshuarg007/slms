@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import StatsCards from "@/components/StatsCards";
 import OwnersSelect from "@/components/OwnersSelect";
+import { getApiBase } from "@/utils/api";
 
 type Row = {
   owner_id: string;
@@ -13,12 +14,6 @@ type Row = {
   new_deals_last_n_days: number;
 };
 
-function apiBase() {
-  const ls = typeof window !== "undefined" ? localStorage.getItem("slms.apiBase") : null;
-  const env = (import.meta as any).env?.VITE_API_URL || "http://127.0.0.1:8000";
-  return (ls || env).replace(/\/$/, "");
-}
-
 export default function SalespeoplePage() {
   const [days, setDays] = useState(7);
   const [ownerId, setOwnerId] = useState<string | null>(null);
@@ -27,11 +22,12 @@ export default function SalespeoplePage() {
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    const base = `${apiBase()}/integrations/hubspot/salespeople/stats`;
+    const base = `${getApiBase()}/salespeople/stats`;
     const url = `${base}?days=${days}${ownerId ? `&owner_id=${encodeURIComponent(ownerId)}` : ""}`;
 
     setLoading(true);
     setErr(null);
+
     fetch(url, {
       credentials: "include",
     })
@@ -42,8 +38,22 @@ export default function SalespeoplePage() {
         }
         return r.json();
       })
-      .then((d) => setRows(d?.results || []))
-      .catch((e) => setErr(e?.message || "Failed to load sales stats"))
+      .then((d) => {
+        // backend response_model is SalespersonStatsResponse
+        const results = d?.results || d?.items || [];
+        setRows(results as Row[]);
+      })
+      .catch((e) => {
+        const msg = e?.message || "Failed to load sales stats";
+
+        if (/No .*CRM configured/i.test(msg) || /No .*token configured/i.test(msg)) {
+          setErr(
+            "Salesperson stats are not ready for this organization. Please connect your CRM on the Integrations page.",
+          );
+        } else {
+          setErr(msg);
+        }
+      })
       .finally(() => setLoading(false));
   }, [days, ownerId]);
 
@@ -69,7 +79,6 @@ export default function SalespeoplePage() {
             </select>
           </div>
 
-          {/* Owner picker */}
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600 dark:text-gray-300">Owner</span>
             <OwnersSelect
@@ -90,7 +99,6 @@ export default function SalespeoplePage() {
 
       {!loading && rows.length > 0 && <StatsCards rows={rows} days={days} />}
 
-      {/* Simple table inline for consistency */}
       <div className="mt-4 overflow-x-auto rounded-2xl border bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
         <table className="min-w-full">
           <thead className="bg-gray-100 dark:bg-gray-800 text-left text-sm text-gray-700 dark:text-gray-200">
@@ -118,7 +126,10 @@ export default function SalespeoplePage() {
               </tr>
             ) : (
               rows.map((r) => (
-                <tr key={r.owner_id} className="border-t border-gray-200 dark:border-gray-800 odd:bg-gray-50 dark:odd:bg-gray-950">
+                <tr
+                  key={r.owner_id}
+                  className="border-t border-gray-200 dark:border-gray-800 odd:bg-gray-50 dark:odd:bg-gray-950"
+                >
                   <td className="px-4 py-3">{r.owner_name || "—"}</td>
                   <td className="px-4 py-3">{r.owner_email || "—"}</td>
                   <td className="px-4 py-3">{r.emails_last_n_days}</td>
