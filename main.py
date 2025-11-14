@@ -20,7 +20,6 @@ from app.schemas.lead import LeadCreate
 from app.schemas.user import UserCreate
 from app.schemas.token import Token
 from app.crud import lead as lead_crud
-from app.api import hubspot
 from app.integrations.hubspot import create_contact
 
 from app.api.routes import dashboard
@@ -80,7 +79,6 @@ from app.api.routes import leads as leads_routes
 app.include_router(leads_routes.router, prefix="/api", tags=["Leads"])
 from app.api.routes import auth as auth_routes
 app.include_router(auth_routes.router, prefix="/api", tags=["Auth"])
-app.include_router(hubspot.router, prefix="/api")
 app.include_router(hubspot_stats_router, prefix="/api", tags=["HubSpot"])
 app.include_router(pipedrive_stats_router, prefix="/api", tags=["Pipedrive"])
 app.include_router(reports.router, prefix="/api", tags=["Reports"])
