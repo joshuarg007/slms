@@ -1,0 +1,27 @@
+/* src/global.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "./styles/variables.css";
+
+/* Global background + text defaults */
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--brand-gray-dark);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-gray-light);
+}

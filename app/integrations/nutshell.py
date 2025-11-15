@@ -1,183 +1,211 @@
-# app/integrations/nutshell.py
-import base64
-import json
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
-
+from typing import Any, Dict, List, Optional, Union
 import httpx
+
+from app.db.session import SessionLocal
+from app.db import models
 from app.core.config import settings
 
-# JSON-RPC endpoint (classic Nutshell API) :contentReference[oaicite:0]{index=0}
-NUTSHELL_RPC_URL = "https://api.nutshell.com/v1/json"
+
+NUTSHELL_API_URL = "https://api.nutshell.com/v1/json"
 
 
-def _auth_headers() -> Dict[str, str]:
-    """
-    Nutshell JSON-RPC uses HTTP Basic Auth: username (email/domain) + API key. :contentReference[oaicite:1]{index=1}
-    We'll read:
-      - settings.nutshell_username
-      - settings.nutshell_api_key
-    """
-    user = settings.nutshell_username
-    api_key = settings.nutshell_api_key
-    creds = f"{user}:{api_key}".encode("utf-8")
-    token = base64.b64encode(creds).decode("utf-8")
-    return {
-        "Authorization": f"Basic {token}",
-        "Content-Type": "application/json",
-    }
+# ---------------------------------------------------------------------
+# TOKEN LOADING
+# ---------------------------------------------------------------------
+def _get_org_token(organization_id: int) -> Optional[str]:
+    db = SessionLocal()
+    try:
+        cred = (
+            db.query(models.IntegrationCredential)
+            .filter(
+                models.IntegrationCredential.organization_id == organization_id,
+                models.IntegrationCredential.provider == "nutshell",
+                models.IntegrationCredential.is_active == True,
+            )
+            .order_by(models.IntegrationCredential.updated_at.desc())
+            .first()
+        )
+        return cred.access_token if cred else None
+    finally:
+        db.close()
 
 
-async def _rpc(method: str, params: Dict[str, Any]) -> Any:
+# ---------------------------------------------------------------------
+# RAW REQUEST WRAPPER
+# ---------------------------------------------------------------------
+async def _nutshell_request(
+    method: str,
+    params: Dict[str, Any],
+    token: Optional[str],
+) -> Union[Dict[str, Any], str, None]:
+
+    api_key = token or settings.nutshell_api_key
+
+    if not api_key:
+        return "unauthorized"
+
     payload = {
         "method": method,
         "params": params,
-        "id": f"{method}-1",
+        "id": "1",
     }
+
     async with httpx.AsyncClient(timeout=30.0) as client:
-        r = await client.post(NUTSHELL_RPC_URL, headers=_auth_headers(), content=json.dumps(payload))
-        r.raise_for_status()
-        data = r.json()
-        if "error" in data and data["error"]:
-            raise RuntimeError(f"Nutshell RPC error: {data['error']}")
-        return data.get("result")
+        try:
+            resp = await client.post(
+                NUTSHELL_API_URL,
+                json=payload,
+                auth=(api_key, ""),
+            )
+
+            if resp.status_code in (401, 403):
+                return "unauthorized"
+
+            if resp.status_code >= 400:
+                return f"HTTP {resp.status_code}"
+
+            data = resp.json()
+            if "error" in data and data["error"]:
+                return "error"
+
+            return data.get("result")
+
+        except Exception:
+            return "connection_failed"
 
 
-async def list_users() -> List[Dict[str, Any]]:
-    """
-    Equivalent to HubSpot owners or Pipedrive users.
-    Uses findUsers via JSON-RPC. :contentReference[oaicite:2]{index=2}
-    """
-    users = await _rpc("findUsers", {"query": {}})
-    out: List[Dict[str, Any]] = []
-    for u in users or []:
-        out.append(
+# ---------------------------------------------------------------------
+# GET USERS (SALESPEOPLE)
+# ---------------------------------------------------------------------
+async def get_owners(
+    organization_id: Optional[int] = None,
+) -> Union[List[Dict[str, Any]], Dict[str, str]]:
+
+    token = _get_org_token(organization_id) if organization_id else None
+
+    result = await _nutshell_request(
+        "findUsers",
+        params={"filter": {}},
+        token=token,
+    )
+
+    if result == "unauthorized":
+        return {"warning": "Nutshell API key invalid or missing."}
+
+    if isinstance(result, str):
+        return {"warning": f"Nutshell request failed: {result}"}
+
+    owners: List[Dict[str, Any]] = []
+
+    for u in result or []:
+        owners.append(
             {
-                "id": str(u.get("id")),
-                "name": u.get("name") or "",
-                "email": (u.get("email") or "").lower(),
-                "active": bool(u.get("isActive", True)),
+                "id": str(u.get("id") or ""),
+                "email": u.get("email", ""),
+                "firstName": u.get("firstName", ""),
+                "lastName": u.get("lastName", ""),
+                "archived": False,
             }
         )
-    return out
+
+    return owners
 
 
-def _cutoff_iso(days: int) -> str:
-    # Nutshell stores timestamps in ISO-like strings; we use UTC window
-    dt = datetime.now(timezone.utc) - timedelta(days=days)
-    return dt.replace(microsecond=0).isoformat().replace("+00:00", "Z")
+# ---------------------------------------------------------------------
+# DEAL COUNT SINCE DATE
+# ---------------------------------------------------------------------
+async def _count_deals_created_since(
+    owner_id: str,
+    since_ms: int,
+    token: Optional[str],
+) -> int:
 
+    since_iso = datetime.fromtimestamp(since_ms / 1000, timezone.utc).isoformat()
 
-async def count_new_leads(owner_id: Optional[int], days: int) -> int:
-    """
-    Count leads created in the last N days for a given owner.
-    Uses findLeads with a query filter. Shape is similar to other examples
-    like newLead/editLead in docs. :contentReference[oaicite:3]{index=3}
-    """
-    cutoff = _cutoff_iso(days)
-    query: Dict[str, Any] = {
-        "query": {
-            "modifiedTime": {"min": cutoff},
+    result = await _nutshell_request(
+        "findLeads",
+        params={
+            "filter": {
+                "owner": {"id": int(owner_id)} if owner_id else None,
+                "completedTime": {"min": since_iso},
+            },
+            "orderBy": "createdTime",
         },
-    }
-    # If you want strict creation-time, check docs for the exact field;
-    # using modifiedTime as a safe window starter.
-    if owner_id is not None:
-        query["query"]["owner"] = {"id": owner_id}
+        token=token,
+    )
 
-    leads = await _rpc("findLeads", query)
-    return len(leads or [])
+    if result in ("unauthorized", "connection_failed"):
+        return 0
 
+    if isinstance(result, str):
+        return 0
 
-async def count_activities(owner_id: Optional[int], days: int) -> Dict[str, int]:
-    """
-    Rough equivalent of emails/calls/meetings from Activities.
-    Nutshell has Activities / Tasks; you'll refine types once you inspect your data. :contentReference[oaicite:4]{index=4}
-    """
-    cutoff = _cutoff_iso(days)
-    query: Dict[str, Any] = {
-        "query": {
-            "updatedTime": {"min": cutoff},
-        },
-    }
-    if owner_id is not None:
-        query["query"]["user"] = {"id": owner_id}
-
-    activities = await _rpc("findActivities", query)
-    emails = calls = meetings = 0
-    for a in activities or []:
-        typ = (a.get("type") or "").lower()
-        if "email" in typ:
-            emails += 1
-        elif "call" in typ or "phone" in typ:
-            calls += 1
-        elif "meeting" in typ or "appointment" in typ:
-            meetings += 1
-    return {
-        "emails": emails,
-        "calls": calls,
-        "meetings": meetings,
-    }
+    leads = result or []
+    return len(leads)
 
 
-async def owners_stats(days: int, owner_id: Optional[str] = None) -> List[Dict[str, Any]]:
-    """
-    Match the shape of HubSpot/Pipedrive/Salesforce stats:
-    [
-      {
-        "owner_id": "...",
-        "owner_name": "...",
-        "owner_email": "...",
-        "emails_last_n_days": int,
-        "calls_last_n_days": int,
-        "meetings_last_n_days": int,
-        "new_deals_last_n_days": int,   # here based on Nutshell leads
-      },
-      ...
-    ]
-    """
-    users = await list_users()
-    if owner_id is not None:
-        selected = [u for u in users if str(u.get("id")) == str(owner_id)]
-    else:
-        selected = [u for u in users if u.get("active")]
+# ---------------------------------------------------------------------
+# SALESPEOPLE STATS
+# ---------------------------------------------------------------------
+async def get_salespeople_stats(
+    days: int = 7,
+    owner_id: Optional[str] = None,
+    include_archived_owners: bool = False,  # ignored for Nutshell
+    organization_id: Optional[int] = None,
+    **kwargs: Any,
+) -> List[Dict[str, Any]]:
 
-    out: List[Dict[str, Any]] = []
-    for u in selected:
-        oid_int = int(u["id"])
-        act_counts = await count_activities(owner_id=oid_int, days=days)
-        new_leads = await count_new_leads(owner_id=oid_int, days=days)
+    token = _get_org_token(organization_id) if organization_id else None
 
-        out.append(
+    owners_resp = await get_owners(organization_id=organization_id)
+
+    # Soft warning
+    if isinstance(owners_resp, dict) and "warning" in owners_resp:
+        return [{
+            "owner_id": "",
+            "owner_name": "",
+            "owner_email": "",
+            "emails_last_n_days": 0,
+            "calls_last_n_days": 0,
+            "meetings_last_n_days": 0,
+            "new_deals_last_n_days": 0,
+            "warning": owners_resp["warning"],
+        }]
+
+    owners: List[Dict[str, Any]] = owners_resp
+
+    if owner_id:
+        owners = [o for o in owners if str(o.get("id")) == str(owner_id)]
+
+    now = datetime.now(timezone.utc)
+    since = now - timedelta(days=max(0, int(days)))
+    since_ms = int(since.timestamp() * 1000)
+
+    rows: List[Dict[str, Any]] = []
+
+    for o in owners:
+        oid = str(o.get("id") or "")
+        name = " ".join(
+            filter(None, [o.get("firstName"), o.get("lastName")])
+        ).strip() or (o.get("email") or oid)
+
+        new_deals = await _count_deals_created_since(
+            owner_id=oid,
+            since_ms=since_ms,
+            token=token,
+        )
+
+        rows.append(
             {
-                "owner_id": str(u["id"]),
-                "owner_name": u.get("name") or "",
-                "owner_email": u.get("email") or "",
-                "emails_last_n_days": act_counts["emails"],
-                "calls_last_n_days": act_counts["calls"],
-                "meetings_last_n_days": act_counts["meetings"],
-                # Map Nutshell leads into your "new_deals_last_n_days" KPI slot
-                "new_deals_last_n_days": new_leads,
+                "owner_id": oid,
+                "owner_name": name,
+                "owner_email": o.get("email"),
+                "emails_last_n_days": 0,
+                "calls_last_n_days": 0,
+                "meetings_last_n_days": 0,
+                "new_deals_last_n_days": new_deals,
             }
         )
-    return out
 
-
-async def create_lead(description: str, contact_name: str = "", contact_email: str = "") -> Dict[str, Any]:
-    """
-    Minimal newLead wrapper so Site2CRM can push a new lead into Nutshell. :contentReference[oaicite:5]{index=5}
-    """
-    lead_payload: Dict[str, Any] = {
-        "lead": {
-            "description": description,
-        }
-    }
-    if contact_name or contact_email:
-        lead_payload["lead"]["primaryContact"] = {
-            "name": contact_name or contact_email or "New Lead",
-        }
-        if contact_email:
-            lead_payload["lead"]["primaryContact"]["email"] = contact_email
-
-    result = await _rpc("newLead", lead_payload)
-    return result or {}
+    return rows

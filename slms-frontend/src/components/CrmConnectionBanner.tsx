@@ -15,8 +15,6 @@ type CredentialSummary = {
   auth_type: string;
   is_active: boolean;
   token_suffix?: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
 };
 
 function authFetch(input: RequestInfo | URL, init: RequestInit = {}) {
@@ -25,14 +23,9 @@ function authFetch(input: RequestInfo | URL, init: RequestInit = {}) {
   };
 
   try {
-    const tok =
-      typeof localStorage !== "undefined"
-        ? localStorage.getItem("access_token")
-        : null;
+    const tok = localStorage.getItem("access_token");
     if (tok) headers.Authorization = `Bearer ${tok}`;
-  } catch {
-    // ignore
-  }
+  } catch {}
 
   return fetch(input, {
     credentials: "include",
@@ -44,93 +37,73 @@ function authFetch(input: RequestInfo | URL, init: RequestInit = {}) {
 export default function CrmConnectionBanner() {
   const navigate = useNavigate();
   const location = useLocation();
+
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function checkStatus() {
+    async function run() {
       setLoading(true);
       setMessage(null);
 
       try {
         const base = getApiBase();
 
-        // 1. Who is the active CRM
+        // Active CRM
         const activeRes = await authFetch(`${base}/integrations/crm/active`);
-
-        if (activeRes.status === 401) {
-          if (!cancelled) {
-            setMessage(null);
-            setLoading(false);
-          }
-          return;
-        }
-
         if (!activeRes.ok) {
-          if (!cancelled) {
-            setMessage(null);
-            setLoading(false);
-          }
+          if (!cancelled) setLoading(false);
           return;
         }
 
         const active = (await activeRes.json()) as ActiveCrmResponse;
-        const provider = active.provider as CRM;
+        const provider = active.provider;
 
-        // 2. What credentials exist for this org
+        // Credentials list
         const credsRes = await authFetch(`${base}/integrations/credentials`);
         if (!credsRes.ok) {
-          if (!cancelled) {
-            setMessage(null);
-            setLoading(false);
-          }
+          if (!cancelled) setLoading(false);
           return;
         }
 
-        const items = (await credsRes.json()) as CredentialSummary[];
-        const hasActive = items.some(
+        const creds = (await credsRes.json()) as CredentialSummary[];
+        const hasActive = creds.some(
           (c) => c.provider === provider && c.is_active,
         );
 
         let msg: string | null = null;
 
         if (!hasActive) {
-          if (provider === "salesforce") {
-            msg =
-              "Salesforce is selected as the active CRM but is not connected yet. Please connect Salesforce in Integrations before using salesperson analytics.";
-          } else if (provider === "hubspot") {
-            msg =
-              "HubSpot is selected as the active CRM but no active token is configured for this organization. Add a HubSpot private app token in Integrations.";
-          } else if (provider === "pipedrive") {
-            msg =
-              "Pipedrive is selected as the active CRM but no active API token is configured for this organization. Add a Pipedrive API token in Integrations.";
-          } else if (provider === "nutshell") {
-            msg =
-              "Nutshell is selected as the active CRM but no active API key is configured for this organization. Add a Nutshell API key in Integrations.";
-          }
+          const map: Record<CRM, string> = {
+            hubspot:
+              "HubSpot is selected but no active token is configured for this organization.",
+            pipedrive:
+              "Pipedrive is selected but no active API token is configured.",
+            salesforce:
+              "Salesforce is selected but not connected yet. Complete Salesforce authentication.",
+            nutshell:
+              "Nutshell CRM is selected but no API key is saved for this organization.",
+          };
+          msg = map[provider];
         }
 
-        // Optional light check for clearly broken Salesforce config
+        // Surface Salesforce misconfig in a softer way
         if (!msg && provider === "salesforce") {
           try {
-            const statsRes = await authFetch(
+            const check = await authFetch(
               `${base}/integrations/salespeople/stats?days=7`,
             );
-            if (!statsRes.ok) {
-              const text = await statsRes.text().catch(() => "");
-              if (
-                text.includes("instance_url not found") ||
-                text.includes("SALESFORCE_INSTANCE_URL")
-              ) {
-                msg =
-                  "Salesforce is selected as the active CRM but the Salesforce connection is incomplete. Please reconnect Salesforce in Integrations.";
-              }
+            const text = await check.text().catch(() => "");
+            if (
+              text.includes("instance_url not found") ||
+              text.includes("SALESFORCE_INSTANCE_URL")
+            ) {
+              msg =
+                "Salesforce is selected but the connection is incomplete. Please reconnect Salesforce.";
             }
-          } catch {
-            // ignore network error here and leave msg as is
-          }
+          } catch {}
         }
 
         if (!cancelled) {
@@ -145,9 +118,7 @@ export default function CrmConnectionBanner() {
       }
     }
 
-    checkStatus();
-
-    // Recheck whenever the route changes so it feels global
+    run();
     return () => {
       cancelled = true;
     };
@@ -155,15 +126,20 @@ export default function CrmConnectionBanner() {
 
   if (loading || !message) return null;
 
+  // Contained, non-overflowing card
   return (
-    <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
-      <div className="font-medium">CRM connection required</div>
-      <p className="mt-1">{message}</p>
-      <div className="mt-3 flex items-center gap-3">
+    <div className="mb-6">
+      <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-4 text-sm text-amber-900 shadow-sm dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+        <div className="font-medium text-amber-900 dark:text-amber-100">
+          CRM connection needed
+        </div>
+
+        <p className="mt-1">{message}</p>
+
         <button
           type="button"
           onClick={() => navigate("/integrations")}
-          className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+          className="mt-3 inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
         >
           Open Integrations
         </button>

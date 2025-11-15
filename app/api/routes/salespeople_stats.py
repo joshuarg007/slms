@@ -9,6 +9,7 @@ from app.api.deps.auth import get_db, get_current_user
 from app.db import models
 from app.schemas.salesperson import SalespersonStatsResponse
 
+# Updated imports (each now supports soft-errors and per-org tokens)
 from app.integrations import hubspot
 from app.integrations import pipedrive
 from app.integrations import salesforce
@@ -25,23 +26,15 @@ async def unified_salespeople_stats(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> SalespersonStatsResponse:
-    """
-    Dispatches to the org active CRM and caches 7 day stats per owner per day.
 
-      hubspot    -> app.integrations.hubspot.get_salespeople_stats
-      pipedrive  -> app.integrations.pipedrive.owners_stats
-      salesforce -> app.integrations.salesforce.get_salespeople_stats
-      nutshell   -> app.integrations.nutshell.owners_stats
-    """
     org = db.query(models.Organization).get(current_user.organization_id)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
     provider = (org.active_crm or "hubspot").lower()
     today = date.today()
-    results = []
 
-    # Require an active credential for the active provider
+    # Ensure the org actually has credentials for the CRM they selected
     cred = (
         db.query(models.IntegrationCredential)
         .filter(
@@ -56,13 +49,12 @@ async def unified_salespeople_stats(
         pretty = provider.capitalize()
         raise HTTPException(
             status_code=400,
-            detail=(
-                f"No {pretty} credentials configured for this organization. "
-                f"Please add a token on the Integrations page."
-            ),
+            detail=f"No {pretty} credentials configured for this organization. Please add a token on the Integrations page.",
         )
 
-    # Try to serve from cache for the simple seven day case
+    results = []
+
+    # Cache only for the HubSpot/Pipedrive/Nutshell/SF unified 7-day view
     if days == 7:
         cached_rows = (
             db.query(models.SalespersonDailyStats)
@@ -87,23 +79,25 @@ async def unified_salespeople_stats(
                 for r in cached_rows
             ]
 
-    # If no cached results, call the active integration
+    # If no cache, call integration module
     if not results:
         try:
             if provider == "hubspot":
+                # now passes organization_id for proper token lookup
                 results = await hubspot.get_salespeople_stats(
                     days=days,
+                    owner_id=owner_id,
+                    include_archived_owners=False,
                     organization_id=org.id,
                 )
 
             elif provider == "pipedrive":
-                # pass org id so Pipedrive can use per organization credentials
                 results = await pipedrive.owners_stats(
                     days=days,
-                    owner_id=None,
+                    owner_id=owner_id,
                     organization_id=org.id,
                 )
-                
+
             elif provider == "salesforce":
                 results = await salesforce.get_salespeople_stats(
                     db=db,
@@ -112,28 +106,36 @@ async def unified_salespeople_stats(
                 )
 
             elif provider == "nutshell":
-                results = await nutshell.owners_stats(days=days, owner_id=None)
+                results = await nutshell.owners_stats(
+                    days=days,
+                    owner_id=owner_id,
+                    organization_id=org.id,
+                )
 
             else:
                 raise HTTPException(
                     status_code=400,
                     detail=f"Unsupported CRM provider: {provider}",
                 )
+
         except RuntimeError as e:
-            # Things like "No Pipedrive API token configured" bubble up here
-            raise HTTPException(status_code=400, detail=str(e))
+            return SalespersonStatsResponse(
+                days=days,
+                results=[],
+                warning=str(e),
+            )
+
         except Exception as e:
-            # Any other unexpected integration failure
             raise HTTPException(
                 status_code=502,
                 detail=f"{provider} stats error: {e}",
             )
 
-        # Refresh cache only for the seven day window
+        # Write fresh cache
         if days == 7 and results:
             for row in results:
-                owner_id_val = str(row.get("owner_id") or "").strip()
-                if not owner_id_val:
+                oid = str(row.get("owner_id") or "").strip()
+                if not oid:
                     continue
 
                 stats_row = (
@@ -141,7 +143,7 @@ async def unified_salespeople_stats(
                     .filter(
                         models.SalespersonDailyStats.organization_id == org.id,
                         models.SalespersonDailyStats.provider == provider,
-                        models.SalespersonDailyStats.owner_id == owner_id_val,
+                        models.SalespersonDailyStats.owner_id == oid,
                         models.SalespersonDailyStats.stats_date == today,
                     )
                     .first()
@@ -151,7 +153,7 @@ async def unified_salespeople_stats(
                     stats_row = models.SalespersonDailyStats(
                         organization_id=org.id,
                         provider=provider,
-                        owner_id=owner_id_val,
+                        owner_id=oid,
                     )
 
                 stats_row.owner_email = row.get("owner_email")
@@ -171,8 +173,6 @@ async def unified_salespeople_stats(
         results = [r for r in results if str(r.get("owner_id")) == str(owner_id)]
     elif owner_email:
         eml = owner_email.strip().lower()
-        results = [
-            r for r in results if (r.get("owner_email") or "").lower() == eml
-        ]
+        results = [r for r in results if (r.get("owner_email") or "").lower() == eml]
 
     return SalespersonStatsResponse(days=days, results=results)

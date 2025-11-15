@@ -1,10 +1,24 @@
 // src/utils/api.ts
-// Minimal API helper with org-aware endpoints, Bearer auth persistence,
-// and automatic refresh-on-401 retry.
+// ---------------------------------------------------------------------
+// Global API helper using structured results (Option B).
+// Never throws. Always returns { ok: boolean, data?: T, error?: string }.
+// Supports:
+// - Cookie-based JWT with refresh
+// - Bearer header auto-injected
+// - Auto-refresh on 401
+// - Full typing for all endpoints
+// ---------------------------------------------------------------------
 
 export type SortDir = "asc" | "desc";
 export type Provider = "hubspot" | "pipedrive" | "salesforce" | "nutshell";
 export type AuthType = "pat" | "api_key" | "oauth";
+
+export interface ApiResult<T> {
+  ok: boolean;
+  data?: T;
+  error?: string;
+  status?: number;
+}
 
 export interface Lead {
   id: number;
@@ -38,7 +52,6 @@ export interface DashboardMetrics {
   by_source: Record<string, number>;
 }
 
-
 export interface IntegrationCredOut {
   id: number;
   provider: Provider;
@@ -46,35 +59,39 @@ export interface IntegrationCredOut {
   is_active: boolean;
   created_at?: string | null;
   updated_at?: string | null;
-  token_suffix?: string | null; // last 4, never full token
+  token_suffix?: string | null;
+}
+
+export function getApiBase() {
+  const stored = localStorage.getItem("slms.apiBase");
+  return (stored || import.meta.env.VITE_API_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
 }
 
 const baseUrl = getApiBase();
 
-// ---- Token persistence (Bearer) ----
+// ---------------------------------------------------------------------
+// ACCESS TOKEN PERSISTENCE
+// ---------------------------------------------------------------------
 let ACCESS_TOKEN: string | null = null;
+
 try {
   ACCESS_TOKEN =
     typeof localStorage !== "undefined"
       ? localStorage.getItem("access_token")
       : null;
-} catch {
-  /* ignore */
-}
+} catch { /* ignore */ }
 
 function setToken(token: string | null) {
   ACCESS_TOKEN = token;
   try {
-    if (typeof localStorage !== "undefined") {
-      if (token) localStorage.setItem("access_token", token);
-      else localStorage.removeItem("access_token");
-    }
-  } catch {
-    /* ignore */
-  }
+    if (token) localStorage.setItem("access_token", token);
+    else localStorage.removeItem("access_token");
+  } catch { /* ignore */ }
 }
 
-// ---- Small utils ----
+// ---------------------------------------------------------------------
+// UTILS
+// ---------------------------------------------------------------------
 function toQuery(params: Record<string, unknown>): string {
   const usp = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
@@ -85,152 +102,171 @@ function toQuery(params: Record<string, unknown>): string {
   return s ? `?${s}` : "";
 }
 
-// ---- Refresh flow ----
-// Returns a fresh access token string or null
-export async function refresh(): Promise<string | null> {
-  const res = await fetch(`${baseUrl}/token/refresh`, {
-    method: "POST",
-    credentials: "include",
-  });
-  if (!res.ok) return null;
+// ---------------------------------------------------------------------
+// REFRESH TOKEN (structured result)
+// ---------------------------------------------------------------------
+export async function refresh(): Promise<ApiResult<{ access_token: string }>> {
+  try {
+    const res = await fetch(`${baseUrl}/token/refresh`, {
+      method: "POST",
+      credentials: "include",
+    });
 
-  // backend returns { access_token, token_type }
-  const data = (await res.json()) as { access_token?: string };
-  if (data?.access_token) {
-    setToken(data.access_token);
-    return data.access_token;
+    if (!res.ok) return { ok: false, status: res.status, error: "Refresh failed" };
+
+    const data = await res.json();
+    if (data?.access_token) {
+      setToken(data.access_token);
+      return { ok: true, data };
+    }
+
+    return { ok: false, error: "Invalid refresh response" };
+  } catch {
+    return { ok: false, error: "Network error during refresh" };
   }
-  return null;
 }
 
-// Generic JSON fetch with 401 → refresh → retry (once)
-async function fetchJSON<T>(
+// ---------------------------------------------------------------------
+// CORE FETCH (NEVER THROWS)
+// ---------------------------------------------------------------------
+async function apiFetch<T>(
   url: string,
   init: RequestInit = {},
-  _retried = false
-): Promise<T> {
+  retried = false
+): Promise<ApiResult<T>> {
   const headers: Record<string, string> = {
     ...(init.headers as Record<string, string> | undefined),
   };
 
-  // Only auto-set Content-Type when there's a non-FormData body
   if (!headers["Content-Type"] && init.body && !(init.body instanceof FormData)) {
     headers["Content-Type"] = "application/json";
   }
   if (ACCESS_TOKEN) headers.Authorization = `Bearer ${ACCESS_TOKEN}`;
 
-  let res = await fetch(url, { credentials: "include", ...init, headers });
+  let res: Response;
 
-  if (res.status === 401 && !_retried) {
-    const newTok = await refresh();
-    if (newTok) {
-      headers.Authorization = `Bearer ${newTok}`;
-      res = await fetch(url, { credentials: "include", ...init, headers });
+  try {
+    res = await fetch(url, { credentials: "include", ...init, headers });
+  } catch {
+    return { ok: false, error: "Network error", status: 0 };
+  }
+
+  // 401 → try refresh once
+  if (res.status === 401 && !retried) {
+    const ref = await refresh();
+    if (ref.ok && ref.data?.access_token) {
+      headers.Authorization = `Bearer ${ref.data.access_token}`;
+      return apiFetch<T>(url, { ...init, headers }, true);
     }
   }
 
+  const status = res.status;
+  const text = await res.text().catch(() => "");
+
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status} ${res.statusText} – ${text}`);
+    return {
+      ok: false,
+      status,
+      error: text || res.statusText || "Request failed",
+    };
   }
 
-  const ct = res.headers.get("content-type") || "";
-  if (!ct.includes("application/json")) return {} as T;
-  return (await res.json()) as T;
+  const ctype = res.headers.get("content-type") || "";
+  if (!ctype.includes("application/json")) {
+    return { ok: true, data: {} as T };
+  }
+
+  try {
+    const data = JSON.parse(text) as T;
+    return { ok: true, data };
+  } catch {
+    return { ok: false, error: "Invalid JSON", status };
+  }
 }
 
-// ---- Auth ----
-export async function login(username: string, password: string) {
-  const body = new URLSearchParams({ username, password });
-  const res = await fetch(`${baseUrl}/token`, {
+// ---------------------------------------------------------------------
+// AUTH
+// ---------------------------------------------------------------------
+export async function login(email: string, password: string): Promise<ApiResult<{ access_token: string }>> {
+  const body = new URLSearchParams({ username: email, password });
+
+  const res = await apiFetch<{ access_token: string }>(`${baseUrl}/token`, {
     method: "POST",
-    credentials: "include",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
   });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Login failed: ${res.status} ${res.statusText} – ${text}`);
+
+  if (res.ok && res.data?.access_token) {
+    setToken(res.data.access_token);
   }
-  const data = (await res.json()) as { access_token: string; token_type: string };
-  setToken(data.access_token);
-  return data;
+
+  return res;
 }
 
-export async function logout() {
+export async function logout(): Promise<ApiResult<{ ok: boolean }>> {
   setToken(null);
-  return fetchJSON<{ ok: boolean }>(`${baseUrl}/logout`, { method: "POST" });
+  return apiFetch(`${baseUrl}/logout`, { method: "POST" });
 }
 
 export function clearToken() {
   setToken(null);
 }
 
-export async function me() {
-  return fetchJSON<{ email: string }>(`${baseUrl}/me`);
+export async function me(): Promise<ApiResult<{ email: string }>> {
+  return apiFetch(`${baseUrl}/me`);
 }
 
-// ---- Public leads (requires org key header) ----
+// ---------------------------------------------------------------------
+// PUBLIC LEADS
+// ---------------------------------------------------------------------
 export async function createPublicLead(
   payload: Partial<Lead> & { email: string; name: string },
   orgKey?: string
-) {
+): Promise<ApiResult<{ message: string; lead_id: number }>> {
   const headers: Record<string, string> = {};
-  if (orgKey) headers["X-Org-Key"] = orgKey; // backend enforces tenancy
-  return fetchJSON<{ message: string; lead_id: number }>(`${baseUrl}/public/leads`, {
+  if (orgKey) headers["X-Org-Key"] = orgKey;
+
+  return apiFetch(`${baseUrl}/public/leads`, {
     method: "POST",
     headers,
     body: JSON.stringify(payload),
   });
 }
 
-// ---- Authed leads & dashboard ----
+// ---------------------------------------------------------------------
+// LEADS
+// ---------------------------------------------------------------------
 export async function getLeads(params: {
   q?: string;
   sort?: string;
   dir?: SortDir;
   page?: number;
   page_size?: number;
-} = {}): Promise<LeadsResponse> {
-  const url = `${baseUrl}/leads${toQuery(params)}`;
-  return fetchJSON<LeadsResponse>(url);
+} = {}): Promise<ApiResult<LeadsResponse>> {
+  return apiFetch(`${baseUrl}/leads${toQuery(params)}`);
 }
 
-export async function getDashboardMetrics(): Promise<DashboardMetrics> {
-  return fetchJSON<DashboardMetrics>(`${baseUrl}/dashboard/metrics`);
+// ---------------------------------------------------------------------
+// DASHBOARD
+// ---------------------------------------------------------------------
+export async function getDashboardMetrics(): Promise<ApiResult<DashboardMetrics>> {
+  return apiFetch(`${baseUrl}/dashboard/metrics`);
 }
 
-// Named + default export
-export const api = {
-  login,
-  refresh,
-  logout,
-  clearToken,
-  me,
-  createPublicLead,
-  getLeads,
-  getDashboardMetrics,
-  listIntegrationCredentials,
-  saveIntegrationCredential,
-};
-
-
-export function getApiBase() {
-  const stored = localStorage.getItem("slms.apiBase");
-  return (stored || import.meta.env.VITE_API_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
-}
-
-export async function listIntegrationCredentials(): Promise<IntegrationCredOut[]> {
-  return fetchJSON<IntegrationCredOut[]>(`${baseUrl}/integrations/credentials`);
+// ---------------------------------------------------------------------
+// INTEGRATIONS
+// ---------------------------------------------------------------------
+export async function listIntegrationCredentials(): Promise<ApiResult<IntegrationCredOut[]>> {
+  return apiFetch(`${baseUrl}/integrations/credentials`);
 }
 
 export async function saveIntegrationCredential(payload: {
   provider: Provider;
   access_token: string;
-  auth_type?: AuthType;   // default "pat"
-  activate?: boolean;     // default true
-}): Promise<IntegrationCredOut> {
-  return fetchJSON<IntegrationCredOut>(`${baseUrl}/integrations/credentials`, {
+  auth_type?: AuthType;
+  activate?: boolean;
+}): Promise<ApiResult<IntegrationCredOut>> {
+  return apiFetch(`${baseUrl}/integrations/credentials`, {
     method: "POST",
     body: JSON.stringify({
       provider: payload.provider,
@@ -240,5 +276,21 @@ export async function saveIntegrationCredential(payload: {
     }),
   });
 }
+
+// ---------------------------------------------------------------------
+// DEFAULT EXPORT (optional)
+// ---------------------------------------------------------------------
+export const api = {
+  login,
+  logout,
+  refresh,
+  clearToken,
+  me,
+  getLeads,
+  createPublicLead,
+  getDashboardMetrics,
+  listIntegrationCredentials,
+  saveIntegrationCredential,
+};
 
 export default api;

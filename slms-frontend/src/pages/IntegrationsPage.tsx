@@ -1,6 +1,7 @@
 // src/pages/IntegrationsPage.tsx
 import { useEffect, useState } from "react";
 import { getApiBase, refresh } from "@/utils/api";
+import CrmCapabilityChips from "@/components/CRMCapabilityChips";
 
 type CRM = "hubspot" | "pipedrive" | "salesforce" | "nutshell";
 
@@ -21,9 +22,12 @@ type CredentialSummary = {
   updated_at?: string | null;
 };
 
-// Small helper that attaches Bearer from localStorage and includes cookies
-// Small helper that attaches Bearer from localStorage and includes cookies
-async function authFetch(input: RequestInfo | URL, init: RequestInit = {}, _retried = false) {
+// Auth helper with cookie include and refresh on 401
+async function authFetch(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  _retried = false
+): Promise<Response> {
   const headers: Record<string, string> = {
     ...(init.headers as Record<string, string> | undefined),
   };
@@ -86,7 +90,7 @@ export default function IntegrationsPage() {
         setActiveCRM(j.provider);
         setEditing(j.provider);
       } catch {
-        setMsg("Could not load active CRM from server; defaulting to HubSpot.");
+        setMsg("Could not load active CRM from server. Defaulting to HubSpot.");
       }
     })();
   }, []);
@@ -103,7 +107,7 @@ export default function IntegrationsPage() {
       const hasSF =
         Array.isArray(items) &&
         items.some((c) => c.provider === "salesforce" && c.is_active);
-      setSfConnected(!!hasSF);
+      setSfConnected(Boolean(hasSF));
     } catch {
       // non blocking
     } finally {
@@ -124,7 +128,9 @@ export default function IntegrationsPage() {
           await refreshCreds();
         } finally {
           usp.delete("salesforce");
-          const next = `${window.location.pathname}${usp.toString() ? `?${usp}` : ""}`;
+          const next = `${window.location.pathname}${
+            usp.toString() ? `?${usp}` : ""
+          }`;
           window.history.replaceState({}, "", next);
           setMsg("Salesforce connected.");
         }
@@ -142,9 +148,11 @@ export default function IntegrationsPage() {
       return;
     }
     const confirmed = window.confirm(
-      `Switch active CRM from ${labelOf(activeCRM)} to ${labelOf(editing)}?\n\n` +
-        "This will change where new leads and salesperson stats are pulled from. " +
-        "You can switch back any time in Integrations.",
+      `Switch active CRM from ${labelOf(
+        activeCRM
+      )} to ${labelOf(editing)}?\n\n` +
+        "This changes where new leads and salesperson stats are pulled from. " +
+        "You can switch back any time in Integrations."
     );
     if (!confirmed) {
       setEditing(activeCRM);
@@ -168,8 +176,8 @@ export default function IntegrationsPage() {
       setEditing(j.provider);
       setMsg(`Active CRM set to ${labelOf(j.provider)}.`);
     } catch (e: any) {
-      setMsg(e?.message || "Failed to save selection");
-      setEditing(activeCRM); // roll back UI
+      setMsg(e?.message || "Failed to save selection.");
+      setEditing(activeCRM);
     } finally {
       setSaving(false);
     }
@@ -179,10 +187,9 @@ export default function IntegrationsPage() {
     setSfBusy(true);
     setSfErr(null);
     try {
-      // For OAuth redirects we can still just change location
       window.location.href = `${getApiBase()}/integrations/salesforce/auth`;
     } catch (e: any) {
-      setSfErr(e?.message || "Failed to start Salesforce auth");
+      setSfErr(e?.message || "Failed to start Salesforce auth.");
       setSfBusy(false);
     }
   }
@@ -220,7 +227,9 @@ export default function IntegrationsPage() {
       });
       if (!res.ok) {
         const t = await res.text().catch(() => "");
-        throw new Error(`Failed to save credentials: ${res.status} ${res.statusText} – ${t}`);
+        throw new Error(
+          `Failed to save credentials: ${res.status} ${res.statusText} – ${t}`
+        );
       }
       await refreshCreds();
       if (provider === "hubspot") setHubspotToken("");
@@ -228,7 +237,7 @@ export default function IntegrationsPage() {
       if (provider === "nutshell") setNutshellToken("");
       setMsg(`${labelOf(provider)} credentials saved.`);
     } catch (e: any) {
-      setMsg(e?.message || "Failed to save credentials");
+      setMsg(e?.message || "Failed to save credentials.");
     } finally {
       setTokenBusy(null);
     }
@@ -240,8 +249,14 @@ export default function IntegrationsPage() {
 
   return (
     <div className="mx-auto max-w-4xl p-6">
-      <header className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Integrations</h1>
+      <header className="mb-6 flex col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Integrations</h1>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Connect your CRM for lead syncing. Advanced salesperson analytics are
+            available for supported CRMs.
+          </p>
+        </div>
         <button
           onClick={onSave}
           disabled={saving || editing === activeCRM}
@@ -257,54 +272,58 @@ export default function IntegrationsPage() {
         </div>
       )}
 
-      {/* Active CRM card */}
-      <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-lg font-medium">Active CRM</h2>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Choose the primary CRM for lead capture and salesperson analytics. You will be asked to
-            confirm before switching.
-          </p>
-        </div>
-
-        <div className="p-5">
-          <div className="grid gap-3 sm:grid-cols-2">
+      <section className="mb-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="max-w-md">
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Active CRM
+            </div>
+            <div className="mt-1 text-base font-medium">
+              {labelOf(activeCRM)}
+            </div>
+            <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+              Lead capture supports all CRMs. Salesperson analytics are available
+              for Pipedrive, Nutshell, and Salesforce. HubSpot analytics require a
+              paid HubSpot plan with additional scopes.
+            </p>
+          </div>
+          <div className="mt-1 grid gap-2 sm:mt-0 sm:grid-cols-2">
             {CRM_OPTIONS.map((opt) => (
-              <label
+              <button
                 key={opt.id}
-                className={`flex items-center gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-colors
-                ${
+                type="button"
+                onClick={() => onSelect(opt.id)}
+                className={[
+                  "rounded-xl border px-3 py-3 text-sm text-left transition-colors",
                   editing === opt.id
                     ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30"
-                    : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
-                }`}
+                    : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800",
+                ].join(" ")}
               >
-                <input
-                  type="radio"
-                  name="crm"
-                  value={opt.id}
-                  checked={editing === opt.id}
-                  onChange={() => onSelect(opt.id)}
-                  className="h-4 w-4"
-                />
-                <span className="font-medium">{opt.label}</span>
-              </label>
-            ))}
-          </div>
+                <div className="flex flex-col gap-1">
+                  <span className="font-medium">{opt.label}</span>
+                  {activeCRM === opt.id && (
+                    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
+                      Current
+                    </span>
+                  )}
+                </div>
 
-          <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-            <p>
-              Current: <span className="font-medium">{labelOf(activeCRM)}</span>
-            </p>
-            <p className="mt-1">
-              Make sure you have added API credentials for the selected CRM in the sections below.
-            </p>
+                <div className="mt-2 text-[11px] text-gray-600 dark:text-gray-400">
+                  {opt.id === "hubspot" && "Best for HubSpot lead sync."}
+                  {opt.id === "pipedrive" && "Full analytics with low friction API."}
+                  {opt.id === "salesforce" &&
+                    "OAuth connection with advanced reporting."}
+                  {opt.id === "nutshell" && "Lightweight CRM with API access."}
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Provider sections */}
-      <div className="mt-6 grid gap-6">
+      <div className="grid gap-6">
         {/* HubSpot */}
         <section
           className={`rounded-2xl border px-5 py-4 ${
@@ -322,9 +341,34 @@ export default function IntegrationsPage() {
             )}
           </div>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Private app token with crm.objects.owners.read, crm.objects.deals.read, and engagements
-            read scopes.
+            Lead capture works on HubSpot Free. Advanced salesperson analytics
+            need extra API scopes that are only available on paid HubSpot plans.
           </p>
+
+          <CrmCapabilityChips
+            items={[
+              {
+                id: "hubspot-leads",
+                label: "Lead capture",
+                level: "full",
+                tooltip: "Push new leads and contacts into HubSpot.",
+              },
+              {
+                id: "hubspot-owners",
+                label: "Owner lookup",
+                level: "partial",
+                tooltip:
+                  "Requires owner scopes on a paid HubSpot plan or private app token.",
+              },
+              {
+                id: "hubspot-analytics",
+                label: "Sales analytics",
+                level: "limited",
+                tooltip:
+                  "Full salesperson stats require a HubSpot Professional tier portal.",
+              },
+            ]}
+          />
 
           <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
             {loadingCreds ? (
@@ -344,7 +388,7 @@ export default function IntegrationsPage() {
                 type="password"
                 value={hubspotToken}
                 onChange={(e) => setHubspotToken(e.target.value)}
-                placeholder="Enter HubSpot private app token"
+                placeholder="Enter HubSpot token or private app key"
                 className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
               />
               <button
@@ -364,7 +408,7 @@ export default function IntegrationsPage() {
               rel="noreferrer"
               className="text-sm text-indigo-600 hover:underline"
             >
-              Docs
+              HubSpot developer docs
             </a>
           </div>
         </section>
@@ -386,8 +430,33 @@ export default function IntegrationsPage() {
             )}
           </div>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Use a company wide API token for now. OAuth support will be added later.
+            Use a company wide API token. Pipedrive enables full API access on all
+            plans, which makes it ideal for development and advanced analytics.
           </p>
+
+          <CrmCapabilityChips
+            items={[
+              {
+                id: "pd-leads",
+                label: "Lead capture",
+                level: "full",
+                tooltip: "Create and update leads in Pipedrive.",
+              },
+              {
+                id: "pd-owners",
+                label: "Owner and activity stats",
+                level: "full",
+                tooltip: "Owners and activities are fully supported through the API.",
+              },
+              {
+                id: "pd-analytics",
+                label: "Sales analytics",
+                level: "full",
+                tooltip:
+                  "Your salespeople stats dashboard uses Pipedrive as a first class source.",
+              },
+            ]}
+          />
 
           <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
             {loadingCreds ? (
@@ -427,7 +496,7 @@ export default function IntegrationsPage() {
               rel="noreferrer"
               className="text-sm text-indigo-600 hover:underline"
             >
-              Docs
+              Pipedrive API docs
             </a>
           </div>
         </section>
@@ -449,8 +518,35 @@ export default function IntegrationsPage() {
             )}
           </div>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Connected App with OAuth 2.0. Click connect to authorize SLMS with your org.
+            Connect a Salesforce org by authorizing a connected app. This works
+            well with developer sandboxes for testing and with paid editions for
+            production.
           </p>
+
+          <CrmCapabilityChips
+            items={[
+              {
+                id: "sf-leads",
+                label: "Lead capture",
+                level: "full",
+                tooltip: "Create leads and contacts inside Salesforce.",
+              },
+              {
+                id: "sf-owners",
+                label: "Owner and pipeline data",
+                level: "full",
+                tooltip:
+                  "Use standard Salesforce objects to power salesperson stats.",
+              },
+              {
+                id: "sf-analytics",
+                label: "Sales analytics",
+                level: "full",
+                tooltip:
+                  "Salesforce support is ideal for advanced analytics and enterprise customers.",
+              },
+            ]}
+          />
 
           <div className="mt-3 flex items-center justify-between gap-3">
             <div className="text-sm">
@@ -472,7 +568,7 @@ export default function IntegrationsPage() {
               {sfConnected
                 ? sfBusy
                   ? "Opening…"
-                  : "Manage Connection"
+                  : "Manage connection"
                 : sfBusy
                 ? "Connecting…"
                 : "Connect Salesforce"}
@@ -497,8 +593,34 @@ export default function IntegrationsPage() {
             )}
           </div>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            API key per organization. Paste your Nutshell API key below when this CRM is active.
+            Use an API key per organization. Nutshell can power both lead capture
+            and salesperson analytics once a key is connected.
           </p>
+
+          <CrmCapabilityChips
+            items={[
+              {
+                id: "nutshell-leads",
+                label: "Lead capture",
+                level: "full",
+                tooltip: "Create and sync leads into Nutshell.",
+              },
+              {
+                id: "nutshell-owners",
+                label: "Owner and activity stats",
+                level: "full",
+                tooltip:
+                  "Nutshell APIs expose owners, pipelines, and activities for stats.",
+              },
+              {
+                id: "nutshell-analytics",
+                label: "Sales analytics",
+                level: "full",
+                tooltip:
+                  "Full salesperson analytics available when an API key is connected.",
+              },
+            ]}
+          />
 
           <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
             {loadingCreds ? (
@@ -538,7 +660,7 @@ export default function IntegrationsPage() {
               rel="noreferrer"
               className="text-sm text-indigo-600 hover:underline"
             >
-              Docs
+              Nutshell developer docs
             </a>
           </div>
         </section>

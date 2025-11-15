@@ -1,0 +1,41 @@
+/* src/styles/variables.css */
+/* Global brand theme – Site2CRM */
+
+:root {
+    /* Black foundation */
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0a;
+    --bg-tertiary: #111111;
+  
+    /* Text */
+    --text-primary: #f2f2f2;
+    --text-secondary: #b8b8b8;
+    --text-muted: #8a8a8a;
+  
+    /* Borders */
+    --border-color: #1a1a1a;
+  
+    /* Logo reds – accents only */
+    --brand-red: #c1272d;
+    --brand-red-light: #d6474c;
+    --brand-red-dark: #8e1e22;
+  
+    /* Logo grays */
+    --brand-gray: #4a4a4a;
+    --brand-gray-light: #6a6a6a;
+    --brand-gray-dark: #2e2e2e;
+  
+    /* Status colors */
+    --success-bg: #12371c;
+    --success-border: #1c5226;
+    --success-text: #4ade80;
+  
+    --warning-bg: #432d1a;
+    --warning-border: #8a5c2e;
+    --warning-text: #fcd34d;
+  
+    --error-bg: #3c0f0f;
+    --error-border: #7f1d1d;
+    --error-text: #fca5a5;
+  }
+  

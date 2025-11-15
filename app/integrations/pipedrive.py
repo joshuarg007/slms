@@ -1,26 +1,19 @@
-# app/integrations/pipedrive.py
-import datetime as dt
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Union
 
 import httpx
-
 from app.db.session import SessionLocal
 from app.db import models
+from app.core.config import settings
 
 
-BASE = "https://api.pipedrive.com".rstrip("/")
-API_V1 = f"{BASE}/v1"
-API_V2 = f"{BASE}/api/v2"
+PIPEDRIVE_BASE_URL = "https://api.pipedrive.com/v1"
 
 
-def _get_org_token(organization_id: Optional[int]) -> str:
-    """
-    Look up the active Pipedrive IntegrationCredential for this organization.
-    Raises RuntimeError if none is found.
-    """
-    if not organization_id:
-        raise RuntimeError("Pipedrive organization id is required")
-
+# ---------------------------------------------------------------------
+# TOKEN LOADING
+# ---------------------------------------------------------------------
+def _get_org_token(organization_id: int) -> Optional[str]:
     db = SessionLocal()
     try:
         cred = (
@@ -28,246 +21,246 @@ def _get_org_token(organization_id: Optional[int]) -> str:
             .filter(
                 models.IntegrationCredential.organization_id == organization_id,
                 models.IntegrationCredential.provider == "pipedrive",
-                models.IntegrationCredential.is_active == True,  # noqa: E712
+                models.IntegrationCredential.is_active == True,
             )
             .order_by(models.IntegrationCredential.updated_at.desc())
             .first()
         )
-        if not cred or not cred.access_token:
-            raise RuntimeError(
-                "No Pipedrive API token configured for this organization"
-            )
-        return cred.access_token
+        return cred.access_token if cred else None
     finally:
         db.close()
 
 
-def _auth_params(
-    organization_id: Optional[int],
-    extra: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
-    token = _get_org_token(organization_id)
-    params: Dict[str, Any] = {"api_token": token}
-    if extra:
-        params.update(extra)
-    return params
+# ---------------------------------------------------------------------
+# REQUEST WRAPPER
+# ---------------------------------------------------------------------
+async def _request(
+    method: str,
+    url: str,
+    token: Optional[str],
+    **kwargs: Any,
+) -> Union[Dict[str, Any], str, None]:
+
+    auth_token = token or settings.pipedrive_api_key
+    params = kwargs.pop("params", {})
+    params["api_token"] = auth_token
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            resp = await client.request(
+                method,
+                url,
+                params=params,
+                **kwargs,
+            )
+
+            if resp.status_code == 401 or resp.status_code == 403:
+                return "unauthorized"
+
+            if resp.status_code >= 400:
+                return f"HTTP {resp.status_code}"
+
+            if resp.text.strip():
+                return resp.json()
+
+            return None
+
+        except Exception:
+            return "connection_failed"
 
 
-def _cutoff_utc_iso(days: int) -> str:
-    return (
-        dt.datetime.utcnow() - dt.timedelta(days=days)
-    ).replace(microsecond=0).isoformat() + "Z"
+# ---------------------------------------------------------------------
+# OWNERS (USERS)
+# ---------------------------------------------------------------------
+async def get_owners(
+    organization_id: Optional[int] = None,
+) -> Union[List[Dict[str, Any]], Dict[str, str]]:
 
+    token = _get_org_token(organization_id) if organization_id else None
+    url = f"{PIPEDRIVE_BASE_URL}/users"
 
-async def list_users(organization_id: int) -> List[Dict[str, Any]]:
-    """
-    List Pipedrive users for this organization.
-    Uses the per organization IntegrationCredential.
-    """
-    async with httpx.AsyncClient(timeout=30) as client:
-        r = await client.get(
-            f"{API_V1}/users",
-            params=_auth_params(organization_id),
-        )
-        r.raise_for_status()
-        data = r.json()
-        users = data.get("data") or []
-        return [
+    data = await _request("GET", url, token)
+
+    if data == "unauthorized":
+        return {"warning": "Pipedrive API key invalid or missing."}
+
+    if isinstance(data, str):
+        return {"warning": f"Pipedrive request failed: {data}"}
+
+    items = data.get("data") or []
+
+    owners = []
+    for u in items:
+        owners.append(
             {
-                "id": str(u.get("id")),
-                "name": u.get("name") or "",
-                "email": (u.get("email") or "").lower(),
-                "active": bool(u.get("active_flag", True)),
+                "id": str(u.get("id") or ""),
+                "email": u.get("email"),
+                "firstName": u.get("name"),
+                "lastName": "",
+                "archived": False,
             }
-            for u in users
-            if u
-        ]
+        )
+
+    return owners
 
 
-async def count_new_deals(
-    organization_id: int,
+# ---------------------------------------------------------------------
+# DEAL COUNT
+# ---------------------------------------------------------------------
+async def _count_deals_created_since(
     owner_id: str,
-    days: int,
+    since_ms: int,
+    token: Optional[str],
 ) -> int:
-    cutoff = _cutoff_utc_iso(days)
-    total = 0
-    cursor: Optional[str] = None
+
+    since_iso = datetime.fromtimestamp(since_ms / 1000, timezone.utc).isoformat()
+
+    url = f"{PIPEDRIVE_BASE_URL}/deals"
+
     params = {
-        "owner_id": owner_id,
-        "sort_by": "add_time",
-        "sort_direction": "desc",
-        "limit": 500,
+        "user_id": owner_id,
+        "filter_id": None,
+        "since": since_iso,
     }
 
-    async with httpx.AsyncClient(timeout=30) as client:
-        while True:
-            qp = _auth_params(
-                organization_id,
-                params | ({"cursor": cursor} if cursor else {}),
-            )
-            r = await client.get(f"{API_V2}/deals", params=qp)
-            r.raise_for_status()
-            payload = r.json() or {}
-            rows = payload.get("data") or []
-            if not rows:
-                break
+    data = await _request("GET", url, token, params=params)
 
-            for d in rows:
-                add_time = d.get("add_time") or d.get("add_time_gmt") or ""
-                if not add_time:
-                    continue
-                # add_time is RFC3339 in v2
-                if add_time >= cutoff:
-                    total += 1
-                else:
-                    # results are sorted desc; we can stop
-                    return total
+    if data == "unauthorized":
+        return 0
 
-            cursor = (payload.get("additional_data") or {}).get("next_cursor")
-            if not cursor:
-                break
+    if isinstance(data, str):
+        return 0
 
-    return total
+    deals = data.get("data") or []
+    return len(deals)
 
 
-async def count_activities(
-    organization_id: int,
-    owner_id: str,
-    days: int,
-) -> Tuple[int, int, int]:
-    """
-    Returns emails, calls, meetings done in the last N days.
-    """
-    cutoff = _cutoff_utc_iso(days)
-    emails = calls = meetings = 0
-    limit = 500
-    cursor: Optional[str] = None
-
-    async with httpx.AsyncClient(timeout=30) as client:
-        while True:
-            params = {
-                "owner_id": owner_id,
-                "done": "true",
-                "updated_since": cutoff,
-                "limit": limit,
-            }
-            if cursor:
-                params["cursor"] = cursor
-
-            r = await client.get(
-                f"{API_V2}/activities",
-                params=_auth_params(organization_id, params),
-            )
-            r.raise_for_status()
-            payload = r.json() or {}
-            rows = payload.get("data") or []
-
-            for a in rows:
-                typ = (a.get("type") or "").lower()
-                if typ == "call":
-                    calls += 1
-                elif typ == "meeting":
-                    meetings += 1
-                elif typ == "email":
-                    emails += 1
-
-            cursor = (payload.get("additional_data") or {}).get("next_cursor")
-            if not cursor:
-                break
-
-    return emails, calls, meetings
-
-
-async def owners_stats(
-    days: int,
+# ---------------------------------------------------------------------
+# SALESPEOPLE STATS
+# ---------------------------------------------------------------------
+async def get_salespeople_stats(
+    days: int = 7,
     owner_id: Optional[str] = None,
+    include_archived_owners: bool = False,  # ignored for Pipedrive
     organization_id: Optional[int] = None,
+    **kwargs: Any,
 ) -> List[Dict[str, Any]]:
-    """
-    Main entry point for salesperson stats from Pipedrive.
 
-    Uses the active IntegrationCredential for this organization.
-    """
-    if not organization_id:
-        raise RuntimeError(
-            "Pipedrive organization id is required to fetch salesperson stats"
+    token = _get_org_token(organization_id) if organization_id else None
+
+    # Load users
+    owners_resp = await get_owners(organization_id=organization_id)
+
+    if isinstance(owners_resp, dict) and "warning" in owners_resp:
+        return [{
+            "owner_id": "",
+            "owner_name": "",
+            "owner_email": "",
+            "emails_last_n_days": 0,
+            "calls_last_n_days": 0,
+            "meetings_last_n_days": 0,
+            "new_deals_last_n_days": 0,
+            "warning": owners_resp["warning"],
+        }]
+
+    owners: List[Dict[str, Any]] = owners_resp
+
+    # Filter by owner_id
+    if owner_id:
+        owners = [o for o in owners if str(o.get("id")) == str(owner_id)]
+
+    now = datetime.now(timezone.utc)
+    since = now - timedelta(days=max(0, int(days)))
+    since_ms = int(since.timestamp() * 1000)
+
+    rows: List[Dict[str, Any]] = []
+
+    for o in owners:
+        oid = str(o.get("id") or "")
+        name = o.get("firstName") or o.get("email") or oid
+
+        new_deals = await _count_deals_created_since(
+            owner_id=oid,
+            since_ms=since_ms,
+            token=token,
         )
 
-    users = await list_users(organization_id)
-
-    if owner_id is None:
-        selected = [u for u in users if u.get("active")]
-    else:
-        selected = [u for u in users if str(u.get("id")) == str(owner_id)]
-
-    out: List[Dict[str, Any]] = []
-
-    for u in selected:
-        oid = str(u["id"])
-        emails, calls, meetings = await count_activities(
-            organization_id,
-            oid,
-            days,
-        )
-        new_deals = await count_new_deals(
-            organization_id,
-            oid,
-            days,
-        )
-        out.append(
+        rows.append(
             {
                 "owner_id": oid,
-                "owner_name": u.get("name") or "",
-                "owner_email": u.get("email") or "",
-                "emails_last_n_days": emails,
-                "calls_last_n_days": calls,
-                "meetings_last_n_days": meetings,
+                "owner_name": name,
+                "owner_email": o.get("email"),
+                "emails_last_n_days": 0,
+                "calls_last_n_days": 0,
+                "meetings_last_n_days": 0,
                 "new_deals_last_n_days": new_deals,
             }
         )
 
-    return out
+    return rows
 
-
+# ---------------------------------------------------------------------
+# LEAD CREATION (USED BY public_create_lead)
+# ---------------------------------------------------------------------
 async def create_lead(
-    organization_id: int,
     title: str,
-    name: str = "",
-    email: str = "",
-) -> Dict[str, Any]:
+    name: str,
+    email: str,
+    organization_id: Optional[int] = None,
+) -> Optional[Dict[str, Any]]:
     """
-    Create a simple Person, then a Lead linked to that person.
-    Uses the per organization IntegrationCredential.
+    Create a Pipedrive person and lead.
+
+    Used by app.api.routes.leads.public_create_lead via BackgroundTasks.
+    Respects per organization IntegrationCredential if present, otherwise
+    falls back to settings.pipedrive_api_key.
     """
-    async with httpx.AsyncClient(timeout=30) as client:
-        person_name = name or email or "New Lead"
+    token = _get_org_token(organization_id) if organization_id else None
 
-        # 1) Create person
-        person_payload: Dict[str, Any] = {"name": person_name}
-        if email:
-            person_payload["email"] = email
+    # 1. Create or upsert a person
+    person_url = f"{PIPEDRIVE_BASE_URL}/persons"
+    person_payload = {
+      "name": name or email,
+      "email": [
+          {
+              "value": email,
+              "primary": True,
+              "label": "work",
+          }
+      ],
+    }
 
-        pr = await client.post(
-            f"{API_V1}/persons",
-            params=_auth_params(organization_id),
-            json=person_payload,
-        )
-        pr.raise_for_status()
-        pdata = pr.json() or {}
-        person = pdata.get("data") or {}
-        person_id = person.get("id")
+    person_data = await _request(
+        "POST",
+        person_url,
+        token,
+        json=person_payload,
+    )
 
-        # 2) Create lead linked to person
-        lead_payload: Dict[str, Any] = {
-            "title": title or person_name,
-        }
-        if person_id:
-            lead_payload["person_id"] = person_id
+    if isinstance(person_data, str) or person_data is None:
+        # invalid token or request failure: just stop quietly
+        return None
 
-        lr = await client.post(
-            f"{API_V1}/leads",
-            params=_auth_params(organization_id),
-            json=lead_payload,
-        )
-        lr.raise_for_status()
-        return lr.json() or {}
+    person = person_data.get("data") or {}
+    person_id = person.get("id")
+    if not person_id:
+        return None
+
+    # 2. Create a lead linked to that person
+    lead_url = f"{PIPEDRIVE_BASE_URL}/leads"
+    lead_payload = {
+        "title": title,
+        "person_id": person_id,
+    }
+
+    lead_data = await _request(
+        "POST",
+        lead_url,
+        token,
+        json=lead_payload,
+    )
+
+    if isinstance(lead_data, str) or lead_data is None:
+        return None
+
+    return lead_data.get("data") or None

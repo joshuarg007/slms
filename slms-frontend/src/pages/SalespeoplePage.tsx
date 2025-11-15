@@ -1,134 +1,155 @@
+// src/pages/SalespeoplePage.tsx
 import { useEffect, useState } from "react";
+import StatsCards, { Row } from "@/components/StatsCards";
+import CRMSelect from "@/components/CRMSelect";
 import { getApiBase } from "@/utils/api";
 
-interface StatRow {
-  owner_id: string;
-  owner_name: string;
-  owner_email: string;
-  emails_last_n_days: number;
-  calls_last_n_days: number;
-  meetings_last_n_days: number;
-  new_deals_last_n_days: number;
-}
+type CRM = "hubspot" | "pipedrive" | "salesforce" | "nutshell";
 
-interface StatsResponse {
-  days: number;
-  results: StatRow[];
+function authFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+  const headers: Record<string, string> = {
+    ...(init.headers as Record<string, string> | undefined),
+  };
+
+  try {
+    const tok =
+      typeof localStorage !== "undefined"
+        ? localStorage.getItem("access_token")
+        : null;
+    if (tok) headers.Authorization = `Bearer ${tok}`;
+  } catch {}
+
+  return fetch(input, {
+    credentials: "include",
+    ...init,
+    headers,
+  });
 }
 
 export default function SalespeoplePage() {
+  const [rows, setRows] = useState<Row[]>([]);
+  const [days, setDays] = useState(7);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<StatRow[]>([]);
-
-  async function loadStats() {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const base = getApiBase();
-      const url = `${base}/salespeople/stats?days=7`;
-
-      const token = typeof window !== "undefined"
-        ? window.localStorage.getItem("access_token")
-        : null;
-
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      const r = await fetch(url, {
-        method: "GET",
-        credentials: "include",
-        headers,
-      });
-
-      if (!r.ok) {
-        const text = await r.text().catch(() => "");
-        let detail = text;
-
-        try {
-          const parsed = JSON.parse(text);
-          if (parsed && typeof parsed.detail === "string") {
-            detail = parsed.detail;
-          }
-        } catch {
-          // not json
-        }
-
-        if (r.status === 401) {
-          throw new Error("Not authenticated. Please sign in again.");
-        }
-
-        throw new Error(detail || `Request failed with status ${r.status}`);
-      }
-
-      const data: StatsResponse = await r.json();
-      setStats(data.results || []);
-    } catch (err: any) {
-      setError(err?.message || "Failed to load salespeople statistics");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const [activeCRM, setActiveCRM] = useState<CRM>("hubspot");
 
   useEffect(() => {
-    loadStats();
-  }, []);
+    let cancelled = false;
+    const base = getApiBase();
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // 1. Load active CRM
+        const crmRes = await authFetch(`${base}/integrations/crm/active`);
+        if (crmRes.status === 401) {
+          if (!cancelled) {
+            setError("You are not logged in.");
+            setLoading(false);
+          }
+          return;
+        }
+        if (!crmRes.ok) throw new Error("Failed to load active CRM");
+        const crmJson = await crmRes.json();
+        setActiveCRM(crmJson.provider);
+
+        // 2. Load stats
+        const statsRes = await authFetch(
+          `${base}/salespeople/stats?days=${days}`
+        );
+
+        const text = await statsRes.text();
+
+        if (!statsRes.ok) {
+          // Pass backend warning cleanly to UI
+          try {
+            const maybeJson = JSON.parse(text);
+            if (maybeJson.detail) {
+              if (!cancelled) setError(maybeJson.detail);
+              setRows([]);
+              setLoading(false);
+              return;
+            }
+          } catch {}
+
+          if (!cancelled) {
+            setError("Failed to load salesperson statistics.");
+          }
+          setRows([]);
+          setLoading(false);
+          return;
+        }
+
+        const data = JSON.parse(text);
+
+        // Handle HubSpot soft-warning rows
+        if (
+          Array.isArray(data.results) &&
+          data.results.length === 1 &&
+          data.results[0].warning
+        ) {
+          if (!cancelled) {
+            setError(data.results[0].warning);
+            setRows([]);
+            setLoading(false);
+          }
+          return;
+        }
+
+        if (!cancelled) {
+          setRows(data.results || []);
+          setError(null);
+        }
+      } catch (e: any) {
+        if (!cancelled) {
+          setError("Unexpected error loading stats.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [days]);
 
   return (
-    <div>
-      <h1 className="text-2xl font-semibold mb-4">Salespeople</h1>
+    <div className="mx-auto max-w-6xl p-6">
+      <header className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Salesperson Analytics</h1>
+
+        <div className="flex items-center gap-3">
+          <select
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          >
+            <option value={7}>Last 7 Days</option>
+            <option value={14}>Last 14 Days</option>
+            <option value={30}>Last 30 Days</option>
+          </select>
+        </div>
+      </header>
 
       {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
-          {error}
+        <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+          <div className="font-medium">CRM data unavailable</div>
+          <p className="mt-1">{error}</p>
         </div>
       )}
 
-      {loading && !error && (
-        <div className="text-sm text-gray-600 dark:text-gray-300">
-          Loading salespeople statistics...
+      {loading ? (
+        <div className="text-gray-600 dark:text-gray-400">Loading...</div>
+      ) : rows.length === 0 ? (
+        <div className="text-gray-600 dark:text-gray-400">
+          No statistics available.
         </div>
-      )}
-
-      {!loading && !error && stats.length === 0 && (
-        <div className="text-sm text-gray-600 dark:text-gray-300">
-          No data available for this time window.
-        </div>
-      )}
-
-      {!loading && !error && stats.length > 0 && (
-        <div className="mt-4 overflow-x-auto rounded-2xl border bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-100 dark:bg-gray-800 text-left text-gray-700 dark:text-gray-200">
-              <tr>
-                <th className="px-4 py-3">Owner</th>
-                <th className="px-4 py-3">Email</th>
-                <th className="px-4 py-3">Emails</th>
-                <th className="px-4 py-3">Calls</th>
-                <th className="px-4 py-3">Meetings</th>
-                <th className="px-4 py-3">New deals</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.map((row) => (
-                <tr
-                  key={row.owner_id}
-                  className="border-t border-gray-200 dark:border-gray-800 odd:bg-gray-50 dark:odd:bg-gray-950"
-                >
-                  <td className="px-4 py-3">{row.owner_name || "Unknown"}</td>
-                  <td className="px-4 py-3">{row.owner_email || "Unknown"}</td>
-                  <td className="px-4 py-3">{row.emails_last_n_days}</td>
-                  <td className="px-4 py-3">{row.calls_last_n_days}</td>
-                  <td className="px-4 py-3">{row.meetings_last_n_days}</td>
-                  <td className="px-4 py-3">{row.new_deals_last_n_days}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      ) : (
+        <StatsCards rows={rows} days={days} />
       )}
     </div>
   );
