@@ -1,6 +1,6 @@
 // src/pages/IntegrationsPage.tsx
 import { useEffect, useState } from "react";
-import { getApiBase } from "@/utils/api";
+import { getApiBase, refresh } from "@/utils/api";
 
 type CRM = "hubspot" | "pipedrive" | "salesforce" | "nutshell";
 
@@ -22,7 +22,8 @@ type CredentialSummary = {
 };
 
 // Small helper that attaches Bearer from localStorage and includes cookies
-function authFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+// Small helper that attaches Bearer from localStorage and includes cookies
+async function authFetch(input: RequestInfo | URL, init: RequestInit = {}, _retried = false) {
   const headers: Record<string, string> = {
     ...(init.headers as Record<string, string> | undefined),
   };
@@ -37,11 +38,21 @@ function authFetch(input: RequestInfo | URL, init: RequestInit = {}) {
     // ignore localStorage errors
   }
 
-  return fetch(input, {
+  const res = await fetch(input, {
     credentials: "include",
     ...init,
     headers,
   });
+
+  if (res.status === 401 && !_retried) {
+    const newTok = await refresh();
+    if (newTok) {
+      headers.Authorization = `Bearer ${newTok}`;
+      return authFetch(input, { ...init, headers }, true);
+    }
+  }
+
+  return res;
 }
 
 export default function IntegrationsPage() {
