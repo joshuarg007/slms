@@ -138,8 +138,8 @@ def set_auth_cookies(resp: Response, access_token: str, refresh_token: str):
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,   # set True in production (HTTPS)
-        samesite="lax",
+        secure=True,        # required for SameSite="none" on modern browsers
+        samesite="none",    # allow cross site from site2crm.io to api.site2crm.io
         path="/",
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
@@ -147,8 +147,8 @@ def set_auth_cookies(resp: Response, access_token: str, refresh_token: str):
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=False,   # set True in production (HTTPS)
-        samesite="lax",
+        secure=True,
+        samesite="none",
         path="/",
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600,
     )
