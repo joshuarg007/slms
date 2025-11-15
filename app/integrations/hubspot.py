@@ -73,11 +73,10 @@ async def create_contact(
         r.raise_for_status()
         return r.json()
 
-
 async def get_owners(
     include_archived: bool = False,
     limit: int = 100,
-    organization_id: Optional[int] = None,  # accepted for multi-tenant callers; currently ignored
+    organization_id: Optional[int] = None,
     **kwargs: Any,  # absorb future args safely
 ) -> List[Dict[str, Any]]:
     url = f"{HUBSPOT_BASE_URL}/crm/v3/owners/"
@@ -86,10 +85,15 @@ async def get_owners(
         "archived": "true" if include_archived else "false",
     }
 
+    # choose token: per organization credential if available, else fall back to settings
+    token: Optional[str] = None
+    if organization_id is not None:
+        token = _get_org_token(organization_id)
+
     owners: List[Dict[str, Any]] = []
     async with httpx.AsyncClient(timeout=30.0) as client:
         while True:
-            resp = await client.get(url, headers=_headers(), params=params)
+            resp = await client.get(url, headers=_headers(token), params=params)
             resp.raise_for_status()
             data = resp.json()
 
@@ -113,8 +117,11 @@ async def get_owners(
 
     return owners
 
-
-async def _count_deals_created_since(owner_id: str, since_ms: int) -> int:
+async def _count_deals_created_since(
+    owner_id: str,
+    since_ms: int,
+    token: Optional[str] = None,
+) -> int:
     # handles hubspot_owner_id and hs_owner_id
     url = f"{HUBSPOT_BASE_URL}/crm/v3/objects/deals/search"
     body = {
@@ -136,21 +143,30 @@ async def _count_deals_created_since(owner_id: str, since_ms: int) -> int:
         "limit": 1,  # we only need the total
     }
     async with httpx.AsyncClient(timeout=30.0) as client:
-        r = await client.post(url, headers=_headers(), json=body)
+        r = await client.post(url, headers=_headers(token), json=body)
         # if the token lacks deal read scope, return 0 rather than explode
         if r.status_code >= 400:
             return 0
         data = r.json()
         return int(data.get("total", len(data.get("results", []))))
 
-
 async def get_salespeople_stats(
     days: int = 7,
     owner_id: Optional[str] = None,
     include_archived_owners: bool = False,
+    organization_id: Optional[int] = None,
     **kwargs: Any,
 ) -> List[Dict[str, Any]]:
-    owners = await get_owners(include_archived=include_archived_owners)
+    # Pick token for this org if provided, else fall back to settings
+    token: Optional[str] = None
+    if organization_id is not None:
+        token = _get_org_token(organization_id)
+
+    owners = await get_owners(
+        include_archived=include_archived_owners,
+        limit=100,
+        organization_id=organization_id,
+    )
     if owner_id:
         owners = [o for o in owners if str(o.get("id")) == str(owner_id)]
 
@@ -161,18 +177,20 @@ async def get_salespeople_stats(
     rows: List[Dict[str, Any]] = []
     for o in owners:
         oid = str(o.get("id") or "")
-        name = " ".join(filter(None, [o.get("firstName"), o.get("lastName")])).strip() or (o.get("email") or oid)
+        name = " ".join(
+            filter(None, [o.get("firstName"), o.get("lastName")])
+        ).strip() or (o.get("email") or oid)
 
-        new_deals = await _count_deals_created_since(oid, since_ms)
+        new_deals = await _count_deals_created_since(oid, since_ms, token=token)
 
         rows.append(
             {
                 "owner_id": oid,
                 "owner_name": name,
                 "owner_email": o.get("email"),
-                "emails_last_n_days": 0,   # left at 0 for now (scopes vary)
-                "calls_last_n_days": 0,    # left at 0 for now
-                "meetings_last_n_days": 0, # left at 0 for now
+                "emails_last_n_days": 0,
+                "calls_last_n_days": 0,
+                "meetings_last_n_days": 0,
                 "new_deals_last_n_days": new_deals,
             }
         )

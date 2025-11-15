@@ -8,8 +8,7 @@ from app.api.deps.auth import get_db, get_current_user
 from app.db import models
 from app.schemas.salesperson import SalespersonStatsResponse
 
-router = APIRouter(prefix="/integrations", tags=["Integrations: Salespeople"])
-
+router = APIRouter(prefix="", tags=["Salespeople"])
 
 # --- Lazy imports of provider helpers (so missing ones don't crash import) ---
 def _hubspot_stats(days: int) -> List[dict]:

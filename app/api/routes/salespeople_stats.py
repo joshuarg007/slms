@@ -91,7 +91,10 @@ async def unified_salespeople_stats(
     if not results:
         try:
             if provider == "hubspot":
-                results = await hubspot.get_salespeople_stats(days=days)
+                results = await hubspot.get_salespeople_stats(
+                    days=days,
+                    organization_id=org.id,
+                )
 
             elif provider == "pipedrive":
                 # pass org id so Pipedrive can use per organization credentials
@@ -100,7 +103,7 @@ async def unified_salespeople_stats(
                     owner_id=None,
                     organization_id=org.id,
                 )
-
+                
             elif provider == "salesforce":
                 results = await salesforce.get_salespeople_stats(
                     db=db,
