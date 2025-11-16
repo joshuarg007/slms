@@ -74,3 +74,4 @@ def clear_auth_cookies(resp: Response) -> None:
         kwargs["domain"] = COOKIE_DOMAIN
     resp.delete_cookie("access_token", **kwargs)
     resp.delete_cookie("refresh_token", **kwargs)
+ 
