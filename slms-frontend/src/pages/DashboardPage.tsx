@@ -28,7 +28,9 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen grid place-items-center">
-        <div className="text-gray-700 dark:text-gray-200">Loading dashboard…</div>
+        <div className="text-gray-700 dark:text-gray-200">
+          Loading dashboard…
+        </div>
       </div>
     );
   }
@@ -55,7 +57,9 @@ export default function DashboardPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <header className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Dashboard</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+          Dashboard
+        </h1>
         <button
           onClick={load}
           className="rounded-md bg-indigo-600 text-white px-4 py-2"
@@ -87,7 +91,9 @@ export default function DashboardPage() {
       {/* Sources table */}
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Leads by Source</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Leads by Source
+          </h2>
         </div>
 
         {total === 0 ? (
@@ -99,7 +105,9 @@ export default function DashboardPage() {
             to add or import some.
           </div>
         ) : Object.keys(bySource).length === 0 ? (
-          <div className="p-6 text-gray-700 dark:text-gray-200">No source data available.</div>
+          <div className="p-6 text-gray-700 dark:text-gray-200">
+            No source data available.
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-100 dark:bg-gray-800">
@@ -110,9 +118,16 @@ export default function DashboardPage() {
             </thead>
             <tbody className="text-gray-900 dark:text-gray-100">
               {Object.entries(bySource).map(([src, count]) => (
-                <tr key={src} className="border-t border-gray-100 dark:border-gray-800">
+                <tr
+                  key={src}
+                  className="border-t border-gray-100 dark:border-gray-800"
+                >
                   <td className="px-5 py-3 capitalize">
-                    {src === "unknown" ? <span className="italic">unknown</span> : src}
+                    {src === "unknown" ? (
+                      <span className="italic">unknown</span>
+                    ) : (
+                      src
+                    )}
                   </td>
                   <td className="px-5 py-3">{count as number}</td>
                 </tr>
@@ -125,7 +140,6 @@ export default function DashboardPage() {
   );
 }
 
-/** Small presentational bits to keep styles consistent */
 function Card({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow p-5">
@@ -133,9 +147,19 @@ function Card({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
 function CardLabel({ children }: { children: React.ReactNode }) {
-  return <div className="text-sm font-medium text-gray-700 dark:text-gray-200">{children}</div>;
+  return (
+    <div className="text-sm font-medium text-gray-700 dark:text-gray-200">
+      {children}
+    </div>
+  );
 }
+
 function CardValue({ children }: { children: React.ReactNode }) {
-  return <div className="text-3xl font-semibold mt-1 text-gray-900 dark:text-gray-100">{children}</div>;
+  return (
+    <div className="text-3xl font-semibold mt-1 text-gray-900 dark:text-gray-100">
+      {children}
+    </div>
+  );
 }

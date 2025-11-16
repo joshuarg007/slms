@@ -1,24 +1,10 @@
 // src/utils/api.ts
-// ---------------------------------------------------------------------
-// Global API helper using structured results (Option B).
-// Never throws. Always returns { ok: boolean, data?: T, error?: string }.
-// Supports:
-// - Cookie-based JWT with refresh
-// - Bearer header auto-injected
-// - Auto-refresh on 401
-// - Full typing for all endpoints
-// ---------------------------------------------------------------------
+// Minimal API helper with org aware endpoints, Bearer auth persistence,
+// and automatic refresh on 401 retry.
 
 export type SortDir = "asc" | "desc";
 export type Provider = "hubspot" | "pipedrive" | "salesforce" | "nutshell";
 export type AuthType = "pat" | "api_key" | "oauth";
-
-export interface ApiResult<T> {
-  ok: boolean;
-  data?: T;
-  error?: string;
-  status?: number;
-}
 
 export interface Lead {
   id: number;
@@ -59,39 +45,50 @@ export interface IntegrationCredOut {
   is_active: boolean;
   created_at?: string | null;
   updated_at?: string | null;
-  token_suffix?: string | null;
+  token_suffix?: string | null; // last 4, never full token
 }
 
 export function getApiBase() {
-  const stored = localStorage.getItem("slms.apiBase");
-  return (stored || import.meta.env.VITE_API_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+  const stored = (() => {
+    try {
+      return typeof localStorage !== "undefined"
+        ? localStorage.getItem("slms.apiBase")
+        : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const raw = stored || import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+  return raw.replace(/\/$/, "");
 }
 
 const baseUrl = getApiBase();
 
-// ---------------------------------------------------------------------
-// ACCESS TOKEN PERSISTENCE
-// ---------------------------------------------------------------------
+// Token persistence
 let ACCESS_TOKEN: string | null = null;
-
 try {
   ACCESS_TOKEN =
     typeof localStorage !== "undefined"
       ? localStorage.getItem("access_token")
       : null;
-} catch { /* ignore */ }
+} catch {
+  // ignore
+}
 
 function setToken(token: string | null) {
   ACCESS_TOKEN = token;
   try {
-    if (token) localStorage.setItem("access_token", token);
-    else localStorage.removeItem("access_token");
-  } catch { /* ignore */ }
+    if (typeof localStorage !== "undefined") {
+      if (token) localStorage.setItem("access_token", token);
+      else localStorage.removeItem("access_token");
+    }
+  } catch {
+    // ignore
+  }
 }
 
-// ---------------------------------------------------------------------
-// UTILS
-// ---------------------------------------------------------------------
+// Query helper
 function toQuery(params: Record<string, unknown>): string {
   const usp = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
@@ -102,38 +99,28 @@ function toQuery(params: Record<string, unknown>): string {
   return s ? `?${s}` : "";
 }
 
-// ---------------------------------------------------------------------
-// REFRESH TOKEN (structured result)
-// ---------------------------------------------------------------------
-export async function refresh(): Promise<ApiResult<{ access_token: string }>> {
-  try {
-    const res = await fetch(`${baseUrl}/token/refresh`, {
-      method: "POST",
-      credentials: "include",
-    });
+// Refresh flow
+export async function refresh(): Promise<string | null> {
+  const res = await fetch(`${baseUrl}/token/refresh`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!res.ok) return null;
 
-    if (!res.ok) return { ok: false, status: res.status, error: "Refresh failed" };
-
-    const data = await res.json();
-    if (data?.access_token) {
-      setToken(data.access_token);
-      return { ok: true, data };
-    }
-
-    return { ok: false, error: "Invalid refresh response" };
-  } catch {
-    return { ok: false, error: "Network error during refresh" };
+  const data = (await res.json()) as { access_token?: string };
+  if (data?.access_token) {
+    setToken(data.access_token);
+    return data.access_token;
   }
+  return null;
 }
 
-// ---------------------------------------------------------------------
-// CORE FETCH (NEVER THROWS)
-// ---------------------------------------------------------------------
-async function apiFetch<T>(
+// Generic JSON fetch with 401 refresh retry
+async function fetchJSON<T>(
   url: string,
   init: RequestInit = {},
-  retried = false
-): Promise<ApiResult<T>> {
+  _retried = false,
+): Promise<T> {
   const headers: Record<string, string> = {
     ...(init.headers as Record<string, string> | undefined),
   };
@@ -143,121 +130,93 @@ async function apiFetch<T>(
   }
   if (ACCESS_TOKEN) headers.Authorization = `Bearer ${ACCESS_TOKEN}`;
 
-  let res: Response;
+  let res = await fetch(url, { credentials: "include", ...init, headers });
 
-  try {
-    res = await fetch(url, { credentials: "include", ...init, headers });
-  } catch {
-    return { ok: false, error: "Network error", status: 0 };
-  }
-
-  // 401 → try refresh once
-  if (res.status === 401 && !retried) {
-    const ref = await refresh();
-    if (ref.ok && ref.data?.access_token) {
-      headers.Authorization = `Bearer ${ref.data.access_token}`;
-      return apiFetch<T>(url, { ...init, headers }, true);
+  if (res.status === 401 && !_retried) {
+    const newTok = await refresh();
+    if (newTok) {
+      headers.Authorization = `Bearer ${newTok}`;
+      res = await fetch(url, { credentials: "include", ...init, headers });
     }
   }
 
-  const status = res.status;
-  const text = await res.text().catch(() => "");
-
   if (!res.ok) {
-    return {
-      ok: false,
-      status,
-      error: text || res.statusText || "Request failed",
-    };
+    const text = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} ${res.statusText} – ${text}`);
   }
 
-  const ctype = res.headers.get("content-type") || "";
-  if (!ctype.includes("application/json")) {
-    return { ok: true, data: {} as T };
-  }
-
-  try {
-    const data = JSON.parse(text) as T;
-    return { ok: true, data };
-  } catch {
-    return { ok: false, error: "Invalid JSON", status };
-  }
+  const ct = res.headers.get("content-type") || "";
+  if (!ct.includes("application/json")) return {} as T;
+  return (await res.json()) as T;
 }
 
-// ---------------------------------------------------------------------
-// AUTH
-// ---------------------------------------------------------------------
-export async function login(email: string, password: string): Promise<ApiResult<{ access_token: string }>> {
-  const body = new URLSearchParams({ username: email, password });
-
-  const res = await apiFetch<{ access_token: string }>(`${baseUrl}/token`, {
+// Auth
+export async function login(username: string, password: string) {
+  const body = new URLSearchParams({ username, password });
+  const res = await fetch(`${baseUrl}/token`, {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
   });
-
-  if (res.ok && res.data?.access_token) {
-    setToken(res.data.access_token);
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Login failed: ${res.status} ${res.statusText} – ${text}`);
   }
-
-  return res;
+  const data = (await res.json()) as { access_token: string; token_type: string };
+  setToken(data.access_token);
+  return data;
 }
 
-export async function logout(): Promise<ApiResult<{ ok: boolean }>> {
+export async function logout() {
   setToken(null);
-  return apiFetch(`${baseUrl}/logout`, { method: "POST" });
+  return fetchJSON<{ ok: boolean }>(`${baseUrl}/logout`, { method: "POST" });
 }
 
 export function clearToken() {
   setToken(null);
 }
 
-export async function me(): Promise<ApiResult<{ email: string }>> {
-  return apiFetch(`${baseUrl}/me`);
+export async function me() {
+  return fetchJSON<{ email: string }>(`${baseUrl}/me`);
 }
 
-// ---------------------------------------------------------------------
-// PUBLIC LEADS
-// ---------------------------------------------------------------------
+// Public leads
 export async function createPublicLead(
   payload: Partial<Lead> & { email: string; name: string },
-  orgKey?: string
-): Promise<ApiResult<{ message: string; lead_id: number }>> {
+  orgKey?: string,
+) {
   const headers: Record<string, string> = {};
   if (orgKey) headers["X-Org-Key"] = orgKey;
-
-  return apiFetch(`${baseUrl}/public/leads`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payload),
-  });
+  return fetchJSON<{ message: string; lead_id: number }>(
+    `${baseUrl}/public/leads`,
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
-// ---------------------------------------------------------------------
-// LEADS
-// ---------------------------------------------------------------------
+// Authed leads and dashboard
 export async function getLeads(params: {
   q?: string;
   sort?: string;
   dir?: SortDir;
   page?: number;
   page_size?: number;
-} = {}): Promise<ApiResult<LeadsResponse>> {
-  return apiFetch(`${baseUrl}/leads${toQuery(params)}`);
+} = {}): Promise<LeadsResponse> {
+  const url = `${baseUrl}/leads${toQuery(params)}`;
+  return fetchJSON<LeadsResponse>(url);
 }
 
-// ---------------------------------------------------------------------
-// DASHBOARD
-// ---------------------------------------------------------------------
-export async function getDashboardMetrics(): Promise<ApiResult<DashboardMetrics>> {
-  return apiFetch(`${baseUrl}/dashboard/metrics`);
+export async function getDashboardMetrics(): Promise<DashboardMetrics> {
+  return fetchJSON<DashboardMetrics>(`${baseUrl}/dashboard/metrics`);
 }
 
-// ---------------------------------------------------------------------
-// INTEGRATIONS
-// ---------------------------------------------------------------------
-export async function listIntegrationCredentials(): Promise<ApiResult<IntegrationCredOut[]>> {
-  return apiFetch(`${baseUrl}/integrations/credentials`);
+// Integrations
+export async function listIntegrationCredentials(): Promise<IntegrationCredOut[]> {
+  return fetchJSON<IntegrationCredOut[]>(`${baseUrl}/integrations/credentials`);
 }
 
 export async function saveIntegrationCredential(payload: {
@@ -265,8 +224,8 @@ export async function saveIntegrationCredential(payload: {
   access_token: string;
   auth_type?: AuthType;
   activate?: boolean;
-}): Promise<ApiResult<IntegrationCredOut>> {
-  return apiFetch(`${baseUrl}/integrations/credentials`, {
+}): Promise<IntegrationCredOut> {
+  return fetchJSON<IntegrationCredOut>(`${baseUrl}/integrations/credentials`, {
     method: "POST",
     body: JSON.stringify({
       provider: payload.provider,
@@ -277,17 +236,15 @@ export async function saveIntegrationCredential(payload: {
   });
 }
 
-// ---------------------------------------------------------------------
-// DEFAULT EXPORT (optional)
-// ---------------------------------------------------------------------
+// Named plus default export
 export const api = {
   login,
-  logout,
   refresh,
+  logout,
   clearToken,
   me,
-  getLeads,
   createPublicLead,
+  getLeads,
   getDashboardMetrics,
   listIntegrationCredentials,
   saveIntegrationCredential,
