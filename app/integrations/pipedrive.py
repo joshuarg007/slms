@@ -11,14 +11,7 @@ logger = logging.getLogger(__name__)
 PIPEDRIVE_BASE_URL = "https://api.pipedrive.com/v1"
 
 
-# ---------------------------------------------------------------------
-# TOKEN LOADING
-# ---------------------------------------------------------------------
 def _get_org_token(organization_id: int) -> Optional[str]:
-    """
-    Fetch the latest active IntegrationCredential for Pipedrive
-    for the given organization.
-    """
     db = SessionLocal()
     try:
         cred = (
@@ -36,24 +29,13 @@ def _get_org_token(organization_id: int) -> Optional[str]:
         db.close()
 
 
-# ---------------------------------------------------------------------
-# REQUEST WRAPPER
-# ---------------------------------------------------------------------
 async def _request(
     method: str,
     url: str,
     token: Optional[str],
     **kwargs: Any,
 ) -> Union[Dict[str, Any], str, None]:
-    """
-    A standardized Pipedrive request wrapper.
-    Uses ONLY per-organization credentials.
-    Returns:
-      - dict (successful JSON)
-      - "unauthorized" (no token or invalid token)
-      - "HTTP <code>" for other HTTP errors
-      - "connection_failed" for network issues
-    """
+
     if not token:
         logger.warning("Pipedrive request attempted without token for url %s", url)
         return "unauthorized"
@@ -97,9 +79,6 @@ async def _request(
             return "connection_failed"
 
 
-# ---------------------------------------------------------------------
-# OWNERS (USERS)
-# ---------------------------------------------------------------------
 async def get_owners(
     organization_id: Optional[int] = None,
 ) -> Union[List[Dict[str, Any]], Dict[str, str]]:
@@ -132,9 +111,6 @@ async def get_owners(
     return owners
 
 
-# ---------------------------------------------------------------------
-# DEAL COUNT SINCE DATE
-# ---------------------------------------------------------------------
 async def _count_deals_created_since(
     owner_id: str,
     since_ms: int,
@@ -163,9 +139,6 @@ async def _count_deals_created_since(
     return len(deals)
 
 
-# ---------------------------------------------------------------------
-# SALESPEOPLE STATS
-# ---------------------------------------------------------------------
 async def get_salespeople_stats(
     days: int = 7,
     owner_id: Optional[str] = None,
@@ -226,22 +199,31 @@ async def get_salespeople_stats(
     return rows
 
 
-# ---------------------------------------------------------------------
-# LEAD CREATION (USED BY /public/leads)
-# ---------------------------------------------------------------------
+async def owners_stats(
+    days: int = 7,
+    owner_id: Optional[str] = None,
+    include_archived_owners: bool = False,
+    organization_id: Optional[int] = None,
+    **kwargs: Any,
+) -> List[Dict[str, Any]]:
+    return await get_salespeople_stats(
+        days=days,
+        owner_id=owner_id,
+        include_archived_owners=include_archived_owners,
+        organization_id=organization_id,
+        **kwargs,
+    )
+
+
 async def create_lead(
     title: str,
     name: str,
     email: str,
     organization_id: Optional[int] = None,
 ) -> Optional[Dict[str, Any]]:
-    """
-    Create a person and then a lead in Pipedrive.
-    Only uses per-organization IntegrationCredential.
-    """
+
     token = _get_org_token(organization_id) if organization_id else None
 
-    # PERSON
     person_url = f"{PIPEDRIVE_BASE_URL}/persons"
     person_payload = {
         "name": name or email,
@@ -269,7 +251,6 @@ async def create_lead(
     if not person_id:
         return None
 
-    # LEAD
     lead_url = f"{PIPEDRIVE_BASE_URL}/leads"
     lead_payload = {
         "title": title,
