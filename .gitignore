@@ -16,3 +16,7 @@ Thumbs.db
 # Env files
 .env
 .aider*
+
+# database files
+test.db
+
