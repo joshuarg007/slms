@@ -21,13 +21,15 @@ from app.schemas.user import UserCreate
 from app.schemas.token import Token
 from app.crud import lead as lead_crud
 from app.integrations.hubspot import create_contact
-
+from app.api.routes.integrations_current import router as integrations_current_router
 from app.api.routes import dashboard
 from app.api.routes.hubspot_stats import router as hubspot_stats_router  
 from app.api.routes.public_leads import router as public_leads_router
 from app.api.routes.pipedrive_stats import router as pipedrive_stats_router
 from app.api.routes import reports
 from app.api.routes import integrations
+from app.api.routes.integrations_update import router as integrations_update_router
+from app.api.routes.integrations_notifications import router as integrations_notifications_router
 from app.api.routes import salesforce
 from app.api.routes.salespeople_stats_unified import router as salespeople_unified_router
 from app.api.routes.salespeople_stats import router as salespeople_router
@@ -91,6 +93,9 @@ app.include_router(integrations.router, prefix="/api", tags=["Integrations"])
 app.include_router(salesforce.router, prefix="/api", tags=["Salesforce"])
 #app.include_router(salespeople_unified_router, prefix="/api", tags=["Salespeople"])
 app.include_router(salespeople_router, prefix="/api", tags=["Salespeople"])
+app.include_router(integrations_current_router, prefix="/api", tags=["Integrations"])
+app.include_router(integrations_update_router, prefix="/api", tags=["Integrations"])
+app.include_router(integrations_notifications_router, prefix="/api", tags=["Integrations"])
 
 # DB
 models.Base.metadata.create_all(bind=engine)

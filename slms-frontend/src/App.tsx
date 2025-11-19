@@ -15,6 +15,10 @@ import SettingsPage from "@/pages/SettingsPage";
 import AccountPage from "@/pages/AccountPage";
 import BillingPage from "@/pages/BillingPage";
 import WelcomePage from "@/pages/WelcomePage";
+import CurrentCRM from "@/pages/integrations/CurrentCRM";
+import UpdateCRM from "@/pages/integrations/UpdateCRM";
+import Notifications from "@/pages/integrations/Notifications";
+
 
 export default function App() {
   return (
@@ -37,6 +41,9 @@ export default function App() {
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/account" element={<AccountPage />} />
               <Route path="/billing" element={<BillingPage />} />
+              <Route path="/integrations/current" element={<CurrentCRM />} />
+              <Route path="/integrations/update" element={<UpdateCRM />} />
+              <Route path="/integrations/notifications" element={<Notifications />} />
             </Route>
           </Route>
 

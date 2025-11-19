@@ -52,7 +52,7 @@ export default function AppLayout() {
           <img src={logo} alt="Site2CRM Logo" className="h-16 w-auto" />
         </div>
 
-        {/* Center: Navigation, pulled left */}
+        {/* Center: Navigation */}
         <nav className="flex-1 flex items-center gap-6 text-sm font-medium ml-8">
           <NavLink
             to="/dashboard"
@@ -101,11 +101,10 @@ export default function AppLayout() {
 
         {/* Right: search, profile circle, logout */}
         <div className="flex items-center gap-4">
-
-        <NavLink
+          <NavLink
             to="/account"
             aria-label="Account"
-            className="flex items-center justify-center h-10 w-10 rounded-full bg-brand-gray-dark text-white text-sm font-semibold ring-2 ring-brand-gray-dark"
+            className="flex items-center justify-center h-9 w-9 rounded-full bg-brand-gray-dark text-white text-xl font-semibold ring-2 ring-border hover:ring-brand-gray-dark/70 transition"
           >
             <span>{userInitial}</span>
           </NavLink>
@@ -123,7 +122,6 @@ export default function AppLayout() {
             />
           </form>
 
-
           <button
             onClick={handleLogout}
             className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition"
@@ -137,6 +135,7 @@ export default function AppLayout() {
         {/* Sidebar */}
         <aside className="w-56 bg-gradient-to-b from-bg-secondary/70 via-bg-primary to-bg-primary px-4 py-6">
           <nav className="space-y-6 text-sm">
+            {/* Main */}
             <div>
               <div className="px-2 text-xs font-semibold text-text-muted uppercase tracking-wide">
                 Main
@@ -175,102 +174,46 @@ export default function AppLayout() {
               </div>
             </div>
 
-            <div>
-              <div className="px-2 text-xs font-semibold text-text-muted uppercase tracking-wide">
-                Reports
-              </div>
-              <div className="mt-2 flex flex-col gap-1">
-                <NavLink
-                  to="/reports"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
-                      : "px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
-                  }
-                >
-                  Overview
-                </NavLink>
-                <NavLink
-                  to="/reports?view=leads"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "ml-4 px-3 py-2 rounded-md bg-bg-primary text-text-primary"
-                      : "ml-4 px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
-                  }
-                >
-                  Lead Analytics
-                </NavLink>
-                <NavLink
-                  to="/reports?view=salespeople"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "ml-4 px-3 py-2 rounded-md bg-bg-primary text-text-primary"
-                      : "ml-4 px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
-                  }
-                >
-                  Salespeople Analytics
-                </NavLink>
-              </div>
-            </div>
-
+            {/* Integrations */}
             <div>
               <div className="px-2 text-xs font-semibold text-text-muted uppercase tracking-wide">
                 Integrations
               </div>
               <div className="mt-2 flex flex-col gap-1">
                 <NavLink
-                  to="/integrations"
+                  to="/integrations/current"
                   className={({ isActive }) =>
                     isActive
                       ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
                       : "px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
                   }
                 >
-                  All Integrations
+                  Current CRM
                 </NavLink>
                 <NavLink
-                  to="/integrations?provider=hubspot"
+                  to="/integrations/update"
                   className={({ isActive }) =>
                     isActive
                       ? "ml-4 px-3 py-2 rounded-md bg-bg-primary text-text-primary"
                       : "ml-4 px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
                   }
                 >
-                  HubSpot
+                  Update CRM
                 </NavLink>
                 <NavLink
-                  to="/integrations?provider=pipedrive"
+                  to="/integrations/notifications"
                   className={({ isActive }) =>
                     isActive
                       ? "ml-4 px-3 py-2 rounded-md bg-bg-primary text-text-primary"
                       : "ml-4 px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
                   }
                 >
-                  Pipedrive
-                </NavLink>
-                <NavLink
-                  to="/integrations?provider=salesforce"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "ml-4 px-3 py-2 rounded-md bg-bg-primary text-text-primary"
-                      : "ml-4 px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
-                  }
-                >
-                  Salesforce
-                </NavLink>
-                <NavLink
-                  to="/integrations?provider=nutshell"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "ml-4 px-3 py-2 rounded-md bg-bg-primary text-text-primary"
-                      : "ml-4 px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
-                  }
-                >
-                  Nutshell
+                  Alerts and Notifications
                 </NavLink>
               </div>
             </div>
 
+            {/* Account */}
             <div>
               <div className="px-2 text-xs font-semibold text-text-muted uppercase tracking-wide">
                 Account
@@ -285,6 +228,16 @@ export default function AppLayout() {
                   }
                 >
                   Profile and Account
+                </NavLink>
+                <NavLink
+                  to="/users"
+                  className={({ isActive }) =>
+                    isActive
+                      ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
+                      : "px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
+                  }
+                >
+                  Users
                 </NavLink>
                 <NavLink
                   to="/billing"
@@ -311,7 +264,7 @@ export default function AppLayout() {
           </nav>
         </aside>
 
-        {/* Modern tech style divider */}
+        {/* Divider */}
         <div className="w-px bg-gradient-to-b from-brand-gray-dark/70 via-border to-transparent shadow-[0_0_14px_rgba(0,0,0,0.35)]" />
 
         <main className="flex-1 p-8">
