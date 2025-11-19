@@ -80,6 +80,7 @@ def public_create_lead(
             title=title,
             name=display_name,
             email=email,
+            organization_id=org.id,
         )
 
     # Salesforce: Lead sObject
@@ -116,7 +117,7 @@ def public_create_lead(
         background_tasks.add_task(
             send_new_lead_notification,
             recipients,
-            display_name,
+            display_name or email or "New lead",
             db_lead.source,
             getattr(org, "name", None),
         )
