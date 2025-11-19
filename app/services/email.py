@@ -1,9 +1,12 @@
+import logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Iterable
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 def send_email(
@@ -14,11 +17,15 @@ def send_email(
     """
     Generic email sender using SMTP based on settings in app.core.config.
     No effect if email_enabled is False.
+
+    Any SMTP errors are logged for developers but never raised to callers.
     """
 
+    # Feature flag
     if not settings.email_enabled:
         return
 
+    # Basic config guardrails
     if not settings.email_smtp_host or not settings.email_from_address:
         return
 
@@ -33,11 +40,24 @@ def send_email(
 
     msg.attach(MIMEText(body_text, "plain"))
 
-    with smtplib.SMTP(settings.email_smtp_host, settings.email_smtp_port) as server:
-        server.starttls()
-        if settings.email_smtp_username and settings.email_smtp_password:
-            server.login(settings.email_smtp_username, settings.email_smtp_password)
-        server.send_message(msg)
+    try:
+        # Add a sane timeout so we never hang the app if SMTP is unreachable
+        with smtplib.SMTP(
+            settings.email_smtp_host,
+            settings.email_smtp_port,
+            timeout=10,
+        ) as server:
+            server.starttls()
+            if settings.email_smtp_username and settings.email_smtp_password:
+                server.login(
+                    settings.email_smtp_username,
+                    settings.email_smtp_password,
+                )
+            server.send_message(msg)
+    except Exception as exc:
+        # Log for developers, never surface to organizations
+        logger.warning("Email send failed: %r", exc)
+        return
 
 
 def send_new_lead_notification(
