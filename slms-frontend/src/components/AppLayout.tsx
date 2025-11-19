@@ -105,7 +105,7 @@ export default function AppLayout() {
         <NavLink
             to="/account"
             aria-label="Account"
-            className="flex items-center justify-center h-9 w-9 rounded-full bg-brand-gray-dark text-white text-sm font-semibold ring-2 ring-border hover:ring-brand-gray-dark/70 transition"
+            className="flex items-center justify-center h-10 w-10 rounded-full bg-brand-gray-dark text-white text-sm font-semibold ring-2 ring-brand-gray-dark"
           >
             <span>{userInitial}</span>
           </NavLink>

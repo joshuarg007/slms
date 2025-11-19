@@ -1,9 +1,11 @@
 /* src/global.css */
+
+@import "./styles/variables.css";
+
+/* Tailwind must come AFTER your variables */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import "./styles/variables.css";
 
 /* Global background + text defaults */
 body {
