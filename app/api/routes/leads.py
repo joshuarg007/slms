@@ -16,6 +16,9 @@ from app.integrations import nutshell
 from app.integrations.pipedrive import create_lead as pipedrive_create_lead
 from app.integrations.salesforce import create_lead as salesforce_create_lead
 
+# Email notifications
+from app.services.email import send_new_lead_notification
+
 router = APIRouter()
 
 
@@ -58,7 +61,7 @@ def public_create_lead(
     name_field = getattr(db_lead, "name", None) or ""
     display_name = name_field or f"{first_name} {last_name}".strip() or email
 
-    # HubSpot: create a contact (uses org-scoped token if present)
+    # HubSpot: create a contact (uses org scoped token if present)
     if provider == "hubspot":
         background_tasks.add_task(
             hubspot_create_contact,
@@ -69,7 +72,7 @@ def public_create_lead(
             organization_id=org.id,
         )
 
-    # Pipedrive: person + lead
+    # Pipedrive: person plus lead
     elif provider == "pipedrive":
         title = f"{db_lead.source or 'Site2CRM'} lead from {email}"
         background_tasks.add_task(
@@ -90,7 +93,7 @@ def public_create_lead(
             company=company,
         )
 
-    # Nutshell: JSON-RPC newLead
+    # Nutshell: JSON RPC newLead
     elif provider == "nutshell":
         description = f"{db_lead.source or 'Site2CRM'} lead from {email}"
         background_tasks.add_task(
@@ -100,8 +103,25 @@ def public_create_lead(
             contact_email=email,
         )
 
-    # Unknown provider => just keep the local lead; no upstream push.
+    # Email notifications to organization users
+    recipients = [
+        user.email
+        for user in db.query(models.User)
+        .filter(models.User.organization_id == org.id)
+        .all()
+        if user.email
+    ]
 
+    if recipients:
+        background_tasks.add_task(
+            send_new_lead_notification,
+            recipients,
+            display_name,
+            db_lead.source,
+            getattr(org, "name", None),
+        )
+
+    # Unknown provider means just keep the local lead with no upstream push
     return {"message": "Lead received", "lead_id": db_lead.id}
 
 

@@ -1,4 +1,3 @@
-# app/core/config.py
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -17,6 +16,15 @@ class Settings(BaseSettings):
     stripe_price_id_team: str = ""
 
     frontend_base_url: str = "http://127.0.0.1:5173"
+
+    # Email service
+    email_enabled: bool = False
+    email_smtp_host: str | None = None
+    email_smtp_port: int = 587
+    email_smtp_username: str | None = None
+    email_smtp_password: str | None = None
+    email_from_address: str | None = None
+    email_from_name: str = "SLMS"
 
     model_config = SettingsConfigDict(env_file=".env", extra="allow")
 

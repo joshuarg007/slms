@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Union
 
+import logging
 import httpx
 from app.db.session import SessionLocal
 from app.db import models
-from app.core.config import settings
 
+logger = logging.getLogger(__name__)
 
 PIPEDRIVE_BASE_URL = "https://api.pipedrive.com/v1"
 
@@ -14,6 +15,10 @@ PIPEDRIVE_BASE_URL = "https://api.pipedrive.com/v1"
 # TOKEN LOADING
 # ---------------------------------------------------------------------
 def _get_org_token(organization_id: int) -> Optional[str]:
+    """
+    Fetch the latest active IntegrationCredential for Pipedrive
+    for the given organization.
+    """
     db = SessionLocal()
     try:
         cred = (
@@ -40,10 +45,21 @@ async def _request(
     token: Optional[str],
     **kwargs: Any,
 ) -> Union[Dict[str, Any], str, None]:
+    """
+    A standardized Pipedrive request wrapper.
+    Uses ONLY per-organization credentials.
+    Returns:
+      - dict (successful JSON)
+      - "unauthorized" (no token or invalid token)
+      - "HTTP <code>" for other HTTP errors
+      - "connection_failed" for network issues
+    """
+    if not token:
+        logger.warning("Pipedrive request attempted without token for url %s", url)
+        return "unauthorized"
 
-    auth_token = token or settings.pipedrive_api_key
-    params = kwargs.pop("params", {})
-    params["api_token"] = auth_token
+    params = kwargs.pop("params", {}) or {}
+    params["api_token"] = token
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         try:
@@ -54,10 +70,21 @@ async def _request(
                 **kwargs,
             )
 
-            if resp.status_code == 401 or resp.status_code == 403:
+            if resp.status_code in (401, 403):
+                logger.warning(
+                    "Pipedrive unauthorized for url %s status %s",
+                    url,
+                    resp.status_code,
+                )
                 return "unauthorized"
 
             if resp.status_code >= 400:
+                logger.error(
+                    "Pipedrive error for url %s status %s body %s",
+                    url,
+                    resp.status_code,
+                    resp.text,
+                )
                 return f"HTTP {resp.status_code}"
 
             if resp.text.strip():
@@ -65,7 +92,8 @@ async def _request(
 
             return None
 
-        except Exception:
+        except Exception as exc:
+            logger.exception("Pipedrive connection failure for url %s: %s", url, exc)
             return "connection_failed"
 
 
@@ -82,7 +110,7 @@ async def get_owners(
     data = await _request("GET", url, token)
 
     if data == "unauthorized":
-        return {"warning": "Pipedrive API key invalid or missing."}
+        return {"warning": "Pipedrive token missing or invalid."}
 
     if isinstance(data, str):
         return {"warning": f"Pipedrive request failed: {data}"}
@@ -105,7 +133,7 @@ async def get_owners(
 
 
 # ---------------------------------------------------------------------
-# DEAL COUNT
+# DEAL COUNT SINCE DATE
 # ---------------------------------------------------------------------
 async def _count_deals_created_since(
     owner_id: str,
@@ -141,14 +169,13 @@ async def _count_deals_created_since(
 async def get_salespeople_stats(
     days: int = 7,
     owner_id: Optional[str] = None,
-    include_archived_owners: bool = False,  # ignored for Pipedrive
+    include_archived_owners: bool = False,
     organization_id: Optional[int] = None,
     **kwargs: Any,
 ) -> List[Dict[str, Any]]:
 
     token = _get_org_token(organization_id) if organization_id else None
 
-    # Load users
     owners_resp = await get_owners(organization_id=organization_id)
 
     if isinstance(owners_resp, dict) and "warning" in owners_resp:
@@ -165,7 +192,6 @@ async def get_salespeople_stats(
 
     owners: List[Dict[str, Any]] = owners_resp
 
-    # Filter by owner_id
     if owner_id:
         owners = [o for o in owners if str(o.get("id")) == str(owner_id)]
 
@@ -199,8 +225,9 @@ async def get_salespeople_stats(
 
     return rows
 
+
 # ---------------------------------------------------------------------
-# LEAD CREATION (USED BY public_create_lead)
+# LEAD CREATION (USED BY /public/leads)
 # ---------------------------------------------------------------------
 async def create_lead(
     title: str,
@@ -209,25 +236,22 @@ async def create_lead(
     organization_id: Optional[int] = None,
 ) -> Optional[Dict[str, Any]]:
     """
-    Create a Pipedrive person and lead.
-
-    Used by app.api.routes.leads.public_create_lead via BackgroundTasks.
-    Respects per organization IntegrationCredential if present, otherwise
-    falls back to settings.pipedrive_api_key.
+    Create a person and then a lead in Pipedrive.
+    Only uses per-organization IntegrationCredential.
     """
     token = _get_org_token(organization_id) if organization_id else None
 
-    # 1. Create or upsert a person
+    # PERSON
     person_url = f"{PIPEDRIVE_BASE_URL}/persons"
     person_payload = {
-      "name": name or email,
-      "email": [
-          {
-              "value": email,
-              "primary": True,
-              "label": "work",
-          }
-      ],
+        "name": name or email,
+        "email": [
+            {
+                "value": email,
+                "primary": True,
+                "label": "work",
+            }
+        ],
     }
 
     person_data = await _request(
@@ -238,7 +262,6 @@ async def create_lead(
     )
 
     if isinstance(person_data, str) or person_data is None:
-        # invalid token or request failure: just stop quietly
         return None
 
     person = person_data.get("data") or {}
@@ -246,7 +269,7 @@ async def create_lead(
     if not person_id:
         return None
 
-    # 2. Create a lead linked to that person
+    # LEAD
     lead_url = f"{PIPEDRIVE_BASE_URL}/leads"
     lead_payload = {
         "title": title,
