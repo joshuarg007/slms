@@ -39,7 +39,7 @@ from app.api.routes import orgs as orgs_routes
 from app.api.routes import leads as leads_routes
 from app.api.routes import auth as auth_routes
 from app.api.routes import billing as billing_routes
-from app.core.security import (
+from app.core.security import ( 
     get_password_hash,
     verify_password,
     create_access_token,
