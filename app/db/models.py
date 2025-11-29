@@ -51,6 +51,7 @@ class Lead(Base):
     notes = Column(Text, nullable=True)
     source = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Enforce tenancy at the model level too
     organization_id = Column(

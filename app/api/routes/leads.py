@@ -1,4 +1,4 @@
-﻿from typing import Optional, List
+from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, Header, Body
 from sqlalchemy.orm import Session
@@ -18,6 +18,9 @@ from app.integrations.salesforce import create_lead as salesforce_create_lead
 
 # Email notifications
 from app.services.email import send_new_lead_notification
+
+# Lead processing (sanitization, spam, dedupe)
+from app.services.lead_processing import process_lead, sanitize_string
 
 router = APIRouter()
 
@@ -57,7 +60,7 @@ def public_create_lead(
         if key in KNOWN_LEAD_FIELDS:
             known_data[key] = value
         elif key not in ("organization_id",) and value:  # Skip org_id, keep non-empty custom fields
-            custom_fields[key] = value
+            custom_fields[key] = sanitize_string(str(value), max_length=500)
 
     # Append custom fields to notes
     existing_notes = known_data.get("notes", "") or ""
@@ -68,92 +71,114 @@ def public_create_lead(
         else:
             known_data["notes"] = custom_notes
 
-    # Require email
-    if not known_data.get("email"):
-        raise HTTPException(status_code=422, detail="Email is required")
+    # Process lead: sanitize, spam check, rate limit, dedupe
+    sanitized_data, rejection_reason, existing_lead = process_lead(
+        db=db,
+        org_id=org.id,
+        data=known_data,
+        dedupe_window_hours=24,      # Dedupe within 24 hours
+        rate_limit_window_minutes=5,  # Max 3 submissions per 5 minutes
+        rate_limit_max=3,
+    )
 
-    # Require name (always required per form config)
-    if not known_data.get("name"):
-        raise HTTPException(status_code=422, detail="Name is required")
+    # Check for rejection (spam, rate limit, invalid data)
+    if rejection_reason:
+        # Log but don't expose spam detection details to potential spammers
+        if "Spam" in rejection_reason or "Rate limited" in rejection_reason:
+            # Return success to not tip off spammers, but don't save
+            return {"message": "Lead received", "lead_id": 0}
+        # Other validation errors can be returned
+        raise HTTPException(status_code=422, detail=rejection_reason)
 
-    # Always store locally first
-    lead = LeadCreate(**known_data, organization_id=org.id)
-    db_lead = lead_crud.create_lead(db, lead)
+    # If duplicate was found and merged, use existing lead
+    if existing_lead:
+        db_lead = existing_lead
+        is_new = False
+    else:
+        # Create new lead with sanitized data
+        lead = LeadCreate(**{k: v for k, v in sanitized_data.items() if k in KNOWN_LEAD_FIELDS or k == "organization_id"})
+        db_lead = lead_crud.create_lead(db, lead)
+        is_new = True
 
-    provider = (org.active_crm or "hubspot").lower()
+    # Only sync to CRM and send notifications for NEW leads (not duplicates)
+    if is_new:
+        provider = (org.active_crm or "hubspot").lower()
 
-    # Common fields
-    email = db_lead.email
-    first_name = getattr(db_lead, "first_name", None) or ""
-    last_name = getattr(db_lead, "last_name", None) or ""
-    phone = getattr(db_lead, "phone", None) or ""
-    company = getattr(db_lead, "company", None) or ""
-    name_field = getattr(db_lead, "name", None) or ""
-    display_name = name_field or f"{first_name} {last_name}".strip() or email
+        # Common fields
+        email = db_lead.email
+        first_name = getattr(db_lead, "first_name", None) or ""
+        last_name = getattr(db_lead, "last_name", None) or ""
+        phone = getattr(db_lead, "phone", None) or ""
+        company = getattr(db_lead, "company", None) or ""
+        name_field = getattr(db_lead, "name", None) or ""
+        display_name = name_field or f"{first_name} {last_name}".strip() or email
 
-    # HubSpot: create a contact (uses org scoped token if present)
-    if provider == "hubspot":
-        background_tasks.add_task(
-            hubspot_create_contact,
-            email=email,
-            first_name=first_name,
-            last_name=last_name,
-            phone=phone,
-            organization_id=org.id,
-        )
+        # HubSpot: create a contact (uses org scoped token if present)
+        if provider == "hubspot":
+            background_tasks.add_task(
+                hubspot_create_contact,
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                phone=phone,
+                organization_id=org.id,
+            )
 
-    # Pipedrive: person plus lead
-    elif provider == "pipedrive":
-        title = f"{db_lead.source or 'Site2CRM'} lead from {email}"
-        background_tasks.add_task(
-            pipedrive_create_lead,
-            title=title,
-            name=display_name,
-            email=email,
-            organization_id=org.id,
-        )
+        # Pipedrive: person plus lead
+        elif provider == "pipedrive":
+            title = f"{db_lead.source or 'Site2CRM'} lead from {email}"
+            background_tasks.add_task(
+                pipedrive_create_lead,
+                title=title,
+                name=display_name,
+                email=email,
+                organization_id=org.id,
+            )
 
-    # Salesforce: Lead sObject
-    elif provider == "salesforce":
-        background_tasks.add_task(
-            salesforce_create_lead,
-            org_id=org.id,
-            email=email,
-            first_name=first_name,
-            last_name=last_name,
-            company=company,
-        )
+        # Salesforce: Lead sObject
+        elif provider == "salesforce":
+            background_tasks.add_task(
+                salesforce_create_lead,
+                org_id=org.id,
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                company=company,
+            )
 
-    # Nutshell: JSON RPC newLead
-    elif provider == "nutshell":
-        description = f"{db_lead.source or 'Site2CRM'} lead from {email}"
-        background_tasks.add_task(
-            nutshell.create_lead,
-            description=description,
-            contact_name=display_name,
-            contact_email=email,
-        )
+        # Nutshell: JSON RPC newLead
+        elif provider == "nutshell":
+            description = f"{db_lead.source or 'Site2CRM'} lead from {email}"
+            background_tasks.add_task(
+                nutshell.create_lead,
+                description=description,
+                contact_name=display_name,
+                contact_email=email,
+            )
 
-    # Email notifications to organization users
-    recipients = [
-        user.email
-        for user in db.query(models.User)
-        .filter(models.User.organization_id == org.id)
-        .all()
-        if user.email
-    ]
+        # Email notifications to organization users (only for new leads)
+        recipients = [
+            user.email
+            for user in db.query(models.User)
+            .filter(models.User.organization_id == org.id)
+            .all()
+            if user.email
+        ]
 
-    if recipients:
-        background_tasks.add_task(
-            send_new_lead_notification,
-            recipients,
-            display_name or email or "New lead",
-            db_lead.source,
-            getattr(org, "name", None),
-        )
+        if recipients:
+            background_tasks.add_task(
+                send_new_lead_notification,
+                recipients,
+                display_name or email or "New lead",
+                db_lead.source,
+                getattr(org, "name", None),
+            )
 
-    # Unknown provider means just keep the local lead with no upstream push
-    return {"message": "Lead received", "lead_id": db_lead.id}
+    # Return appropriate message
+    if is_new:
+        return {"message": "Lead received", "lead_id": db_lead.id}
+    else:
+        return {"message": "Lead updated", "lead_id": db_lead.id, "merged": True}
 
 
 # ---- Internal leads list ----
