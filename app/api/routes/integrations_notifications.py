@@ -25,7 +25,7 @@ class NotificationPayload(BaseModel):
 _org_settings: dict[int, NotificationSettings] = {}
 
 
-@router.get("/")
+@router.get("")
 async def get_notification_settings(user: models.User = Depends(get_current_user)):
     """Get notification settings for the current organization."""
     org_id = user.organization_id
@@ -37,7 +37,7 @@ async def get_notification_settings(user: models.User = Depends(get_current_user
     }
 
 
-@router.post("/")
+@router.post("")
 async def save_notification_settings(
     payload: NotificationPayload = Body(...),
     user: models.User = Depends(get_current_user),
