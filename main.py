@@ -33,10 +33,17 @@ from app.api.routes import password_reset as password_reset_routes
 # -----------------------------------
 app = FastAPI()
 
-# CORS: Allow all origins for public widget endpoints
+# CORS: Specific origins for credentials, wildcard for public endpoints
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://site2crm.io",
+    "https://www.site2crm.io",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
