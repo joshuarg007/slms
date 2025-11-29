@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     stripe_price_id_team: str = ""
 
     frontend_base_url: str = "http://127.0.0.1:5173"
+    api_base_url: str = "https://api.site2crm.io"  # Used for widget embed code
 
     # Email service
     email_enabled: bool = False
