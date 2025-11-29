@@ -5,10 +5,125 @@ import CrmConnectionBanner from "@/components/CrmConnectionBanner";
 import api from "@/utils/api";
 import logo from "@/assets/site2crm_logo.png";
 
+// Icon components for sidebar
+const icons = {
+  dashboard: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z" />
+    </svg>
+  ),
+  leads: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
+  ),
+  salespeople: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    </svg>
+  ),
+  fields: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h7" />
+    </svg>
+  ),
+  styles: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+    </svg>
+  ),
+  embed: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+    </svg>
+  ),
+  crm: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+    </svg>
+  ),
+  notifications: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+    </svg>
+  ),
+  profile: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  users: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+    </svg>
+  ),
+  billing: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+    </svg>
+  ),
+  settings: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  ),
+  search: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+    </svg>
+  ),
+  logout: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+    </svg>
+  ),
+};
+
+interface NavItemProps {
+  to: string;
+  icon: React.ReactNode;
+  label: string;
+  end?: boolean;
+  indent?: boolean;
+}
+
+function NavItem({ to, icon, label, end, indent }: NavItemProps) {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      className={({ isActive }) =>
+        `group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+          indent ? "ml-3" : ""
+        } ${
+          isActive
+            ? "bg-gradient-to-r from-indigo-500/10 to-purple-500/10 text-indigo-600 dark:text-indigo-400 shadow-sm"
+            : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200"
+        }`
+      }
+    >
+      <span className="flex-shrink-0 transition-transform duration-200 group-hover:scale-110">
+        {icon}
+      </span>
+      <span>{label}</span>
+    </NavLink>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="px-3 mb-2 text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+      {children}
+    </div>
+  );
+}
+
 export default function AppLayout() {
   const navigate = useNavigate();
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -45,270 +160,110 @@ export default function AppLayout() {
   const userInitial = userEmail ? userEmail.charAt(0).toUpperCase() : "?";
 
   return (
-    <div className="min-h-screen flex flex-col bg-bg-primary text-text-primary">
-      <header className="h-20 bg-gradient-to-r from-bg-secondary via-bg-primary to-bg-secondary flex items-center gap-8 pl-[5vw] pr-[5vw] mb-[9vh] pt-3">
-        {/* Left: Logo */}
-        <div className="flex items-center">
-          <img src={logo} alt="Site2CRM Logo" className="h-16 w-auto" />
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
+      {/* Header */}
+      <header className="sticky top-0 z-50 h-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 flex items-center px-6">
+        {/* Logo */}
+        <div className="flex items-center gap-2 mr-8">
+          <img src={logo} alt="Site2CRM" className="h-10 w-auto" />
         </div>
 
-        {/* Center: Navigation */}
-        <nav className="flex-1 flex items-center gap-6 text-sm font-medium ml-8">
-          <NavLink
-            to="/app"
-            end
-            className={({ isActive }) =>
-              isActive
-                ? "text-brand-gray-dark border-b-2 border-brand-gray-dark pb-1"
-                : "text-text-secondary hover:text-text-primary"
-            }
-          >
-            Dashboard
-          </NavLink>
-
-          <NavLink
-            to="/app/account"
-            className={({ isActive }) =>
-              isActive
-                ? "text-brand-gray-dark border-b-2 border-brand-gray-dark pb-1"
-                : "text-text-secondary hover:text-text-primary"
-            }
-          >
-            Profile
-          </NavLink>
-
-          <NavLink
-            to="/app/leads"
-            className={({ isActive }) =>
-              isActive
-                ? "text-brand-gray-dark border-b-2 border-brand-gray-dark pb-1"
-                : "text-text-secondary hover:text-text-primary"
-            }
-          >
-            Leads
-          </NavLink>
-
-          <NavLink
-            to="/app/reports"
-            className={({ isActive }) =>
-              isActive
-                ? "text-brand-gray-dark border-b-2 border-brand-gray-dark pb-1"
-                : "text-text-secondary hover:text-text-primary"
-            }
-          >
-            Reports
-          </NavLink>
-        </nav>
-
-        {/* Right: search, profile circle, logout */}
-        <div className="flex items-center gap-4">
-          <NavLink
-            to="/app/account"
-            aria-label="Account"
-            className="flex items-center justify-center h-9 w-9 rounded-full bg-brand-gray-dark text-white text-xl font-semibold ring-2 ring-border hover:ring-brand-gray-dark/70 transition"
-          >
-            <span>{userInitial}</span>
-          </NavLink>
-
+        {/* Search - centered */}
+        <div className="flex-1 flex justify-center">
           <form
             onSubmit={handleSearchSubmit}
-            className="flex items-center gap-2 bg-bg-primary/60 border border-border rounded-full px-3 py-1"
+            className={`relative flex items-center transition-all duration-300 ${
+              searchFocused ? "w-96" : "w-72"
+            }`}
           >
+            <span className="absolute left-3 text-gray-400">
+              {icons.search}
+            </span>
             <input
               type="search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search leads or sales..."
-              className="bg-transparent text-sm outline-none placeholder:text-text-muted"
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              placeholder="Search leads, contacts..."
+              className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-full text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
             />
           </form>
+        </div>
+
+        {/* Right side */}
+        <div className="flex items-center gap-3">
+          <NavLink
+            to="/app/account"
+            className="flex items-center gap-3 px-3 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
+            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm font-semibold shadow-sm">
+              {userInitial}
+            </div>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:block">
+              {userEmail ? userEmail.split("@")[0] : "Account"}
+            </span>
+          </NavLink>
 
           <button
             onClick={handleLogout}
-            className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition"
+            className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
           >
-            Log Out
+            {icons.logout}
+            <span className="hidden sm:block">Logout</span>
           </button>
         </div>
       </header>
 
       <div className="flex flex-1">
         {/* Sidebar */}
-        <aside className="w-56 bg-gradient-to-b from-bg-secondary/70 via-bg-primary to-bg-primary px-4 py-6">
-          <nav className="space-y-6 text-sm">
+        <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200/50 dark:border-gray-800/50 p-4 overflow-y-auto">
+          <nav className="space-y-6">
             {/* Main */}
             <div>
-              <div className="px-2 text-xs font-semibold text-text-muted uppercase tracking-wide">
-                Main
-              </div>
-              <div className="mt-2 flex flex-col gap-1">
-                <NavLink
-                  to="/app"
-                  end
-                  className={({ isActive }) =>
-                    isActive
-                      ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
-                      : "px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
-                  }
-                >
-                  Dashboard
-                </NavLink>
-                <NavLink
-                  to="/app/leads"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
-                      : "px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
-                  }
-                >
-                  Leads
-                </NavLink>
-                <NavLink
-                  to="/app/salespeople"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
-                      : "px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
-                  }
-                >
-                  Salespeople
-                </NavLink>
+              <SectionLabel>Main</SectionLabel>
+              <div className="space-y-1">
+                <NavItem to="/app" icon={icons.dashboard} label="Dashboard" end />
+                <NavItem to="/app/leads" icon={icons.leads} label="Leads" />
+                <NavItem to="/app/salespeople" icon={icons.salespeople} label="Salespeople" />
               </div>
             </div>
 
             {/* Forms */}
             <div>
-              <div className="px-2 text-xs font-semibold text-text-muted uppercase tracking-wide">
-                Forms
-              </div>
-              <div className="mt-2 flex flex-col gap-1">
-                <NavLink
-                  to="/app/forms/fields"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
-                      : "px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
-                  }
-                >
-                  Fields
-                </NavLink>
-                <NavLink
-                  to="/app/forms/styles"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
-                      : "px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
-                  }
-                >
-                  Styles
-                </NavLink>
-                <NavLink
-                  to="/app/forms/embed"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
-                      : "px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
-                  }
-                >
-                  Embed Code
-                </NavLink>
+              <SectionLabel>Forms</SectionLabel>
+              <div className="space-y-1">
+                <NavItem to="/app/forms/fields" icon={icons.fields} label="Fields" />
+                <NavItem to="/app/forms/styles" icon={icons.styles} label="Styles" />
+                <NavItem to="/app/forms/embed" icon={icons.embed} label="Embed Code" />
               </div>
             </div>
 
             {/* Integrations */}
             <div>
-              <div className="px-2 text-xs font-semibold text-text-muted uppercase tracking-wide">
-                Integrations
-              </div>
-              <div className="mt-2 flex flex-col gap-1">
-                <NavLink
-                  to="/app/integrations/current"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
-                      : "px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
-                  }
-                >
-                  Current CRM
-                </NavLink>
-                <NavLink
-                  to="/app/integrations/update"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "ml-4 px-3 py-2 rounded-md bg-bg-primary text-text-primary"
-                      : "ml-4 px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
-                  }
-                >
-                  Update CRM
-                </NavLink>
-                <NavLink
-                  to="/app/integrations/notifications"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "ml-4 px-3 py-2 rounded-md bg-bg-primary text-text-primary"
-                      : "ml-4 px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
-                  }
-                >
-                  Alerts and Notifications
-                </NavLink>
+              <SectionLabel>Integrations</SectionLabel>
+              <div className="space-y-1">
+                <NavItem to="/app/integrations/current" icon={icons.crm} label="Current CRM" />
+                <NavItem to="/app/integrations/update" icon={icons.crm} label="Update CRM" indent />
+                <NavItem to="/app/integrations/notifications" icon={icons.notifications} label="Notifications" indent />
               </div>
             </div>
 
             {/* Account */}
             <div>
-              <div className="px-2 text-xs font-semibold text-text-muted uppercase tracking-wide">
-                Account
-              </div>
-              <div className="mt-2 flex flex-col gap-1">
-                <NavLink
-                  to="/app/account"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
-                      : "px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
-                  }
-                >
-                  Profile and Account
-                </NavLink>
-                <NavLink
-                  to="/app/users"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
-                      : "px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
-                  }
-                >
-                  Users
-                </NavLink>
-                <NavLink
-                  to="/app/billing"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
-                      : "px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
-                  }
-                >
-                  Billing
-                </NavLink>
-                <NavLink
-                  to="/app/settings"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
-                      : "px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
-                  }
-                >
-                  Settings
-                </NavLink>
+              <SectionLabel>Account</SectionLabel>
+              <div className="space-y-1">
+                <NavItem to="/app/account" icon={icons.profile} label="Profile" />
+                <NavItem to="/app/users" icon={icons.users} label="Users" />
+                <NavItem to="/app/billing" icon={icons.billing} label="Billing" />
+                <NavItem to="/app/settings" icon={icons.settings} label="Settings" />
               </div>
             </div>
           </nav>
         </aside>
 
-        {/* Divider */}
-        <div className="w-px bg-gradient-to-b from-brand-gray-dark/70 via-border to-transparent shadow-[0_0_14px_rgba(0,0,0,0.35)]" />
-
-        <main className="flex-1 p-8">
+        {/* Main Content */}
+        <main className="flex-1 p-6 overflow-y-auto">
           <CrmConnectionBanner />
           <Outlet />
         </main>

@@ -1,6 +1,5 @@
 // src/pages/AccountPage.tsx
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthProvider";
 import { getApiBase, refresh } from "@/utils/api";
 
@@ -16,7 +15,6 @@ type OrgUser = {
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-// Auth helper with cookie include and refresh on 401
 async function authFetch(
   input: RequestInfo | URL,
   init: RequestInit = {},
@@ -53,6 +51,13 @@ async function authFetch(
   return res;
 }
 
+const roleColors: Record<Role, string> = {
+  OWNER: "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800",
+  ADMIN: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+  USER: "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700",
+  READ_ONLY: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+};
+
 export default function AccountPage() {
   const { user } = useAuth();
 
@@ -66,7 +71,7 @@ export default function AccountPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<Role>("USER");
   const [inviteState, setInviteState] = useState<SaveState>("idle");
-  const [banner, setBanner] = useState<string | null>(null);
+  const [banner, setBanner] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,9 +85,7 @@ export default function AccountPage() {
         const res = await authFetch(`${getApiBase()}/users`);
         if (!res.ok) {
           const t = await res.text().catch(() => "");
-          throw new Error(
-            `Failed to load users ${res.status} ${res.statusText} ${t}`
-          );
+          throw new Error(`Failed to load users ${res.status} ${res.statusText} ${t}`);
         }
         const json = (await res.json()) as OrgUser[];
         if (cancelled) return;
@@ -90,11 +93,10 @@ export default function AccountPage() {
         setUsers(Array.isArray(json) ? json : []);
         const currentDefault = json.find((u) => u.is_default);
         setDefaultUserId(currentDefault ? currentDefault.id : null);
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (!cancelled) {
-          setLoadError(
-            e?.message || "Could not load organization users from the server."
-          );
+          const message = e instanceof Error ? e.message : "Could not load organization users from the server.";
+          setLoadError(message);
         }
       } finally {
         if (!cancelled) {
@@ -112,7 +114,7 @@ export default function AccountPage() {
 
   async function handleSaveDefault() {
     if (!defaultUserId) {
-      setBanner("Select a default user first.");
+      setBanner({ type: "error", message: "Select a default user first." });
       setDefaultSaveState("error");
       return;
     }
@@ -127,9 +129,7 @@ export default function AccountPage() {
       });
       if (!res.ok) {
         const t = await res.text().catch(() => "");
-        throw new Error(
-          `Failed to update default user ${res.status} ${res.statusText} ${t}`
-        );
+        throw new Error(`Failed to update default user ${res.status} ${res.statusText} ${t}`);
       }
 
       setUsers((prev) =>
@@ -139,13 +139,11 @@ export default function AccountPage() {
         }))
       );
       setDefaultSaveState("saved");
-      setBanner("Default user updated for this organization.");
-    } catch (e: any) {
+      setBanner({ type: "success", message: "Default user updated for this organization." });
+    } catch (e: unknown) {
       setDefaultSaveState("error");
-      setBanner(
-        e?.message ||
-          "Failed to update default user. No changes were saved on the server."
-      );
+      const message = e instanceof Error ? e.message : "Failed to update default user.";
+      setBanner({ type: "error", message });
     }
   }
 
@@ -154,7 +152,7 @@ export default function AccountPage() {
     const email = inviteEmail.trim();
     if (!email) {
       setInviteState("error");
-      setBanner("Enter an email address to invite.");
+      setBanner({ type: "error", message: "Enter an email address to invite." });
       return;
     }
 
@@ -168,9 +166,7 @@ export default function AccountPage() {
       });
       if (!res.ok) {
         const t = await res.text().catch(() => "");
-        throw new Error(
-          `Failed to invite user ${res.status} ${res.statusText} ${t}`
-        );
+        throw new Error(`Failed to invite user ${res.status} ${res.statusText} ${t}`);
       }
 
       const created = (await res.json()) as OrgUser;
@@ -178,201 +174,192 @@ export default function AccountPage() {
       setInviteEmail("");
       setInviteRole("USER");
       setInviteState("saved");
-      setBanner(
-        "User added for this organization. If email sending is enabled they will receive an invitation."
-      );
-    } catch (e: any) {
+      setBanner({ type: "success", message: "User added successfully. They will receive an invitation email." });
+    } catch (e: unknown) {
       setInviteState("error");
-      setBanner(
-        e?.message ||
-          "Failed to add user. Check the email and try again."
-      );
+      const message = e instanceof Error ? e.message : "Failed to add user.";
+      setBanner({ type: "error", message });
     }
-  }
-
-  function renderDefaultSaveLabel() {
-    if (defaultSaveState === "saving") return "Saving";
-    if (defaultSaveState === "saved") return "Saved";
-    if (defaultSaveState === "error") return "Try again";
-    return "Save default user";
-  }
-
-  function renderInviteLabel() {
-    if (inviteState === "saving") return "Adding";
-    if (inviteState === "saved") return "Added";
-    if (inviteState === "error") return "Try again";
-    return "Add user";
   }
 
   const currentUserEmail = user?.email ?? "Unknown user";
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Account</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 max-w-xl">
-            Manage your own profile and the users who belong to this organization.
-          </p>
-        </div>
-
-        <div className="flex gap-3">
-          <Link
-            to="/settings"
-            className="rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800"
-          >
-            Settings
-          </Link>
-          <Link
-            to="/billing"
-            className="rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800"
-          >
-            Billing
-          </Link>
-        </div>
+    <div className="max-w-5xl mx-auto space-y-6">
+      {/* Header */}
+      <header>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Account</h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Manage your profile and organization users
+        </p>
       </header>
 
+      {/* Banner */}
       {banner && (
         <div
-          className={[
-            "rounded-lg px-3 py-2 text-sm",
-            inviteState === "error" || defaultSaveState === "error"
-              ? "border border-red-200 bg-red-50 text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200"
-              : "border border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-200",
-          ].join(" ")}
+          className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+            banner.type === "error"
+              ? "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300"
+              : "bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300"
+          }`}
         >
-          {banner}
+          {banner.type === "error" ? (
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )}
+          {banner.message}
         </div>
       )}
 
       {loadError && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-200">
+        <div className="flex items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
           {loadError}
         </div>
       )}
 
-      <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
-        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-lg font-medium">Profile</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Basic details for your Site2CRM account.
-          </p>
+      {/* Profile Card */}
+      <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Profile</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Your account details</p>
         </div>
-
-        <div className="px-6 py-6 grid gap-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-2">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Signed in as
+        <div className="px-6 py-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-semibold shadow-lg">
+              {currentUserEmail.charAt(0).toUpperCase()}
             </div>
-            <div className="sm:col-span-2 text-sm">
-              {currentUserEmail}
+            <div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Signed in as</div>
+              <div className="text-lg font-medium text-gray-900 dark:text-white">{currentUserEmail}</div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-6 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.1fr)]">
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
-          <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
-            <h2 className="text-lg font-medium">Organization users</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Control who can access this organization and which user is treated
-              as the default for integrations and notifications.
+      {/* Users Section */}
+      <div className="grid gap-6 lg:grid-cols-5">
+        {/* Organization Users */}
+        <section className="lg:col-span-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Organization Users</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Manage team access and set the default user for integrations
             </p>
           </div>
 
-          <div className="px-6 py-4">
+          <div className="p-6">
             {loadingUsers ? (
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                Loading users
+              <div className="flex items-center justify-center py-8 text-gray-500 dark:text-gray-400">
+                <svg className="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Loading users...
               </div>
             ) : users.length === 0 ? (
-              <div className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                 No users found for this organization yet.
               </div>
             ) : (
-              <div className="overflow-x-auto text-sm">
-                <table className="min-w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-gray-100 dark:border-gray-800 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      <th className="py-2 pr-4 font-medium">Default</th>
-                      <th className="py-2 pr-4 font-medium">Email</th>
-                      <th className="py-2 pr-4 font-medium">Role</th>
-                      <th className="py-2 pr-4 font-medium">Created</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((u) => (
-                      <tr
-                        key={u.id}
-                        className="border-b border-gray-50 dark:border-gray-800 last:border-b-0"
-                      >
-                        <td className="py-2 pr-4 align-middle">
-                          <input
-                            type="radio"
-                            name="defaultUser"
-                            checked={defaultUserId === u.id}
-                            onChange={() => setDefaultUserId(u.id)}
-                            className="h-4 w-4 text-indigo-600 border-gray-300 dark:border-gray-600"
-                          />
-                        </td>
-                        <td className="py-2 pr-4 align-middle">
-                          <div className="flex flex-col">
-                            <span>{u.email}</span>
-                            {u.is_default && (
-                              <span className="text-[11px] text-emerald-600 dark:text-emerald-300">
-                                Current default
-                              </span>
-                            )}
-                            {u.email === currentUserEmail && (
-                              <span className="text-[11px] text-indigo-600 dark:text-indigo-300">
-                                You
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-2 pr-4 align-middle">
-                          <span className="inline-flex items-center rounded-full border border-gray-300 dark:border-gray-700 px-2 py-0.5 text-[11px] text-gray-700 dark:text-gray-200">
-                            {u.role}
-                          </span>
-                        </td>
-                        <td className="py-2 pr-4 align-middle text-xs text-gray-500 dark:text-gray-400">
-                          {u.created_at
-                            ? new Date(u.created_at).toLocaleDateString()
-                            : "Unknown"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="space-y-3">
+                {users.map((u) => (
+                  <div
+                    key={u.id}
+                    className={`flex items-center justify-between p-4 rounded-xl border transition-colors ${
+                      defaultUserId === u.id
+                        ? "border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20"
+                        : "border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="radio"
+                        name="defaultUser"
+                        checked={defaultUserId === u.id}
+                        onChange={() => setDefaultUserId(u.id)}
+                        className="h-4 w-4 text-indigo-600 border-gray-300 dark:border-gray-600 focus:ring-indigo-500"
+                      />
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center">
+                        <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+                          {u.email.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-900 dark:text-white">{u.email}</span>
+                          {u.email === currentUserEmail && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                              You
+                            </span>
+                          )}
+                          {u.is_default && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
+                              Default
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          Added {u.created_at ? new Date(u.created_at).toLocaleDateString() : "Unknown"}
+                        </div>
+                      </div>
+                    </div>
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${roleColors[u.role]}`}>
+                      {u.role}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
 
-            <div className="mt-4 flex justify-end">
+            <div className="mt-6 flex justify-end">
               <button
                 type="button"
                 onClick={handleSaveDefault}
                 disabled={defaultSaveState === "saving"}
-                className="rounded-md bg-indigo-600 text-white px-4 py-2 text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-60"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
               >
-                {renderDefaultSaveLabel()}
+                {defaultSaveState === "saving" ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Saving...
+                  </>
+                ) : defaultSaveState === "saved" ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Saved
+                  </>
+                ) : (
+                  "Save Default User"
+                )}
               </button>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
-          <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
-            <h2 className="text-lg font-medium">Add user</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Add another user to this organization. You can control roles at any time.
-            </p>
+        {/* Add User */}
+        <section className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg overflow-hidden h-fit">
+          <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Add User</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Invite a new team member</p>
           </div>
 
-          <form className="px-6 py-4 space-y-4" onSubmit={handleInvite}>
-            <div className="space-y-1 text-sm">
-              <label className="block text-gray-700 dark:text-gray-200">
-                Email
+          <form className="p-6 space-y-4" onSubmit={handleInvite}>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                Email address
               </label>
               <input
                 type="email"
@@ -381,13 +368,13 @@ export default function AccountPage() {
                   setInviteEmail(e.target.value);
                   setInviteState("idle");
                 }}
-                placeholder="name@example.com"
-                className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+                placeholder="colleague@company.com"
+                className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
               />
             </div>
 
-            <div className="space-y-1 text-sm">
-              <label className="block text-gray-700 dark:text-gray-200">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 Role
               </label>
               <select
@@ -396,38 +383,44 @@ export default function AccountPage() {
                   setInviteRole(e.target.value as Role);
                   setInviteState("idle");
                 }}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+                className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
               >
-                <option value="USER">User can work with leads and reports</option>
-                <option value="ADMIN">
-                  Admin manages settings and integrations
-                </option>
-                <option value="OWNER">
-                  Owner has full control over this organization
-                </option>
-                <option value="READ_ONLY">
-                  Read only can view but cannot change data
-                </option>
+                <option value="USER">User - Work with leads & reports</option>
+                <option value="ADMIN">Admin - Manage settings</option>
+                <option value="OWNER">Owner - Full control</option>
+                <option value="READ_ONLY">Read Only - View only</option>
               </select>
             </div>
 
-            <div className="pt-2 flex justify-end">
-              <button
-                type="submit"
-                disabled={inviteState === "saving"}
-                className="rounded-md bg-indigo-600 text-white px-4 py-2 text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-60"
-              >
-                {renderInviteLabel()}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={inviteState === "saving"}
+              className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            >
+              {inviteState === "saving" ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Add User
+                </>
+              )}
+            </button>
 
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              When email sending is configured this can send an invitation to the
-              new user. Until then you can share login details manually.
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+              An invitation email will be sent to the new user
             </p>
           </form>
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
   );
 }

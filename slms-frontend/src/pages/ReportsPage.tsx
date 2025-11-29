@@ -65,8 +65,9 @@ export default function ReportsPage() {
         total: data.total,
         by_source: data.by_source || {},
       });
-    } catch (e: any) {
-      setLeadsError(e?.message || "Could not load lead metrics.");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Could not load lead metrics.";
+      setLeadsError(message);
     } finally {
       setLeadsLoading(false);
     }
@@ -81,324 +82,314 @@ export default function ReportsPage() {
       const res = await authFetch(`${base}/salespeople/stats?days=${days}`);
       if (!res.ok) {
         const text = await res.text().catch(() => "");
-        throw new Error(
-          `Salespeople stats failed: ${res.status} ${res.statusText} – ${text}`,
-        );
+        throw new Error(`Salespeople stats failed: ${res.status} ${res.statusText} – ${text}`);
       }
       const json = (await res.json()) as SalespeopleResponse;
 
       const warningRow = json.results.find(
-        (r: any) => typeof (r as any).warning === "string",
-      ) as any;
+        (r: SalesRow & { warning?: string }) => typeof r.warning === "string"
+      ) as SalesRow & { warning?: string } | undefined;
 
       if (warningRow && warningRow.warning) {
-        setSalesWarning(warningRow.warning as string);
+        setSalesWarning(warningRow.warning);
         setSalesRows([]);
       } else {
         setSalesRows(json.results || []);
       }
 
       setSalesDays(json.days);
-    } catch (e: any) {
-      setSalesError(e?.message || "Could not load salesperson stats.");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Could not load salesperson stats.";
+      setSalesError(message);
     } finally {
       setSalesLoading(false);
     }
   }
 
-  function TabButton(props: {
-    id: Tab;
-    label: string;
-    active: boolean;
-    onClick: () => void;
-  }) {
-    const { id, label, active, onClick } = props;
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className={`px-4 py-2 text-sm font-medium rounded-full transition
-          ${
-            active
-              ? "bg-brand-red text-white shadow-sm"
-              : "text-text-secondary hover:bg-bg-tertiary"
-          }`}
-        aria-pressed={active}
-        aria-label={label}
-        data-tab={id}
-      >
-        {label}
-      </button>
-    );
-  }
-
   const leadsSources = leadsMetrics?.by_source || {};
   const leadsSourceEntries = Object.entries(leadsSources).sort(
-    (a, b) => (b[1] ?? 0) - (a[1] ?? 0),
+    (a, b) => (b[1] ?? 0) - (a[1] ?? 0)
   );
 
   return (
-    <div className="space-y-6">
-      <header className="flex items-center justify-between gap-4">
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Header */}
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-text-primary">
-            Reports and Analytics
-          </h1>
-          <p className="mt-1 text-sm text-text-muted">
-            Review lead funnel health and salesperson performance across your
-            active CRM.
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Reports</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Analyze lead performance and salesperson activity
           </p>
         </div>
 
-        <div className="inline-flex items-center gap-2 rounded-full bg-bg-secondary border border-border px-2 py-1">
-          <TabButton
-            id="leads"
-            label="Lead reports"
-            active={activeTab === "leads"}
+        {/* Tab Switcher */}
+        <div className="inline-flex items-center p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+          <button
+            type="button"
             onClick={() => setActiveTab("leads")}
-          />
-          <TabButton
-            id="salespeople"
-            label="Salespeople"
-            active={activeTab === "salespeople"}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+              activeTab === "leads"
+                ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            }`}
+          >
+            Lead Reports
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab("salespeople")}
-          />
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+              activeTab === "salespeople"
+                ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            }`}
+          >
+            Salespeople
+          </button>
         </div>
       </header>
 
+      {/* Leads Tab */}
       {activeTab === "leads" && (
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-text-primary">
-              Lead volume by source
-            </h2>
-            <button
-              type="button"
-              onClick={loadLeads}
-              disabled={leadsLoading}
-              className="text-xs rounded-full border border-border px-3 py-1.5 text-text-secondary hover:bg-bg-tertiary disabled:opacity-50"
-            >
-              {leadsLoading ? "Refreshing…" : "Refresh"}
-            </button>
-          </div>
-
+        <div className="space-y-6">
+          {/* Error */}
           {leadsError && (
-            <div className="rounded-lg border border-brand-red bg-brand-red/5 px-4 py-3 text-sm text-brand-red">
+            <div className="flex items-center gap-3 rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
               {leadsError}
             </div>
           )}
 
-          {!leadsError && (
-            <>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="rounded-2xl border border-border bg-bg-secondary p-4 shadow-sm">
-                  <div className="text-xs font-medium uppercase tracking-wide text-text-muted">
-                    Total leads
-                  </div>
-                  <div className="mt-2 text-3xl font-semibold text-text-primary">
-                    {leadsMetrics ? leadsMetrics.total.toLocaleString() : "—"}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-border bg-bg-secondary p-4 shadow-sm">
-                  <div className="text-xs font-medium uppercase tracking-wide text-text-muted">
-                    Top source
-                  </div>
-                  <div className="mt-2 text-base text-text-primary">
-                    {leadsSourceEntries.length
-                      ? `${leadsSourceEntries[0][0]} (${leadsSourceEntries[0][1]})`
-                      : "No data yet"}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-border bg-bg-secondary p-4 shadow-sm">
-                  <div className="text-xs font-medium uppercase tracking-wide text-text-muted">
-                    Number of sources
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold text-text-primary">
-                    {leadsSourceEntries.length}
-                  </div>
+          {/* Stats Cards */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full bg-white/10 blur-2xl" />
+              <div className="relative">
+                <div className="text-sm font-medium text-white/80 mb-1">Total Leads</div>
+                <div className="text-3xl font-bold">
+                  {leadsLoading ? "—" : leadsMetrics?.total.toLocaleString() ?? "0"}
                 </div>
               </div>
-
-              <div className="mt-4 rounded-2xl border border-border bg-bg-secondary p-4 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-text-primary">
-                    Leads by source
-                  </h3>
-                  <span className="text-xs text-text-muted">
-                    Sorted by volume, highest first
-                  </span>
-                </div>
-
-                {leadsSourceEntries.length === 0 ? (
-                  <p className="text-sm text-text-muted">
-                    No lead activity yet. Once you start capturing leads, you
-                    will see a breakdown by source here.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {leadsSourceEntries.map(([source, count]) => {
-                      const total = leadsMetrics?.total || 0;
-                      const pct =
-                        total > 0
-                          ? Math.round(((count ?? 0) / total) * 100)
-                          : 0;
-                      const label = source || "unknown";
-                      return (
-                        <div key={label} className="space-y-1">
-                          <div className="flex justify-between text-xs">
-                            <span className="font-medium text-text-primary">
-                              {label}
-                            </span>
-                            <span className="text-text-muted">
-                              {count.toLocaleString()} leads ({pct}%)
-                            </span>
-                          </div>
-                          <div className="h-2 rounded-full bg-bg-primary overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-brand-red"
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </section>
-      )}
-
-      {activeTab === "salespeople" && (
-        <section className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-text-primary">
-                Salesperson performance
-              </h2>
-              <p className="mt-1 text-sm text-text-muted">
-                Aggregated activity across your active CRM. Some providers
-                require higher tier plans for full activity access.
-              </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-text-muted">
-                Window
-                <select
-                  value={salesDays}
-                  onChange={(e) => {
-                    const d = Number(e.target.value) || 7;
-                    setSalesDays(d);
-                    loadSalespeople(d);
-                  }}
-                  className="ml-2 rounded-md border border-border bg-bg-secondary px-2 py-1 text-xs text-text-primary"
-                >
-                  <option value={7}>Last 7 days</option>
-                  <option value={30}>Last 30 days</option>
-                  <option value={90}>Last 90 days</option>
-                </select>
-              </label>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 shadow-lg">
+              <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Top Source</div>
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                {leadsSourceEntries.length
+                  ? `${leadsSourceEntries[0][0]} (${leadsSourceEntries[0][1]})`
+                  : "No data yet"}
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 shadow-lg">
+              <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Active Sources</div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                {leadsSourceEntries.length}
+              </div>
+            </div>
+          </div>
+
+          {/* Source Breakdown */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Leads by Source</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Sorted by volume</p>
+              </div>
+              <button
+                type="button"
+                onClick={loadLeads}
+                disabled={leadsLoading}
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+              >
+                {leadsLoading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Refreshing
+                  </>
+                ) : (
+                  "Refresh"
+                )}
+              </button>
+            </div>
+
+            <div className="p-6">
+              {leadsSourceEntries.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  No lead activity yet. Start capturing leads to see breakdown by source.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {leadsSourceEntries.map(([source, count]) => {
+                    const total = leadsMetrics?.total || 0;
+                    const pct = total > 0 ? Math.round(((count ?? 0) / total) * 100) : 0;
+                    return (
+                      <div key={source} className="space-y-2">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="font-medium text-gray-900 dark:text-white capitalize">
+                            {source || "unknown"}
+                          </span>
+                          <span className="text-gray-500 dark:text-gray-400">
+                            {count.toLocaleString()} leads ({pct}%)
+                          </span>
+                        </div>
+                        <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Salespeople Tab */}
+      {activeTab === "salespeople" && (
+        <div className="space-y-6">
+          {/* Controls */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Salesperson Performance</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Activity metrics from your connected CRM
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <select
+                value={salesDays}
+                onChange={(e) => {
+                  const d = Number(e.target.value) || 7;
+                  setSalesDays(d);
+                  loadSalespeople(d);
+                }}
+                className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+              >
+                <option value={7}>Last 7 days</option>
+                <option value={30}>Last 30 days</option>
+                <option value={90}>Last 90 days</option>
+              </select>
               <button
                 type="button"
                 onClick={() => loadSalespeople(salesDays)}
                 disabled={salesLoading}
-                className="text-xs rounded-full border border-border px-3 py-1.5 text-text-secondary hover:bg-bg-tertiary disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
               >
-                {salesLoading ? "Refreshing…" : "Refresh"}
+                {salesLoading ? "Refreshing..." : "Refresh"}
               </button>
             </div>
           </div>
 
+          {/* Warning */}
           {salesWarning && (
-            <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              <div className="font-medium">Limited HubSpot access</div>
-              <p className="mt-1">{salesWarning}</p>
+            <div className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/20 px-4 py-4 text-sm">
+              <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div>
+                <div className="font-medium text-amber-800 dark:text-amber-200">Limited CRM access</div>
+                <p className="mt-1 text-amber-700 dark:text-amber-300">{salesWarning}</p>
+              </div>
             </div>
           )}
 
+          {/* Error */}
           {salesError && (
-            <div className="rounded-lg border border-brand-red bg-brand-red/5 px-4 py-3 text-sm text-brand-red">
+            <div className="flex items-center gap-3 rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
               {salesError}
             </div>
           )}
 
+          {/* Stats */}
           {!salesWarning && !salesError && (
             <>
               <StatsCards rows={salesRows} days={salesDays} />
 
-              <div className="mt-4 rounded-2xl border border-border bg-bg-secondary p-4 shadow-sm overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-xs uppercase tracking-wide text-text-muted border-b border-border">
-                      <th className="py-2 pr-4">Salesperson</th>
-                      <th className="py-2 pr-4 text-right">
-                        Emails (last {salesDays}d)
-                      </th>
-                      <th className="py-2 pr-4 text-right">
-                        Calls (last {salesDays}d)
-                      </th>
-                      <th className="py-2 pr-4 text-right">
-                        Meetings (last {salesDays}d)
-                      </th>
-                      <th className="py-2 pr-4 text-right">
-                        New deals (last {salesDays}d)
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {salesRows.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={5}
-                          className="py-4 text-center text-text-muted"
-                        >
-                          No salesperson activity found for this window.
-                        </td>
+              {/* Table */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Salesperson
+                        </th>
+                        <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Emails
+                        </th>
+                        <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Calls
+                        </th>
+                        <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Meetings
+                        </th>
+                        <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          New Deals
+                        </th>
                       </tr>
-                    ) : (
-                      salesRows.map((r) => (
-                        <tr
-                          key={r.owner_id}
-                          className="border-b border-border/60 last:border-b-0"
-                        >
-                          <td className="py-2 pr-4">
-                            <div className="font-medium text-text-primary">
-                              {r.owner_name ||
-                                r.owner_email ||
-                                r.owner_id ||
-                                "Owner"}
-                            </div>
-                            {r.owner_email && (
-                              <div className="text-xs text-text-muted">
-                                {r.owner_email}
-                              </div>
-                            )}
-                          </td>
-                          <td className="py-2 pr-4 text-right tabular-nums">
-                            {r.emails_last_n_days.toLocaleString()}
-                          </td>
-                          <td className="py-2 pr-4 text-right tabular-nums">
-                            {r.calls_last_n_days.toLocaleString()}
-                          </td>
-                          <td className="py-2 pr-4 text-right tabular-nums">
-                            {r.meetings_last_n_days.toLocaleString()}
-                          </td>
-                          <td className="py-2 pr-4 text-right tabular-nums">
-                            {r.new_deals_last_n_days.toLocaleString()}
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                      {salesRows.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                            No salesperson activity found for this period.
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        salesRows.map((r) => (
+                          <tr key={r.owner_id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+                                    {(r.owner_name || r.owner_email || "?").charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                                <div>
+                                  <div className="font-medium text-gray-900 dark:text-white">
+                                    {r.owner_name || r.owner_email || r.owner_id || "Unknown"}
+                                  </div>
+                                  {r.owner_email && (
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">{r.owner_email}</div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-right font-medium text-gray-900 dark:text-white tabular-nums">
+                              {r.emails_last_n_days.toLocaleString()}
+                            </td>
+                            <td className="px-6 py-4 text-right font-medium text-gray-900 dark:text-white tabular-nums">
+                              {r.calls_last_n_days.toLocaleString()}
+                            </td>
+                            <td className="px-6 py-4 text-right font-medium text-gray-900 dark:text-white tabular-nums">
+                              {r.meetings_last_n_days.toLocaleString()}
+                            </td>
+                            <td className="px-6 py-4 text-right font-medium text-gray-900 dark:text-white tabular-nums">
+                              {r.new_deals_last_n_days.toLocaleString()}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </>
           )}
-        </section>
+        </div>
       )}
     </div>
   );

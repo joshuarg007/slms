@@ -1,20 +1,20 @@
 /* src/styles/variables.css */
-/* Global brand theme for Site2CRM */
+/* Global brand theme for Site2CRM - Modern refresh */
 
 /* Light theme defaults */
 html {
-  /* Backgrounds */
+  /* Backgrounds - subtle warm tones */
   --bg-primary: #ffffff;
-  --bg-secondary: #f5f5f5;
-  --bg-tertiary: #eaeaea;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
 
-  /* Text */
-  --text-primary: #111111;
-  --text-secondary: #333333;
-  --text-muted: #555555;
+  /* Text - improved contrast */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
 
-  /* Borders */
-  --border-color: #d4d4d4;
+  /* Borders - softer */
+  --border-color: #e2e8f0;
 
   /* Logo reds */
   --brand-red: #c1272d;
@@ -22,53 +22,106 @@ html {
   --brand-red-dark: #8e1e22;
 
   /* Logo grays */
-  --brand-gray: #aaaaaa;
-  --brand-gray-light: #cccccc;
-  --brand-gray-dark: #888888;
+  --brand-gray: #94a3b8;
+  --brand-gray-light: #cbd5e1;
+  --brand-gray-dark: #64748b;
 
-  /* Status colors */
-  --success-bg: #e7f9ee;
-  --success-border: #b6eac8;
-  --success-text: #15803d;
+  /* Status colors - modern palette */
+  --success-bg: #ecfdf5;
+  --success-border: #a7f3d0;
+  --success-text: #059669;
 
-  --warning-bg: #fff7e6;
-  --warning-border: #fde2a3;
-  --warning-text: #b45309;
+  --warning-bg: #fffbeb;
+  --warning-border: #fde68a;
+  --warning-text: #d97706;
 
-  --error-bg: #ffe6e6;
-  --error-border: #f5b4b4;
-  --error-text: #b91c1c;
+  --error-bg: #fef2f2;
+  --error-border: #fecaca;
+  --error-text: #dc2626;
+
+  --info-bg: #eff6ff;
+  --info-border: #bfdbfe;
+  --info-text: #2563eb;
 }
 
-/* Dark theme overrides when html has class "dark" */
+/* Dark theme overrides */
 html.dark {
-  --bg-primary: #000000;
-  --bg-secondary: #0a0a0a;
-  --bg-tertiary: #111111;
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #111111;
+  --bg-tertiary: #171717;
 
-  --text-primary: #f2f2f2;
-  --text-secondary: #b8b8b8;
-  --text-muted: #8a8a8a;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
 
-  --border-color: #1a1a1a;
+  --border-color: #262626;
 
-  --brand-red: #c1272d;
-  --brand-red-light: #d6474c;
-  --brand-red-dark: #8e1e22;
+  --brand-red: #ef4444;
+  --brand-red-light: #f87171;
+  --brand-red-dark: #dc2626;
 
-  --brand-gray: #4a4a4a;
-  --brand-gray-light: #6a6a6a;
-  --brand-gray-dark: #2e2e2e;
+  --brand-gray: #71717a;
+  --brand-gray-light: #a1a1aa;
+  --brand-gray-dark: #52525b;
 
-  --success-bg: #12371c;
-  --success-border: #1c5226;
+  --success-bg: #052e16;
+  --success-border: #166534;
   --success-text: #4ade80;
 
-  --warning-bg: #432d1a;
-  --warning-border: #8a5c2e;
-  --warning-text: #fcd34d;
+  --warning-bg: #422006;
+  --warning-border: #a16207;
+  --warning-text: #fbbf24;
 
-  --error-bg: #3c0f0f;
-  --error-border: #7f1d1d;
-  --error-text: #fca5a5;
+  --error-bg: #450a0a;
+  --error-border: #991b1b;
+  --error-text: #f87171;
+
+  --info-bg: #172554;
+  --info-border: #1e40af;
+  --info-text: #60a5fa;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--brand-gray-light);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-gray);
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: var(--brand-gray-dark);
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-gray);
+}
+
+/* Selection styling */
+::selection {
+  background-color: rgba(99, 102, 241, 0.3);
+  color: inherit;
+}
+
+/* Focus ring styling */
+:focus-visible {
+  outline: 2px solid rgba(99, 102, 241, 0.5);
+  outline-offset: 2px;
 }
