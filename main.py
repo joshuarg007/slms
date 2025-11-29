@@ -1,6 +1,7 @@
 # main.py
 import sys
 import os
+from contextlib import asynccontextmanager
 
 sys.path.append(os.path.dirname(__file__))
 
@@ -28,10 +29,26 @@ from app.api.routes import users as users_routes
 from app.api.routes import contact as contact_routes
 from app.api.routes import password_reset as password_reset_routes
 
+# Scheduler for digest emails
+from app.services.scheduler import start_scheduler, stop_scheduler
+
+
+# -----------------------------------
+# Lifespan (startup/shutdown)
+# -----------------------------------
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: start the scheduler
+    start_scheduler()
+    yield
+    # Shutdown: stop the scheduler
+    stop_scheduler()
+
+
 # -----------------------------------
 # App & CORS
 # -----------------------------------
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 # CORS: Specific origins for credentials, wildcard for public endpoints
 ALLOWED_ORIGINS = [

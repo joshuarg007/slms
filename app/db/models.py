@@ -189,3 +189,35 @@ class SalespersonDailyStats(Base):
             name="uq_org_provider_owner_date",
         ),
     )
+
+
+class NotificationSettings(Base):
+    """Notification preferences per organization."""
+
+    __tablename__ = "notification_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        unique=True,  # One settings record per org
+        index=True,
+        nullable=False,
+    )
+
+    # Real-time alerts
+    new_lead = Column(Boolean, nullable=False, default=True)
+    crm_error = Column(Boolean, nullable=False, default=True)
+
+    # Digest emails
+    daily_digest = Column(Boolean, nullable=False, default=False)
+    weekly_digest = Column(Boolean, nullable=False, default=True)
+    salesperson_digest = Column(Boolean, nullable=False, default=False)
+
+    # Notification channel (future: slack, webhook, etc.)
+    channel = Column(String(20), nullable=False, default="email")
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    organization = relationship("Organization", backref="notification_settings")

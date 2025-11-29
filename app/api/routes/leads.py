@@ -17,12 +17,154 @@ from app.integrations.pipedrive import create_lead as pipedrive_create_lead
 from app.integrations.salesforce import create_lead as salesforce_create_lead
 
 # Email notifications
-from app.services.email import send_new_lead_notification
+from app.services.email import send_new_lead_notification, send_crm_error_notification
 
 # Lead processing (sanitization, spam, dedupe)
 from app.services.lead_processing import process_lead, sanitize_string
 
+# Notification settings helper
+from app.api.routes.integrations_notifications import get_org_notification_settings
+
+import logging
+
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
+
+
+# ---- CRM Sync Wrappers with Error Notifications ----
+
+async def _sync_to_hubspot_with_notification(
+    org_id: int,
+    org_name: Optional[str],
+    lead_name: str,
+    email: str,
+    first_name: str,
+    last_name: str,
+    phone: str,
+):
+    """Sync lead to HubSpot, sending error notification on failure if enabled."""
+    try:
+        await hubspot_create_contact(
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            phone=phone,
+            organization_id=org_id,
+        )
+    except Exception as exc:
+        logger.error(f"HubSpot sync failed for org {org_id}: {exc}")
+        _maybe_send_crm_error_notification(org_id, org_name, "hubspot", str(exc), lead_name)
+
+
+async def _sync_to_pipedrive_with_notification(
+    org_id: int,
+    org_name: Optional[str],
+    lead_name: str,
+    title: str,
+    name: str,
+    email: str,
+):
+    """Sync lead to Pipedrive, sending error notification on failure if enabled."""
+    try:
+        result = await pipedrive_create_lead(
+            title=title,
+            name=name,
+            email=email,
+            organization_id=org_id,
+        )
+        if result is None:
+            logger.error(f"Pipedrive sync failed for org {org_id}: returned None")
+            _maybe_send_crm_error_notification(
+                org_id, org_name, "pipedrive",
+                "Failed to create lead in Pipedrive. Check API credentials.",
+                lead_name,
+            )
+    except Exception as exc:
+        logger.error(f"Pipedrive sync failed for org {org_id}: {exc}")
+        _maybe_send_crm_error_notification(org_id, org_name, "pipedrive", str(exc), lead_name)
+
+
+async def _sync_to_salesforce_with_notification(
+    org_id: int,
+    org_name: Optional[str],
+    lead_name: str,
+    email: str,
+    first_name: str,
+    last_name: str,
+    company: str,
+):
+    """Sync lead to Salesforce, sending error notification on failure if enabled."""
+    try:
+        await salesforce_create_lead(
+            org_id=org_id,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            company=company,
+        )
+    except Exception as exc:
+        logger.error(f"Salesforce sync failed for org {org_id}: {exc}")
+        _maybe_send_crm_error_notification(org_id, org_name, "salesforce", str(exc), lead_name)
+
+
+async def _sync_to_nutshell_with_notification(
+    org_id: int,
+    org_name: Optional[str],
+    lead_name: str,
+    description: str,
+    contact_name: str,
+    contact_email: str,
+):
+    """Sync lead to Nutshell, sending error notification on failure if enabled."""
+    try:
+        await nutshell.create_lead(
+            description=description,
+            contact_name=contact_name,
+            contact_email=contact_email,
+        )
+    except Exception as exc:
+        logger.error(f"Nutshell sync failed for org {org_id}: {exc}")
+        _maybe_send_crm_error_notification(org_id, org_name, "nutshell", str(exc), lead_name)
+
+
+def _maybe_send_crm_error_notification(
+    org_id: int,
+    org_name: Optional[str],
+    crm_provider: str,
+    error_message: str,
+    lead_name: Optional[str],
+):
+    """Check notification settings and send CRM error notification if enabled."""
+    db = SessionLocal()
+    try:
+        notification_settings = get_org_notification_settings(db, org_id)
+        should_notify = (
+            notification_settings is None  # Default: enabled
+            or notification_settings.crm_error
+        )
+
+        if not should_notify:
+            return
+
+        recipients = [
+            user.email
+            for user in db.query(models.User)
+            .filter(models.User.organization_id == org_id)
+            .all()
+            if user.email
+        ]
+
+        if recipients:
+            send_crm_error_notification(
+                recipients=recipients,
+                crm_provider=crm_provider,
+                error_message=error_message,
+                lead_name=lead_name,
+                organization_name=org_name,
+            )
+    finally:
+        db.close()
 
 
 # Local DB dependency
@@ -113,33 +255,41 @@ def public_create_lead(
         name_field = getattr(db_lead, "name", None) or ""
         display_name = name_field or f"{first_name} {last_name}".strip() or email
 
+        org_name = getattr(org, "name", None)
+
         # HubSpot: create a contact (uses org scoped token if present)
         if provider == "hubspot":
             background_tasks.add_task(
-                hubspot_create_contact,
+                _sync_to_hubspot_with_notification,
+                org_id=org.id,
+                org_name=org_name,
+                lead_name=display_name,
                 email=email,
                 first_name=first_name,
                 last_name=last_name,
                 phone=phone,
-                organization_id=org.id,
             )
 
         # Pipedrive: person plus lead
         elif provider == "pipedrive":
             title = f"{db_lead.source or 'Site2CRM'} lead from {email}"
             background_tasks.add_task(
-                pipedrive_create_lead,
+                _sync_to_pipedrive_with_notification,
+                org_id=org.id,
+                org_name=org_name,
+                lead_name=display_name,
                 title=title,
                 name=display_name,
                 email=email,
-                organization_id=org.id,
             )
 
         # Salesforce: Lead sObject
         elif provider == "salesforce":
             background_tasks.add_task(
-                salesforce_create_lead,
+                _sync_to_salesforce_with_notification,
                 org_id=org.id,
+                org_name=org_name,
+                lead_name=display_name,
                 email=email,
                 first_name=first_name,
                 last_name=last_name,
@@ -150,29 +300,41 @@ def public_create_lead(
         elif provider == "nutshell":
             description = f"{db_lead.source or 'Site2CRM'} lead from {email}"
             background_tasks.add_task(
-                nutshell.create_lead,
+                _sync_to_nutshell_with_notification,
+                org_id=org.id,
+                org_name=org_name,
+                lead_name=display_name,
                 description=description,
                 contact_name=display_name,
                 contact_email=email,
             )
 
-        # Email notifications to organization users (only for new leads)
-        recipients = [
-            user.email
-            for user in db.query(models.User)
-            .filter(models.User.organization_id == org.id)
-            .all()
-            if user.email
-        ]
+        # Email notifications to organization users (only for new leads, if enabled)
+        notification_settings = get_org_notification_settings(db, org.id)
+        should_send_new_lead_email = (
+            notification_settings is None  # Default: enabled
+            or notification_settings.new_lead
+        )
 
-        if recipients:
-            background_tasks.add_task(
-                send_new_lead_notification,
-                recipients,
-                display_name or email or "New lead",
-                db_lead.source,
-                getattr(org, "name", None),
-            )
+        if should_send_new_lead_email:
+            recipients = [
+                user.email
+                for user in db.query(models.User)
+                .filter(models.User.organization_id == org.id)
+                .all()
+                if user.email
+            ]
+
+            if recipients:
+                background_tasks.add_task(
+                    send_new_lead_notification,
+                    recipients,
+                    display_name or email or "New lead",
+                    db_lead.email,
+                    company,
+                    db_lead.source,
+                    org_name,
+                )
 
     # Return appropriate message
     if is_new:

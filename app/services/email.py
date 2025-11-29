@@ -476,6 +476,54 @@ Login here: https://site2crm.io/login
     return send_email(subject, body_text, [recipient], body_html)
 
 
+def send_crm_error_notification(
+    recipients: Iterable[str],
+    crm_provider: str,
+    error_message: str,
+    lead_name: Optional[str] = None,
+    organization_name: Optional[str] = None,
+) -> bool:
+    """
+    Send notification about a CRM sync error to organization admins.
+    """
+    subject = f"CRM Sync Error: {crm_provider.title()}"
+
+    body_text = f"""
+CRM Sync Error
+
+There was an error syncing with your {crm_provider.title()} CRM{' for ' + organization_name if organization_name else ''}.
+
+{f'Lead: {lead_name}' if lead_name else ''}
+Error: {error_message}
+
+Please check your CRM integration settings or contact support if the issue persists.
+
+- The Site2CRM Team
+"""
+
+    content = f"""
+<h1 style="margin: 0 0 16px; font-size: 24px; font-weight: 600; color: #dc2626;">
+    CRM Sync Error
+</h1>
+<p style="margin: 0 0 24px; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+    There was an error syncing with your <strong>{crm_provider.title()}</strong> CRM{' for ' + organization_name if organization_name else ''}.
+</p>
+<div style="margin: 24px 0; padding: 20px; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 12px;">
+    {f'<p style="margin: 0 0 8px; font-size: 14px; color: #71717a;">Lead:</p><p style="margin: 0 0 16px; font-size: 16px; font-weight: 600; color: #18181b;">{lead_name}</p>' if lead_name else ''}
+    <p style="margin: 0 0 8px; font-size: 14px; color: #71717a;">Error:</p>
+    <p style="margin: 0; font-size: 14px; color: #dc2626; font-family: monospace; white-space: pre-wrap;">{error_message}</p>
+</div>
+<p style="margin: 0 0 8px; font-size: 14px; color: #71717a; line-height: 1.6;">
+    Please check your CRM integration settings or contact support if the issue persists.
+</p>
+{_button_html("Check Integration Settings", "https://site2crm.io/app/integrations", "#dc2626")}
+"""
+
+    body_html = _base_html_template(content, f"CRM sync error with {crm_provider.title()}")
+
+    return send_email(subject, body_text, recipients, body_html)
+
+
 def send_contact_form_notification(
     recipients: Iterable[str],
     name: str,
@@ -544,3 +592,320 @@ Message:
     body_html = _base_html_template(content, f"Contact form submission from {name}")
 
     return send_email(subject, body_text, recipients, body_html)
+
+
+def send_daily_digest(
+    recipients: Iterable[str],
+    organization_name: Optional[str],
+    total_leads: int,
+    leads_by_source: dict,
+    top_leads: list,
+    period_start: str,
+    period_end: str,
+) -> bool:
+    """
+    Send daily digest email with lead summary for the past 24 hours.
+    """
+    org_label = organization_name or "your organization"
+    subject = f"Daily Lead Digest - {total_leads} new lead{'s' if total_leads != 1 else ''}"
+
+    # Build source breakdown text
+    source_lines = []
+    for source, count in sorted(leads_by_source.items(), key=lambda x: -x[1]):
+        source_lines.append(f"  - {source or 'Unknown'}: {count}")
+    source_text = "\n".join(source_lines) if source_lines else "  No leads captured"
+
+    # Build top leads text
+    leads_text = ""
+    for lead in top_leads[:5]:
+        leads_text += f"  - {lead.get('name', 'Unknown')} ({lead.get('email', 'no email')})\n"
+
+    body_text = f"""
+Daily Lead Digest for {org_label}
+
+Period: {period_start} to {period_end}
+
+Total New Leads: {total_leads}
+
+By Source:
+{source_text}
+
+Recent Leads:
+{leads_text or '  No leads to display'}
+
+View all leads in your Site2CRM dashboard.
+
+- The Site2CRM Team
+"""
+
+    # Build HTML source table
+    source_rows = ""
+    for source, count in sorted(leads_by_source.items(), key=lambda x: -x[1]):
+        source_rows += f'<tr><td style="padding: 8px 12px; border-bottom: 1px solid #e4e4e7;">{source or "Unknown"}</td><td style="padding: 8px 12px; border-bottom: 1px solid #e4e4e7; text-align: right; font-weight: 600;">{count}</td></tr>'
+
+    # Build HTML leads table
+    leads_rows = ""
+    for lead in top_leads[:5]:
+        leads_rows += f'''<tr>
+            <td style="padding: 8px 12px; border-bottom: 1px solid #e4e4e7;">{lead.get('name', 'Unknown')}</td>
+            <td style="padding: 8px 12px; border-bottom: 1px solid #e4e4e7;">{lead.get('email', '-')}</td>
+            <td style="padding: 8px 12px; border-bottom: 1px solid #e4e4e7;">{lead.get('source', '-')}</td>
+        </tr>'''
+
+    content = f"""
+<h1 style="margin: 0 0 8px; font-size: 24px; font-weight: 600; color: #18181b;">
+    Daily Lead Digest
+</h1>
+<p style="margin: 0 0 24px; font-size: 14px; color: #71717a;">
+    {period_start} to {period_end}
+</p>
+
+<div style="margin: 24px 0; padding: 24px; background-color: #f0fdf4; border-radius: 12px; text-align: center;">
+    <p style="margin: 0 0 8px; font-size: 14px; color: #71717a;">New Leads Captured</p>
+    <p style="margin: 0; font-size: 48px; font-weight: 700; color: #16a34a;">{total_leads}</p>
+</div>
+
+<h2 style="margin: 24px 0 12px; font-size: 18px; font-weight: 600; color: #18181b;">
+    By Source
+</h2>
+<table role="presentation" cellspacing="0" cellpadding="0" style="width: 100%; border: 1px solid #e4e4e7; border-radius: 8px; overflow: hidden;">
+    <thead>
+        <tr style="background-color: #f9fafb;">
+            <th style="padding: 12px; text-align: left; font-size: 14px; color: #71717a;">Source</th>
+            <th style="padding: 12px; text-align: right; font-size: 14px; color: #71717a;">Count</th>
+        </tr>
+    </thead>
+    <tbody>
+        {source_rows or '<tr><td colspan="2" style="padding: 16px; text-align: center; color: #71717a;">No leads captured</td></tr>'}
+    </tbody>
+</table>
+
+<h2 style="margin: 24px 0 12px; font-size: 18px; font-weight: 600; color: #18181b;">
+    Recent Leads
+</h2>
+<table role="presentation" cellspacing="0" cellpadding="0" style="width: 100%; border: 1px solid #e4e4e7; border-radius: 8px; overflow: hidden;">
+    <thead>
+        <tr style="background-color: #f9fafb;">
+            <th style="padding: 12px; text-align: left; font-size: 14px; color: #71717a;">Name</th>
+            <th style="padding: 12px; text-align: left; font-size: 14px; color: #71717a;">Email</th>
+            <th style="padding: 12px; text-align: left; font-size: 14px; color: #71717a;">Source</th>
+        </tr>
+    </thead>
+    <tbody>
+        {leads_rows or '<tr><td colspan="3" style="padding: 16px; text-align: center; color: #71717a;">No leads to display</td></tr>'}
+    </tbody>
+</table>
+
+{_button_html("View All Leads", "https://site2crm.io/app/leads")}
+"""
+
+    body_html = _base_html_template(content, f"Daily digest: {total_leads} new leads")
+
+    return send_email(subject, body_text, list(recipients), body_html)
+
+
+def send_weekly_digest(
+    recipients: Iterable[str],
+    organization_name: Optional[str],
+    total_leads: int,
+    leads_by_source: dict,
+    leads_by_day: dict,
+    top_leads: list,
+    period_start: str,
+    period_end: str,
+    comparison_change: Optional[int] = None,
+) -> bool:
+    """
+    Send weekly digest email with lead summary for the past 7 days.
+    """
+    org_label = organization_name or "your organization"
+    subject = f"Weekly Lead Report - {total_leads} new lead{'s' if total_leads != 1 else ''}"
+
+    # Build source breakdown text
+    source_lines = []
+    for source, count in sorted(leads_by_source.items(), key=lambda x: -x[1]):
+        source_lines.append(f"  - {source or 'Unknown'}: {count}")
+    source_text = "\n".join(source_lines) if source_lines else "  No leads captured"
+
+    # Build comparison text
+    comparison_text = ""
+    if comparison_change is not None:
+        if comparison_change > 0:
+            comparison_text = f" (+{comparison_change}% vs last week)"
+        elif comparison_change < 0:
+            comparison_text = f" ({comparison_change}% vs last week)"
+
+    body_text = f"""
+Weekly Lead Report for {org_label}
+
+Period: {period_start} to {period_end}
+
+Total New Leads: {total_leads}{comparison_text}
+
+By Source:
+{source_text}
+
+View the full report in your Site2CRM dashboard.
+
+- The Site2CRM Team
+"""
+
+    # Build HTML source table
+    source_rows = ""
+    for source, count in sorted(leads_by_source.items(), key=lambda x: -x[1]):
+        source_rows += f'<tr><td style="padding: 8px 12px; border-bottom: 1px solid #e4e4e7;">{source or "Unknown"}</td><td style="padding: 8px 12px; border-bottom: 1px solid #e4e4e7; text-align: right; font-weight: 600;">{count}</td></tr>'
+
+    # Build daily breakdown (simple bar chart in HTML)
+    max_day_count = max(leads_by_day.values()) if leads_by_day else 1
+    day_rows = ""
+    for day, count in leads_by_day.items():
+        bar_width = int((count / max_day_count) * 100) if max_day_count > 0 else 0
+        day_rows += f'''<tr>
+            <td style="padding: 6px 12px; font-size: 14px; color: #71717a; width: 80px;">{day}</td>
+            <td style="padding: 6px 12px;">
+                <div style="background-color: #e0e7ff; border-radius: 4px; height: 20px; width: {bar_width}%; min-width: 4px;"></div>
+            </td>
+            <td style="padding: 6px 12px; font-size: 14px; font-weight: 600; color: #18181b; width: 40px; text-align: right;">{count}</td>
+        </tr>'''
+
+    # Comparison badge
+    comparison_badge = ""
+    if comparison_change is not None:
+        if comparison_change > 0:
+            comparison_badge = f'<span style="display: inline-block; padding: 4px 12px; background-color: #dcfce7; color: #16a34a; border-radius: 20px; font-size: 14px; font-weight: 600;">+{comparison_change}%</span>'
+        elif comparison_change < 0:
+            comparison_badge = f'<span style="display: inline-block; padding: 4px 12px; background-color: #fef2f2; color: #dc2626; border-radius: 20px; font-size: 14px; font-weight: 600;">{comparison_change}%</span>'
+        else:
+            comparison_badge = '<span style="display: inline-block; padding: 4px 12px; background-color: #f4f4f5; color: #71717a; border-radius: 20px; font-size: 14px; font-weight: 600;">No change</span>'
+
+    content = f"""
+<h1 style="margin: 0 0 8px; font-size: 24px; font-weight: 600; color: #18181b;">
+    Weekly Lead Report
+</h1>
+<p style="margin: 0 0 24px; font-size: 14px; color: #71717a;">
+    {period_start} to {period_end}
+</p>
+
+<div style="margin: 24px 0; padding: 24px; background-color: #eef2ff; border-radius: 12px; text-align: center;">
+    <p style="margin: 0 0 8px; font-size: 14px; color: #71717a;">Total Leads This Week</p>
+    <p style="margin: 0 0 8px; font-size: 48px; font-weight: 700; color: #4f46e5;">{total_leads}</p>
+    {comparison_badge}
+</div>
+
+<h2 style="margin: 24px 0 12px; font-size: 18px; font-weight: 600; color: #18181b;">
+    Daily Breakdown
+</h2>
+<table role="presentation" cellspacing="0" cellpadding="0" style="width: 100%;">
+    {day_rows or '<tr><td style="padding: 16px; text-align: center; color: #71717a;">No data available</td></tr>'}
+</table>
+
+<h2 style="margin: 24px 0 12px; font-size: 18px; font-weight: 600; color: #18181b;">
+    By Source
+</h2>
+<table role="presentation" cellspacing="0" cellpadding="0" style="width: 100%; border: 1px solid #e4e4e7; border-radius: 8px; overflow: hidden;">
+    <thead>
+        <tr style="background-color: #f9fafb;">
+            <th style="padding: 12px; text-align: left; font-size: 14px; color: #71717a;">Source</th>
+            <th style="padding: 12px; text-align: right; font-size: 14px; color: #71717a;">Count</th>
+        </tr>
+    </thead>
+    <tbody>
+        {source_rows or '<tr><td colspan="2" style="padding: 16px; text-align: center; color: #71717a;">No leads captured</td></tr>'}
+    </tbody>
+</table>
+
+{_button_html("View Full Report", "https://site2crm.io/app/leads")}
+"""
+
+    body_html = _base_html_template(content, f"Weekly report: {total_leads} new leads")
+
+    return send_email(subject, body_text, list(recipients), body_html)
+
+
+def send_salesperson_digest(
+    recipients: Iterable[str],
+    organization_name: Optional[str],
+    period_label: str,
+    salespeople_stats: list,
+) -> bool:
+    """
+    Send salesperson performance digest email.
+
+    salespeople_stats is a list of dicts with:
+        - name: str
+        - email: str
+        - emails_count: int
+        - calls_count: int
+        - meetings_count: int
+        - new_deals_count: int
+    """
+    org_label = organization_name or "your organization"
+    subject = f"Salesperson Performance Report - {period_label}"
+
+    # Build text version
+    stats_text = ""
+    for sp in salespeople_stats:
+        stats_text += f"""
+  {sp.get('name', 'Unknown')} ({sp.get('email', '')})
+    - Emails: {sp.get('emails_count', 0)}
+    - Calls: {sp.get('calls_count', 0)}
+    - Meetings: {sp.get('meetings_count', 0)}
+    - New Deals: {sp.get('new_deals_count', 0)}
+"""
+
+    body_text = f"""
+Salesperson Performance Report for {org_label}
+
+Period: {period_label}
+
+Team Performance:
+{stats_text or '  No data available'}
+
+View detailed analytics in your Site2CRM dashboard.
+
+- The Site2CRM Team
+"""
+
+    # Build HTML stats table
+    stats_rows = ""
+    for sp in salespeople_stats:
+        stats_rows += f'''<tr>
+            <td style="padding: 12px; border-bottom: 1px solid #e4e4e7;">
+                <strong style="color: #18181b;">{sp.get('name', 'Unknown')}</strong><br>
+                <span style="font-size: 12px; color: #71717a;">{sp.get('email', '')}</span>
+            </td>
+            <td style="padding: 12px; border-bottom: 1px solid #e4e4e7; text-align: center;">{sp.get('emails_count', 0)}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #e4e4e7; text-align: center;">{sp.get('calls_count', 0)}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #e4e4e7; text-align: center;">{sp.get('meetings_count', 0)}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #e4e4e7; text-align: center; font-weight: 600; color: #16a34a;">{sp.get('new_deals_count', 0)}</td>
+        </tr>'''
+
+    content = f"""
+<h1 style="margin: 0 0 8px; font-size: 24px; font-weight: 600; color: #18181b;">
+    Salesperson Performance
+</h1>
+<p style="margin: 0 0 24px; font-size: 14px; color: #71717a;">
+    {period_label}
+</p>
+
+<table role="presentation" cellspacing="0" cellpadding="0" style="width: 100%; border: 1px solid #e4e4e7; border-radius: 8px; overflow: hidden;">
+    <thead>
+        <tr style="background-color: #f9fafb;">
+            <th style="padding: 12px; text-align: left; font-size: 14px; color: #71717a;">Salesperson</th>
+            <th style="padding: 12px; text-align: center; font-size: 14px; color: #71717a;">Emails</th>
+            <th style="padding: 12px; text-align: center; font-size: 14px; color: #71717a;">Calls</th>
+            <th style="padding: 12px; text-align: center; font-size: 14px; color: #71717a;">Meetings</th>
+            <th style="padding: 12px; text-align: center; font-size: 14px; color: #71717a;">Deals</th>
+        </tr>
+    </thead>
+    <tbody>
+        {stats_rows or '<tr><td colspan="5" style="padding: 16px; text-align: center; color: #71717a;">No salesperson data available</td></tr>'}
+    </tbody>
+</table>
+
+{_button_html("View Analytics", "https://site2crm.io/app/analytics")}
+"""
+
+    body_html = _base_html_template(content, f"Salesperson performance report")
+
+    return send_email(subject, body_text, list(recipients), body_html)
