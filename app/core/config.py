@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     email_smtp_username: str | None = None
     email_smtp_password: str | None = None
     email_from_address: str | None = None
-    email_from_name: str = "SLMS"
+    email_from_name: str = "Site2CRM"
 
     model_config = SettingsConfigDict(env_file=".env", extra="allow")
 
