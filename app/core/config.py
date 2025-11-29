@@ -12,8 +12,11 @@ class Settings(BaseSettings):
     # Stripe
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
-    stripe_price_id_pro: str = ""
-    stripe_price_id_team: str = ""
+    # Plan price IDs (from Stripe Dashboard)
+    stripe_price_starter_monthly: str = ""
+    stripe_price_starter_annual: str = ""
+    stripe_price_pro_monthly: str = ""
+    stripe_price_pro_annual: str = ""
 
     frontend_base_url: str = "http://127.0.0.1:5173"
     api_base_url: str = "https://api.site2crm.io"  # Used for widget embed code

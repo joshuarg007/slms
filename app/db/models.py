@@ -30,9 +30,13 @@ class Organization(Base):
 
     stripe_customer_id = Column(String, index=True, nullable=True)
     stripe_subscription_id = Column(String, index=True, nullable=True)
-    plan = Column(String, nullable=False, default="free")
-    subscription_status = Column(String, nullable=False, default="inactive")
+    plan = Column(String, nullable=False, default="free")  # free, trial, starter, pro, enterprise
+    billing_cycle = Column(String, nullable=False, default="monthly")  # monthly, annual
+    subscription_status = Column(String, nullable=False, default="inactive")  # inactive, trialing, active, past_due, canceled
     current_period_end = Column(DateTime, nullable=True)
+    trial_ends_at = Column(DateTime, nullable=True)
+    leads_this_month = Column(Integer, nullable=False, default=0)
+    leads_month_reset = Column(DateTime, nullable=True)  # When to reset the counter
 
     # "hubspot" | "pipedrive" | "salesforce" (stringly-typed; validated at app layer)
     active_crm = Column(String(20), nullable=False, default="hubspot")
