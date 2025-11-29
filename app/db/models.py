@@ -70,6 +70,14 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
 
+    # Role: OWNER, ADMIN, USER, READ_ONLY
+    role = Column(String(20), nullable=False, default="USER")
+
+    # Default user for organization (for integrations, notifications, etc.)
+    is_default = Column(Boolean, nullable=False, default=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
     # Enforce tenancy at the model level too
     organization_id = Column(
         Integer,

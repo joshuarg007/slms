@@ -24,6 +24,7 @@ from app.api.routes import orgs as orgs_routes
 from app.api.routes import leads as leads_routes
 from app.api.routes import auth as auth_routes
 from app.api.routes import billing as billing_routes
+from app.api.routes import users as users_routes
 from app.api.routes import contact as contact_routes
 from app.api.routes import password_reset as password_reset_routes
 
@@ -50,6 +51,7 @@ app.include_router(core_routes.router)
 app.include_router(orgs_routes.router, prefix="/api", tags=["Orgs"])
 app.include_router(leads_routes.router, prefix="/api", tags=["Leads"])
 app.include_router(auth_routes.router, prefix="/api", tags=["Auth"])
+app.include_router(users_routes.router, prefix="/api", tags=["Users"])
 app.include_router(hubspot_stats_router, prefix="/api", tags=["HubSpot"])
 app.include_router(pipedrive_stats_router, prefix="/api", tags=["Pipedrive"])
 app.include_router(reports.router, prefix="/api", tags=["Reports"])
