@@ -1,0 +1,26 @@
+# robots.txt for Site2CRM
+# https://site2crm.io
+
+User-agent: *
+
+# Allow all public pages
+Allow: /
+Allow: /features
+Allow: /pricing
+Allow: /about
+Allow: /contact
+Allow: /login
+Allow: /signup
+Allow: /terms
+Allow: /privacy
+
+# Disallow app routes (authenticated area)
+Disallow: /app
+Disallow: /app/
+
+# Disallow password reset pages (no SEO value)
+Disallow: /forgot-password
+Disallow: /reset-password
+
+# Sitemap location
+Sitemap: https://site2crm.io/sitemap.xml

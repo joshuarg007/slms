@@ -39,7 +39,7 @@ export default function AppLayout() {
     e.preventDefault();
     const q = searchTerm.trim();
     if (!q) return;
-    navigate(`/leads?q=${encodeURIComponent(q)}`);
+    navigate(`/app/leads?q=${encodeURIComponent(q)}`);
   }
 
   const userInitial = userEmail ? userEmail.charAt(0).toUpperCase() : "?";
@@ -55,7 +55,8 @@ export default function AppLayout() {
         {/* Center: Navigation */}
         <nav className="flex-1 flex items-center gap-6 text-sm font-medium ml-8">
           <NavLink
-            to="/dashboard"
+            to="/app"
+            end
             className={({ isActive }) =>
               isActive
                 ? "text-brand-gray-dark border-b-2 border-brand-gray-dark pb-1"
@@ -66,7 +67,7 @@ export default function AppLayout() {
           </NavLink>
 
           <NavLink
-            to="/account"
+            to="/app/account"
             className={({ isActive }) =>
               isActive
                 ? "text-brand-gray-dark border-b-2 border-brand-gray-dark pb-1"
@@ -77,7 +78,7 @@ export default function AppLayout() {
           </NavLink>
 
           <NavLink
-            to="/leads"
+            to="/app/leads"
             className={({ isActive }) =>
               isActive
                 ? "text-brand-gray-dark border-b-2 border-brand-gray-dark pb-1"
@@ -88,7 +89,7 @@ export default function AppLayout() {
           </NavLink>
 
           <NavLink
-            to="/reports"
+            to="/app/reports"
             className={({ isActive }) =>
               isActive
                 ? "text-brand-gray-dark border-b-2 border-brand-gray-dark pb-1"
@@ -102,7 +103,7 @@ export default function AppLayout() {
         {/* Right: search, profile circle, logout */}
         <div className="flex items-center gap-4">
           <NavLink
-            to="/account"
+            to="/app/account"
             aria-label="Account"
             className="flex items-center justify-center h-9 w-9 rounded-full bg-brand-gray-dark text-white text-xl font-semibold ring-2 ring-border hover:ring-brand-gray-dark/70 transition"
           >
@@ -142,7 +143,8 @@ export default function AppLayout() {
               </div>
               <div className="mt-2 flex flex-col gap-1">
                 <NavLink
-                  to="/dashboard"
+                  to="/app"
+                  end
                   className={({ isActive }) =>
                     isActive
                       ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
@@ -152,7 +154,7 @@ export default function AppLayout() {
                   Dashboard
                 </NavLink>
                 <NavLink
-                  to="/leads"
+                  to="/app/leads"
                   className={({ isActive }) =>
                     isActive
                       ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
@@ -162,7 +164,7 @@ export default function AppLayout() {
                   Leads
                 </NavLink>
                 <NavLink
-                  to="/salespeople"
+                  to="/app/salespeople"
                   className={({ isActive }) =>
                     isActive
                       ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
@@ -174,6 +176,45 @@ export default function AppLayout() {
               </div>
             </div>
 
+            {/* Forms */}
+            <div>
+              <div className="px-2 text-xs font-semibold text-text-muted uppercase tracking-wide">
+                Forms
+              </div>
+              <div className="mt-2 flex flex-col gap-1">
+                <NavLink
+                  to="/app/forms/fields"
+                  className={({ isActive }) =>
+                    isActive
+                      ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
+                      : "px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
+                  }
+                >
+                  Fields
+                </NavLink>
+                <NavLink
+                  to="/app/forms/styles"
+                  className={({ isActive }) =>
+                    isActive
+                      ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
+                      : "px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
+                  }
+                >
+                  Styles
+                </NavLink>
+                <NavLink
+                  to="/app/forms/embed"
+                  className={({ isActive }) =>
+                    isActive
+                      ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
+                      : "px-3 py-2 rounded-md text-text-secondary hover:bg-bg-primary/60 hover:text-text-primary"
+                  }
+                >
+                  Embed Code
+                </NavLink>
+              </div>
+            </div>
+
             {/* Integrations */}
             <div>
               <div className="px-2 text-xs font-semibold text-text-muted uppercase tracking-wide">
@@ -181,7 +222,7 @@ export default function AppLayout() {
               </div>
               <div className="mt-2 flex flex-col gap-1">
                 <NavLink
-                  to="/integrations/current"
+                  to="/app/integrations/current"
                   className={({ isActive }) =>
                     isActive
                       ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
@@ -191,7 +232,7 @@ export default function AppLayout() {
                   Current CRM
                 </NavLink>
                 <NavLink
-                  to="/integrations/update"
+                  to="/app/integrations/update"
                   className={({ isActive }) =>
                     isActive
                       ? "ml-4 px-3 py-2 rounded-md bg-bg-primary text-text-primary"
@@ -201,7 +242,7 @@ export default function AppLayout() {
                   Update CRM
                 </NavLink>
                 <NavLink
-                  to="/integrations/notifications"
+                  to="/app/integrations/notifications"
                   className={({ isActive }) =>
                     isActive
                       ? "ml-4 px-3 py-2 rounded-md bg-bg-primary text-text-primary"
@@ -220,7 +261,7 @@ export default function AppLayout() {
               </div>
               <div className="mt-2 flex flex-col gap-1">
                 <NavLink
-                  to="/account"
+                  to="/app/account"
                   className={({ isActive }) =>
                     isActive
                       ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
@@ -230,7 +271,7 @@ export default function AppLayout() {
                   Profile and Account
                 </NavLink>
                 <NavLink
-                  to="/users"
+                  to="/app/users"
                   className={({ isActive }) =>
                     isActive
                       ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
@@ -240,7 +281,7 @@ export default function AppLayout() {
                   Users
                 </NavLink>
                 <NavLink
-                  to="/billing"
+                  to="/app/billing"
                   className={({ isActive }) =>
                     isActive
                       ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"
@@ -250,7 +291,7 @@ export default function AppLayout() {
                   Billing
                 </NavLink>
                 <NavLink
-                  to="/settings"
+                  to="/app/settings"
                   className={({ isActive }) =>
                     isActive
                       ? "px-3 py-2 rounded-md bg-bg-primary text-text-primary"

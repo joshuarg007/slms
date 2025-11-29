@@ -59,7 +59,7 @@ export function getApiBase() {
     }
   })();
 
-  const raw = stored || import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+  const raw = stored || import.meta.env.VITE_API_URL || "/api";
   return raw.replace(/\/$/, "");
 }
 
@@ -236,6 +236,63 @@ export async function saveIntegrationCredential(payload: {
   });
 }
 
+// Form config types
+export interface FieldConfig {
+  key: string;
+  enabled: boolean;
+  required: boolean;
+  label: string;
+  placeholder?: string;
+  field_type: "text" | "email" | "tel" | "textarea" | "select" | "multi";
+  options?: string[];
+}
+
+export interface FormConfig {
+  id?: number;
+  organization_id?: number;
+  form_style: "inline" | "wizard" | "modal" | "drawer";
+  fields: FieldConfig[];
+  styling: {
+    primaryColor: string;
+    borderRadius: string;
+    fontFamily: string;
+  };
+  wizard: Record<string, unknown>;
+  modal: Record<string, unknown>;
+  drawer: Record<string, unknown>;
+  branding: {
+    showPoweredBy: boolean;
+    headerText: string;
+    subheaderText: string;
+    submitButtonText: string;
+    successMessage: string;
+  };
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface EmbedCode {
+  script_tag: string;
+  iframe_tag: string;
+  org_key: string;
+}
+
+// Form config endpoints
+export async function getFormConfig(): Promise<FormConfig> {
+  return fetchJSON<FormConfig>(`${baseUrl}/forms/config`);
+}
+
+export async function updateFormConfig(config: Partial<FormConfig>): Promise<FormConfig> {
+  return fetchJSON<FormConfig>(`${baseUrl}/forms/config`, {
+    method: "PUT",
+    body: JSON.stringify(config),
+  });
+}
+
+export async function getEmbedCode(): Promise<EmbedCode> {
+  return fetchJSON<EmbedCode>(`${baseUrl}/forms/embed-code`);
+}
+
 // Named plus default export
 export const api = {
   login,
@@ -248,6 +305,9 @@ export const api = {
   getDashboardMetrics,
   listIntegrationCredentials,
   saveIntegrationCredential,
+  getFormConfig,
+  updateFormConfig,
+  getEmbedCode,
 };
 
 export default api;

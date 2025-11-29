@@ -21,7 +21,7 @@ export default function ProtectedRoute() {
 
   if (!user) {
     const from = location.pathname + location.search;
-    return <Navigate to="/welcome" replace state={{ from }} />;
+    return <Navigate to="/login" replace state={{ from }} />;
   }
 
   return <Outlet />;
