@@ -1,13 +1,17 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# Replace with your actual DB URL (use PostgreSQL if deployed)
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"  # SQLite for local dev
+# Read from DATABASE_URL env var, fallback to SQLite for local dev
+SQLALCHEMY_DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./test.db")
 
-# If using SQLite, add connect_args; remove if using PostgreSQL
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
+# SQLite needs check_same_thread=False, PostgreSQL doesn't need it
+if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+    )
+else:
+    engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
