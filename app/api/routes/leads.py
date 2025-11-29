@@ -237,6 +237,13 @@ def public_create_lead(
         db_lead = existing_lead
         is_new = False
     else:
+        # Check lead limit before creating
+        allowed, current_count, limit = lead_crud.check_lead_limit(db, org.id)
+        if not allowed:
+            # Soft limit: still accept the lead but flag it
+            # In a hard limit scenario, you could raise an HTTPException here
+            logger.warning(f"Org {org.id} exceeded lead limit ({current_count}/{limit})")
+
         # Create new lead with sanitized data
         lead = LeadCreate(**{k: v for k, v in sanitized_data.items() if k in KNOWN_LEAD_FIELDS or k == "organization_id"})
         db_lead = lead_crud.create_lead(db, lead)

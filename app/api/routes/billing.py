@@ -1,22 +1,41 @@
 # app/api/routes/billing.py
-from datetime import datetime
+from datetime import datetime, timedelta
 import stripe
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.plans import PLAN_LIMITS, TRIAL_DURATION_DAYS, get_plan_limits
 from app.db.session import SessionLocal
 from app.db import models
-from app.api.routes.auth import get_current_user  # reuse auth dependency (no main import)
+from app.api.routes.auth import get_current_user
 
 router = APIRouter(tags=["Billing"])
 
 stripe.api_key = settings.stripe_secret_key
 
 
-# Local DB dependency to avoid importing from main (prevents circular imports)
+# Price ID mapping
+PRICE_IDS = {
+    "starter_monthly": settings.stripe_price_starter_monthly,
+    "starter_annual": settings.stripe_price_starter_annual,
+    "pro_monthly": settings.stripe_price_pro_monthly,
+    "pro_annual": settings.stripe_price_pro_annual,
+}
+
+# Reverse mapping: price_id -> (plan, cycle)
+def get_plan_from_price(price_id: str) -> tuple[str, str]:
+    """Get (plan, billing_cycle) from Stripe price ID."""
+    for key, pid in PRICE_IDS.items():
+        if pid == price_id:
+            plan, cycle = key.rsplit("_", 1)
+            return plan, cycle
+    return "pro", "monthly"  # fallback
+
+
 def get_db():
     db = SessionLocal()
     try:
@@ -46,10 +65,14 @@ def _get_or_create_customer(db: Session, org: models.Organization, email: str) -
     return cust.id
 
 
+class CheckoutRequest(BaseModel):
+    plan: str = "pro"  # starter, pro
+    billing_cycle: str = "monthly"  # monthly, annual
+
+
 @router.post("/billing/checkout")
 def create_checkout_session(
-    request: Request,
-    plan: str = "pro",
+    req: CheckoutRequest,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
@@ -57,9 +80,12 @@ def create_checkout_session(
     if not org:
         raise HTTPException(404, "Organization not found")
 
-    price_id = settings.stripe_price_id_pro if plan == "pro" else settings.stripe_price_id_pro
+    # Get the right price ID
+    price_key = f"{req.plan}_{req.billing_cycle}"
+    price_id = PRICE_IDS.get(price_key)
+
     if not price_id:
-        raise HTTPException(500, "Stripe price not configured")
+        raise HTTPException(400, f"Invalid plan/cycle: {req.plan}/{req.billing_cycle}")
 
     customer_id = _get_or_create_customer(db, org, user.email)
 
@@ -71,7 +97,9 @@ def create_checkout_session(
         cancel_url=_cancel_url(),
         allow_promotion_codes=True,
         line_items=[{"price": price_id, "quantity": 1}],
-        subscription_data={"metadata": {"org_id": str(org.id)}},
+        subscription_data={
+            "metadata": {"org_id": str(org.id), "plan": req.plan, "billing_cycle": req.billing_cycle}
+        },
     )
     return {"url": session.url}
 
@@ -91,6 +119,82 @@ def create_portal_session(
     return {"url": ps.url}
 
 
+@router.get("/billing/subscription")
+def get_subscription_status(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Get current subscription status and usage."""
+    org = db.query(models.Organization).get(user.organization_id)
+    if not org:
+        raise HTTPException(404, "Organization not found")
+
+    limits = get_plan_limits(org.plan)
+
+    # Check if trial expired
+    is_trial_active = False
+    trial_days_remaining = 0
+    if org.plan == "trial" and org.trial_ends_at:
+        if org.trial_ends_at > datetime.utcnow():
+            is_trial_active = True
+            trial_days_remaining = (org.trial_ends_at - datetime.utcnow()).days
+        else:
+            # Trial expired, revert to free
+            org.plan = "free"
+            org.subscription_status = "inactive"
+            db.commit()
+            limits = get_plan_limits("free")
+
+    return {
+        "plan": org.plan,
+        "billing_cycle": org.billing_cycle,
+        "subscription_status": org.subscription_status,
+        "current_period_end": org.current_period_end.isoformat() if org.current_period_end else None,
+        "trial_ends_at": org.trial_ends_at.isoformat() if org.trial_ends_at else None,
+        "is_trial_active": is_trial_active,
+        "trial_days_remaining": trial_days_remaining,
+        "usage": {
+            "leads_this_month": org.leads_this_month,
+            "leads_limit": limits.leads_per_month,
+            "leads_remaining": max(0, limits.leads_per_month - org.leads_this_month) if limits.leads_per_month > 0 else -1,
+        },
+        "limits": {
+            "leads_per_month": limits.leads_per_month,
+            "forms": limits.forms,
+            "crm_integrations": limits.crm_integrations,
+            "remove_branding": limits.remove_branding,
+            "priority_support": limits.priority_support,
+        },
+    }
+
+
+@router.post("/billing/start-trial")
+def start_trial(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Start a 14-day free trial."""
+    org = db.query(models.Organization).get(user.organization_id)
+    if not org:
+        raise HTTPException(404, "Organization not found")
+
+    # Check if already used trial or has active subscription
+    if org.trial_ends_at is not None:
+        raise HTTPException(400, "Trial already used")
+    if org.subscription_status == "active":
+        raise HTTPException(400, "Already have active subscription")
+
+    org.plan = "trial"
+    org.subscription_status = "trialing"
+    org.trial_ends_at = datetime.utcnow() + timedelta(days=TRIAL_DURATION_DAYS)
+    db.commit()
+
+    return {
+        "message": f"Trial started! You have {TRIAL_DURATION_DAYS} days to try all features.",
+        "trial_ends_at": org.trial_ends_at.isoformat(),
+    }
+
+
 @router.post("/billing/webhook")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     payload = await request.body()
@@ -107,7 +211,6 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     t = event["type"]
     data = event["data"]["object"]
 
-    # Best-effort updates; never fail webhook delivery
     try:
         if t == "checkout.session.completed":
             org_id = data.get("client_reference_id")
@@ -115,16 +218,22 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             if org_id and sub_id:
                 org = db.query(models.Organization).get(int(org_id))
                 if org:
+                    # Get subscription details for plan info
+                    sub = stripe.Subscription.retrieve(sub_id)
+                    price_id = sub["items"]["data"][0]["price"]["id"] if sub["items"]["data"] else None
+                    plan, cycle = get_plan_from_price(price_id) if price_id else ("pro", "monthly")
+
                     org.stripe_subscription_id = sub_id
                     org.subscription_status = "active"
-                    org.plan = "pro"
-                    db.add(org)
+                    org.plan = plan
+                    org.billing_cycle = cycle
                     db.commit()
 
         elif t in ("customer.subscription.created", "customer.subscription.updated"):
             sub_id = data.get("id")
             status = data.get("status")
             current_period_end = data.get("current_period_end")
+            price_id = data["items"]["data"][0]["price"]["id"] if data.get("items", {}).get("data") else None
             org_id = (data.get("metadata") or {}).get("org_id")
 
             if not org_id:
@@ -136,11 +245,13 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 org = db.query(models.Organization).get(int(org_id))
 
             if org and sub_id:
+                plan, cycle = get_plan_from_price(price_id) if price_id else ("pro", "monthly")
                 org.stripe_subscription_id = sub_id
                 org.subscription_status = status or "active"
+                org.plan = plan
+                org.billing_cycle = cycle
                 if current_period_end:
                     org.current_period_end = datetime.utcfromtimestamp(current_period_end)
-                db.add(org)
                 db.commit()
 
         elif t == "customer.subscription.deleted":
@@ -150,8 +261,18 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             ).first()
             if org:
                 org.subscription_status = "canceled"
-                db.add(org)
+                org.plan = "free"
                 db.commit()
+
+        elif t == "invoice.payment_failed":
+            cust_id = data.get("customer")
+            org = db.query(models.Organization).filter(
+                models.Organization.stripe_customer_id == cust_id
+            ).first()
+            if org:
+                org.subscription_status = "past_due"
+                db.commit()
+
     except Exception:
         pass
 
