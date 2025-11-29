@@ -59,8 +59,15 @@ export function getApiBase() {
     }
   })();
 
-  const raw = stored || import.meta.env.VITE_API_URL || "/api";
-  return raw.replace(/\/$/, "");
+  let raw = stored || import.meta.env.VITE_API_URL || "/api";
+  raw = raw.replace(/\/$/, "");
+
+  // Force HTTPS in production to prevent mixed content errors
+  if (raw.startsWith("http://") && typeof window !== "undefined" && window.location.protocol === "https:") {
+    raw = raw.replace("http://", "https://");
+  }
+
+  return raw;
 }
 
 const baseUrl = getApiBase();

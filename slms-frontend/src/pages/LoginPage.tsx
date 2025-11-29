@@ -3,6 +3,8 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthProvider";
 import logo from "@/assets/site2crm_logo.png";
 
+const API = import.meta.env.VITE_API_URL || "";
+
 export default function LoginPage() {
   const { user, login } = useAuth();
   const nav = useNavigate();
@@ -12,6 +14,8 @@ export default function LoginPage() {
   const [err, setErr] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendStatus, setResendStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   // already authed? go to app
   if (user) return <Navigate to="/app" replace />;
@@ -19,6 +23,7 @@ export default function LoginPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setErr(null);
+    setNeedsVerification(false);
     setSubmitting(true);
     try {
       await login(email, password);
@@ -31,9 +36,41 @@ export default function LoginPage() {
 
       nav(next, { replace: true });
     } catch (e: any) {
-      setErr(e?.message || "Login failed");
+      const msg = e?.message || "Login failed";
+      setErr(msg);
+      // Check if it's an email verification error
+      if (msg.toLowerCase().includes("verify your email")) {
+        setNeedsVerification(true);
+      }
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleResendVerification() {
+    if (!email) {
+      setErr("Please enter your email address first.");
+      return;
+    }
+    setResendStatus("sending");
+    try {
+      const res = await fetch(`${API}/api/resend-verification`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: email.toLowerCase() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setResendStatus("sent");
+        setErr(null);
+      } else {
+        setResendStatus("error");
+        setErr(data.detail || "Failed to resend verification email.");
+      }
+    } catch {
+      setResendStatus("error");
+      setErr("Failed to resend verification email. Please try again.");
     }
   }
 
@@ -117,12 +154,50 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {err && (
-              <div className="mb-6 p-4 rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/40 dark:border-red-900 flex items-start gap-3">
-                <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            {resendStatus === "sent" && (
+              <div className="mb-6 p-4 rounded-xl border border-green-200 bg-green-50 dark:bg-green-950/40 dark:border-green-900 flex items-start gap-3">
+                <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <div className="text-sm text-red-700 dark:text-red-300">{err}</div>
+                <div className="text-sm text-green-700 dark:text-green-300">
+                  Verification email sent! Please check your inbox and spam folder.
+                </div>
+              </div>
+            )}
+
+            {err && (
+              <div className="mb-6 p-4 rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/40 dark:border-red-900">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="text-sm text-red-700 dark:text-red-300">{err}</div>
+                </div>
+                {needsVerification && (
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resendStatus === "sending"}
+                    className="mt-3 w-full py-2 px-4 rounded-lg text-sm font-medium bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                  >
+                    {resendStatus === "sending" ? (
+                      <>
+                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        Resend Verification Email
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             )}
 
