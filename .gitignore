@@ -16,7 +16,11 @@ Thumbs.db
 # Env files
 .env
 .aider*
+*.pem
 
 # database files
 test.db
+
+# Claude Code
+claude.md
 

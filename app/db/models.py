@@ -110,6 +110,32 @@ class IntegrationCredential(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
+class FormConfig(Base):
+    """Stores embeddable form configuration per organization."""
+
+    __tablename__ = "form_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        unique=True,  # One form config per org
+        index=True,
+        nullable=False,
+    )
+
+    # "inline" | "wizard" | "modal" | "drawer"
+    form_style = Column(String(20), nullable=False, default="inline")
+
+    # JSON blob for fields, styling, branding, etc.
+    config_json = Column(Text, nullable=False, default="{}")
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    organization = relationship("Organization", backref="form_config")
+
+
 class SalespersonDailyStats(Base):
     __tablename__ = "salesperson_daily_stats"
 

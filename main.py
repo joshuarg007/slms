@@ -24,7 +24,6 @@ from app.integrations.hubspot import create_contact
 from app.api.routes.integrations_current import router as integrations_current_router
 from app.api.routes import dashboard
 from app.api.routes.hubspot_stats import router as hubspot_stats_router  
-from app.api.routes.public_leads import router as public_leads_router
 from app.api.routes.pipedrive_stats import router as pipedrive_stats_router
 from app.api.routes import reports
 from app.api.routes import integrations
@@ -33,12 +32,16 @@ from app.api.routes.integrations_notifications import router as integrations_not
 from app.api.routes import salesforce
 from app.api.routes.salespeople_stats_unified import router as salespeople_unified_router
 from app.api.routes.salespeople_stats import router as salespeople_router
+from app.api.routes import forms as forms_routes
+from app.api.routes import public_forms as public_forms_routes
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import core as core_routes
 from app.api.routes import orgs as orgs_routes
 from app.api.routes import leads as leads_routes
 from app.api.routes import auth as auth_routes
 from app.api.routes import billing as billing_routes
+from app.api.routes import contact as contact_routes
+from app.api.routes import password_reset as password_reset_routes
 from app.core.security import ( 
     get_password_hash,
     verify_password,
@@ -96,6 +99,10 @@ app.include_router(salespeople_router, prefix="/api", tags=["Salespeople"])
 app.include_router(integrations_current_router, prefix="/api", tags=["Integrations"])
 app.include_router(integrations_update_router, prefix="/api", tags=["Integrations"])
 app.include_router(integrations_notifications_router, prefix="/api", tags=["Integrations"])
+app.include_router(forms_routes.router, prefix="/api", tags=["Forms"])
+app.include_router(public_forms_routes.router, prefix="/api", tags=["Public Forms"])
+app.include_router(contact_routes.router, prefix="/api", tags=["Contact"])
+app.include_router(password_reset_routes.router, prefix="/api", tags=["Auth"])
 
 # DB
 models.Base.metadata.create_all(bind=engine)

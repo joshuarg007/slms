@@ -1,22 +1,7 @@
-// Marketing contact form - adapted wizard style
-import { useState, useCallback } from "react";
+// Marketing contact form - inline style
+import { useState } from "react";
 import { getApiBase } from "@/utils/api";
 import { useRecaptcha } from "@/hooks/useRecaptcha";
-
-interface FormStep {
-  key: string;
-  label: string;
-  placeholder: string;
-  type: "text" | "email" | "tel" | "textarea";
-  required: boolean;
-}
-
-const FORM_STEPS: FormStep[] = [
-  { key: "name", label: "What's your name?", placeholder: "Ada Lovelace", type: "text", required: true },
-  { key: "email", label: "What's your email?", placeholder: "ada@example.com", type: "email", required: true },
-  { key: "company", label: "What company are you with?", placeholder: "Acme Inc.", type: "text", required: false },
-  { key: "message", label: "How can we help you?", placeholder: "Tell us about your project or questions...", type: "textarea", required: false },
-];
 
 interface ContactFormProps {
   onSubmit?: (data: Record<string, string>) => Promise<void>;
@@ -29,52 +14,25 @@ export default function ContactForm({
   title = "Get in Touch",
   subtitle = "We'd love to hear from you. Fill out the form and we'll get back to you shortly.",
 }: ContactFormProps) {
-  const [step, setStep] = useState(0);
-  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    company: "",
+    message: "",
+  });
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const [direction, setDirection] = useState(1);
   const { executeRecaptcha, isEnabled: recaptchaEnabled } = useRecaptcha();
 
-  const totalSteps = FORM_STEPS.length;
-  const currentField = FORM_STEPS[step];
-  const progress = Math.round(((step + 1) / (totalSteps + 1)) * 100);
-  const isSummary = step === totalSteps;
-
-  const handleChange = useCallback((key: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
-  }, []);
-
-  const canContinue = useCallback(() => {
-    if (!currentField) return true;
-    const value = formData[currentField.key] || "";
-    return !currentField.required || value.trim().length > 0;
-  }, [currentField, formData]);
-
-  const next = useCallback(() => {
-    if (step < totalSteps && canContinue()) {
-      setDirection(1);
-      setStep((s) => s + 1);
-    }
-  }, [step, totalSteps, canContinue]);
-
-  const back = useCallback(() => {
-    if (step > 0) {
-      setDirection(-1);
-      setStep((s) => s - 1);
-    }
-  }, [step]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && canContinue() && !isSummary && currentField?.type !== "textarea") {
-      e.preventDefault();
-      next();
-    }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setSubmitting(true);
     setStatus(null);
+
     try {
       // Get reCAPTCHA token if enabled
       let captchaToken: string | null = null;
@@ -85,7 +43,6 @@ export default function ContactForm({
       if (onSubmit) {
         await onSubmit(formData);
       } else {
-        // Default: submit to contact API endpoint
         const res = await fetch(`${getApiBase()}/contact`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -98,6 +55,7 @@ export default function ContactForm({
             captcha_token: captchaToken,
           }),
         });
+
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           if (res.status === 429) {
@@ -106,9 +64,9 @@ export default function ContactForm({
           throw new Error(data.detail?.message || "Failed to submit");
         }
       }
+
       setStatus({ type: "success", message: "Thanks! We'll be in touch soon." });
-      setFormData({});
-      setStep(0);
+      setFormData({ name: "", email: "", company: "", message: "" });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
       setStatus({ type: "error", message });
@@ -119,7 +77,7 @@ export default function ContactForm({
 
   if (status?.type === "success") {
     return (
-      <div className="max-w-xl mx-auto p-8 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800">
+      <div className="p-8 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800">
         <div className="text-center py-8">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
             <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -128,28 +86,23 @@ export default function ContactForm({
           </div>
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Thank You!</h3>
           <p className="text-gray-600 dark:text-gray-400">{status.message}</p>
+          <button
+            onClick={() => setStatus(null)}
+            className="mt-6 px-5 py-2.5 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            Send Another Message
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-xl mx-auto p-8 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800">
+    <div className="p-8 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800">
       {/* Header */}
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h2>
         <p className="mt-1 text-gray-600 dark:text-gray-400">{subtitle}</p>
-
-        {/* Progress bar */}
-        <div className="mt-4">
-          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-indigo-600 transition-all duration-300 ease-out"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{progress}% complete</p>
-        </div>
       </div>
 
       {/* Error message */}
@@ -159,100 +112,90 @@ export default function ContactForm({
         </div>
       )}
 
-      {/* Form content */}
-      <div
-        key={isSummary ? "summary" : currentField.key}
-        className="transition-opacity duration-200"
-        style={{ opacity: 1 }}
-      >
-        {!isSummary ? (
-          <>
-            <div className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-              Step {step + 1} of {totalSteps}
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-              {currentField.label}
-              {currentField.required && <span className="text-red-500 ml-1">*</span>}
-            </h3>
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+              placeholder="Ada Lovelace"
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+            />
+          </div>
 
-            {currentField.type === "textarea" ? (
-              <textarea
-                value={formData[currentField.key] || ""}
-                onChange={(e) => handleChange(currentField.key, e.target.value)}
-                placeholder={currentField.placeholder}
-                rows={4}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-                autoFocus
-              />
-            ) : (
-              <input
-                type={currentField.type}
-                value={formData[currentField.key] || ""}
-                onChange={(e) => handleChange(currentField.key, e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={currentField.placeholder}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                autoFocus
-              />
-            )}
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              Email <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              placeholder="ada@example.com"
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+            />
+          </div>
+        </div>
 
-            {/* Navigation */}
-            <div className="flex justify-between mt-6">
-              <button
-                type="button"
-                onClick={back}
-                disabled={step === 0}
-                className="px-5 py-2.5 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                Back
-              </button>
-              <button
-                type="button"
-                onClick={next}
-                disabled={!canContinue()}
-                className="px-5 py-2.5 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                Continue
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="mb-2 text-sm text-gray-500 dark:text-gray-400">Review</div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-              Review your information
-            </h3>
+        <div>
+          <label htmlFor="company" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+            Company
+          </label>
+          <input
+            type="text"
+            id="company"
+            name="company"
+            value={formData.company}
+            onChange={handleChange}
+            placeholder="Acme Inc."
+            className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+          />
+        </div>
 
-            <div className="space-y-3 mb-6">
-              {FORM_STEPS.map((field) => (
-                <div key={field.key} className="flex text-sm">
-                  <span className="w-32 flex-shrink-0 text-gray-500 dark:text-gray-400">{field.label.replace("?", "")}</span>
-                  <span className="text-gray-900 dark:text-white">{formData[field.key] || "—"}</span>
-                </div>
-              ))}
-            </div>
+        <div>
+          <label htmlFor="message" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+            Message
+          </label>
+          <textarea
+            id="message"
+            name="message"
+            value={formData.message}
+            onChange={handleChange}
+            rows={4}
+            placeholder="Tell us about your project or questions..."
+            className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors resize-none"
+          />
+        </div>
 
-            {/* Navigation */}
-            <div className="flex justify-between">
-              <button
-                type="button"
-                onClick={() => setStep(totalSteps - 1)}
-                className="px-5 py-2.5 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="px-5 py-2.5 text-sm font-medium rounded-lg bg-green-600 hover:bg-green-700 text-white disabled:opacity-60 transition-colors"
-              >
-                {submitting ? "Sending..." : "Submit"}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full py-3 px-5 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+        >
+          {submitting ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              Sending...
+            </span>
+          ) : (
+            "Send Message"
+          )}
+        </button>
+      </form>
 
       <p className="mt-6 text-center text-xs text-gray-500 dark:text-gray-400">
         Powered by Site2CRM

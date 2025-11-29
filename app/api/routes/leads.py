@@ -1,6 +1,6 @@
 ﻿from typing import Optional, List
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, Header
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, Header, Body
 from sqlalchemy.orm import Session
 import sqlalchemy as sa
 
@@ -32,10 +32,13 @@ def get_db():
 
 
 # ---- Public lead intake ----
+# Known fields that map to Lead model columns
+KNOWN_LEAD_FIELDS = {"name", "email", "phone", "company", "notes", "source", "first_name", "last_name"}
+
 @router.post("/public/leads", response_model=dict)
 def public_create_lead(
-    lead: LeadCreate,
     background_tasks: BackgroundTasks,
+    payload: dict = Body(...),
     db: Session = Depends(get_db),
     x_org_key: Optional[str] = Header(None, alias="X-Org-Key"),
 ):
@@ -46,8 +49,35 @@ def public_create_lead(
     if not org:
         raise HTTPException(status_code=401, detail="Invalid X-Org-Key")
 
+    # Extract known fields and custom fields
+    known_data = {}
+    custom_fields = {}
+
+    for key, value in payload.items():
+        if key in KNOWN_LEAD_FIELDS:
+            known_data[key] = value
+        elif key not in ("organization_id",) and value:  # Skip org_id, keep non-empty custom fields
+            custom_fields[key] = value
+
+    # Append custom fields to notes
+    existing_notes = known_data.get("notes", "") or ""
+    if custom_fields:
+        custom_notes = "\n".join(f"{k}: {v}" for k, v in custom_fields.items())
+        if existing_notes:
+            known_data["notes"] = f"{existing_notes}\n\n--- Additional Info ---\n{custom_notes}"
+        else:
+            known_data["notes"] = custom_notes
+
+    # Require email
+    if not known_data.get("email"):
+        raise HTTPException(status_code=422, detail="Email is required")
+
+    # Require name (always required per form config)
+    if not known_data.get("name"):
+        raise HTTPException(status_code=422, detail="Name is required")
+
     # Always store locally first
-    lead = LeadCreate(**lead.model_dump(exclude={"organization_id"}), organization_id=org.id)
+    lead = LeadCreate(**known_data, organization_id=org.id)
     db_lead = lead_crud.create_lead(db, lead)
 
     provider = (org.active_crm or "hubspot").lower()
