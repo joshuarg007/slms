@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.db import models
 from app.api.deps.auth import get_db, get_current_user
+from app.core.config import settings
 from app.schemas.form import (
     FormConfigIn,
     FormConfigOut,
@@ -160,21 +161,16 @@ def get_embed_code(
     if not org or not org.api_key:
         raise HTTPException(status_code=400, detail="Organization API key not configured")
 
-    # Base URL for the widget (use production URL in real deployment)
-    # This should be configurable via environment variable
-    base_url = "https://api.site2crm.io"
+    # Base URL for the widget - configurable via API_BASE_URL env var
+    base_url = settings.api_base_url
 
-    script_tag = f'''<script
-  src="{base_url}/api/public/forms/widget.js"
-  data-org-key="{org.api_key}"
-  data-container="slms-form"
-></script>
-<div id="slms-form"></div>'''
+    # Simple one-liner for easy copy-paste
+    script_tag = f'''<!-- Site2CRM Form - Paste this where you want the form to appear -->
+<div id="s2c-form"></div>
+<script src="{base_url}/api/public/forms/widget.js" data-org-key="{org.api_key}" data-container="s2c-form"></script>'''
 
-    iframe_tag = f'''<iframe
-  src="{base_url}/api/public/forms/iframe?key={org.api_key}"
-  style="border:none; width:100%; height:500px;"
-></iframe>'''
+    iframe_tag = f'''<!-- Site2CRM Form (iframe) - Paste this where you want the form to appear -->
+<iframe src="{base_url}/api/public/forms/iframe?key={org.api_key}" style="border:none; width:100%; min-height:500px;" title="Contact Form"></iframe>'''
 
     return EmbedCodeOut(
         script_tag=script_tag,
