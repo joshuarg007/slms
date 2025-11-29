@@ -23,7 +23,6 @@ type CredentialSummary = {
   updated_at?: string | null;
 };
 
-// Auth helper with cookie include and refresh on 401
 async function authFetch(
   input: RequestInfo | URL,
   init: RequestInit = {},
@@ -99,11 +98,10 @@ export default function CurrentCRM() {
 
         setActiveCRM(activeJson.provider);
         setCreds(Array.isArray(credsJson) ? credsJson : []);
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (!cancelled) {
-          setLoadingError(
-            e?.message || "Failed to load current CRM configuration."
-          );
+          const message = e instanceof Error ? e.message : "Failed to load current CRM configuration.";
+          setLoadingError(message);
         }
       } finally {
         if (!cancelled) {
@@ -145,117 +143,106 @@ export default function CurrentCRM() {
   const anyConnected = !!(hubspotCred || pipedriveCred || salesforceCred || nutshellCred);
 
   return (
-    <div className="mx-auto max-w-5xl p-6 space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Current CRM</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 max-w-xl">
-            Review your active CRM connection, see which providers are connected,
-            and confirm that credentials are healthy before changing anything.
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Current CRM</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-xl">
+            Review your active CRM connection and verify credentials are healthy
           </p>
         </div>
 
-        <div className="flex flex-col items-start gap-2 sm:items-end">
-          <Link
-            to="/integrations/update"
-            className="rounded-md bg-indigo-600 text-white px-4 py-2 text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-60"
-          >
-            Go to Update CRM
-          </Link>
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            Changes to the active CRM are made on the Update CRM page.
-          </span>
-        </div>
+        <Link
+          to="/app/integrations/update"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          Update CRM
+        </Link>
       </header>
 
       {/* Error */}
       {loadingError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
+        <div className="flex items-center gap-3 rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
           {loadingError}
         </div>
       )}
 
-      {/* High level status */}
-      <section className="grid gap-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
-        {/* Active CRM card */}
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Active CRM
+      {/* Main Grid */}
+      <div className="grid gap-6 lg:grid-cols-5">
+        {/* Active CRM Card */}
+        <div className="lg:col-span-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                  <svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Active CRM</div>
+                  <div className="text-xl font-semibold text-gray-900 dark:text-white">
+                    {loading ? "Loading..." : activeCRM ? labelOf(activeCRM) : "No active CRM"}
+                  </div>
+                </div>
               </div>
-              <div className="mt-1 text-lg font-semibold">
-                {loading
-                  ? "Loading..."
-                  : activeCRM
-                  ? labelOf(activeCRM)
-                  : "No active CRM set"}
-              </div>
-            </div>
-            <div className="flex flex-col items-end gap-1">
               <span
-                className={
-                  "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium " +
-                  (activeCred
-                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"
-                    : "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200")
-                }
+                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                  activeCred
+                    ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+                    : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+                }`}
               >
-                {activeCred ? "Credentials connected" : "No credentials found"}
+                {activeCred ? "Connected" : "No credentials"}
               </span>
-              {sfConnected && activeCRM === "salesforce" && (
-                <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200">
-                  Salesforce org connected
-                </span>
-              )}
             </div>
           </div>
 
-          <p className="text-xs text-gray-600 dark:text-gray-400">
-            Lead capture supports all CRMs. Salesperson analytics are fully
-            available for Pipedrive, Nutshell, and Salesforce. HubSpot analytics
-            may require additional scopes on paid plans.
-          </p>
+          <div className="p-6 space-y-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Lead capture supports all CRMs. Salesperson analytics are fully available for Pipedrive, Nutshell, and Salesforce. HubSpot analytics may require additional scopes on paid plans.
+            </p>
 
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-900/60 px-3 py-2.5 text-xs">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Connection summary
-              </div>
-              <div className="mt-1 text-gray-800 dark:text-gray-200">
-                {activeCred ? (
-                  <span>
-                    Token ending in{" "}
-                    <code className="text-[11px]">
-                      …{activeCred.token_suffix || "****"}
-                    </code>
-                  </span>
-                ) : (
-                  <span>No active token saved for this CRM.</span>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
+                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                  Connection Details
+                </div>
+                <div className="text-sm text-gray-900 dark:text-white">
+                  {activeCred ? (
+                    <span>
+                      Token ending in <code className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-800 rounded text-xs">…{activeCred.token_suffix || "****"}</code>
+                    </span>
+                  ) : (
+                    <span className="text-gray-500 dark:text-gray-400">No active token</span>
+                  )}
+                </div>
+                {activeLastUpdated && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Last updated {activeLastUpdated}
+                  </div>
                 )}
               </div>
-              <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
-                {activeLastUpdated
-                  ? `Last updated ${activeLastUpdated}`
-                  : "No credential timestamps available yet."}
-              </div>
-            </div>
 
-            <div className="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-900/60 px-3 py-2.5 text-xs">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Overall integration health
-              </div>
-              <div className="mt-1 text-gray-800 dark:text-gray-200">
-                {anyConnected ? (
-                  <span>
-                    At least one CRM is connected with valid credentials. Use the
-                    Update CRM page to switch the active provider if needed.
-                  </span>
-                ) : (
-                  <span>
-                    No CRM credentials detected for this organization. Configure
-                    at least one provider before routing leads.
+              <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
+                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                  Integration Health
+                </div>
+                <div className="text-sm text-gray-900 dark:text-white">
+                  {anyConnected
+                    ? "At least one CRM connected"
+                    : "No CRM credentials detected"}
+                </div>
+                {sfConnected && activeCRM === "salesforce" && (
+                  <span className="inline-flex items-center mt-2 px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300">
+                    Salesforce org connected
                   </span>
                 )}
               </div>
@@ -263,47 +250,42 @@ export default function CurrentCRM() {
           </div>
         </div>
 
-        {/* Quick provider status */}
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4 text-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Providers at a glance
-            </div>
-            <div className="text-[11px] text-gray-500 dark:text-gray-400">
-              Connected / Active
-            </div>
+        {/* Providers List */}
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Providers at a Glance</h2>
           </div>
-
-          <div className="space-y-2">
+          <div className="p-4 space-y-2">
             {CRM_OPTIONS.map((opt) => {
               const cred = getCredential(opt.id);
               const isActive = activeCRM === opt.id;
               return (
                 <div
                   key={opt.id}
-                  className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/50 px-3 py-2"
+                  className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${
+                    isActive
+                      ? "border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20"
+                      : "border-gray-100 dark:border-gray-700"
+                  }`}
                 >
                   <div>
-                    <div className="text-[13px] font-medium">{opt.label}</div>
-                    <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                      {cred
-                        ? `Token …${cred.token_suffix || "****"}`
-                        : "No credentials saved"}
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">{opt.label}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {cred ? `Token …${cred.token_suffix || "****"}` : "No credentials"}
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <span
-                      className={
-                        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium " +
-                        (cred
-                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"
-                          : "bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300")
-                      }
+                      className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                        cred
+                          ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+                          : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                      }`}
                     >
                       {cred ? "Connected" : "Not connected"}
                     </span>
                     {isActive && (
-                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200">
+                      <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
                         Active
                       </span>
                     )}
@@ -313,29 +295,23 @@ export default function CurrentCRM() {
             })}
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* Active CRM capabilities */}
+      {/* Capabilities */}
       {activeCRM && (
-        <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold">
-              {labelOf(activeCRM)} capabilities
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {labelOf(activeCRM)} Capabilities
             </h2>
-            <span className="text-[11px] text-gray-500 dark:text-gray-400">
-              View only. To change CRM, use Update CRM.
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              View only — change CRM on Update page
             </span>
           </div>
-
-          <div className="text-xs text-gray-600 dark:text-gray-400">
-            This summarizes what Site2CRM is designed to do with your current CRM
-            provider. Exact behavior can depend on plan level and scopes.
+          <div className="p-6">
+            <CrmCapabilityChips items={capabilityItemsFor(activeCRM)} />
           </div>
-
-          <CrmCapabilityChips
-            items={capabilityItemsFor(activeCRM)}
-          />
-        </section>
+        </div>
       )}
     </div>
   );
@@ -348,99 +324,31 @@ function labelOf(id: CRM) {
 function capabilityItemsFor(crm: CRM) {
   if (crm === "hubspot") {
     return [
-      {
-        id: "hubspot-leads",
-        label: "Lead capture",
-        level: "full" as const,
-        tooltip: "Push new leads and contacts into HubSpot.",
-      },
-      {
-        id: "hubspot-owners",
-        label: "Owner lookup",
-        level: "partial" as const,
-        tooltip:
-          "Requires owner scopes on a paid HubSpot plan or private app token.",
-      },
-      {
-        id: "hubspot-analytics",
-        label: "Sales analytics",
-        level: "limited" as const,
-        tooltip:
-          "Full salesperson stats require a HubSpot Professional tier portal.",
-      },
+      { id: "hubspot-leads", label: "Lead capture", level: "full" as const, tooltip: "Push new leads and contacts into HubSpot." },
+      { id: "hubspot-owners", label: "Owner lookup", level: "partial" as const, tooltip: "Requires owner scopes on a paid HubSpot plan or private app token." },
+      { id: "hubspot-analytics", label: "Sales analytics", level: "limited" as const, tooltip: "Full salesperson stats require a HubSpot Professional tier portal." },
     ];
   }
 
   if (crm === "pipedrive") {
     return [
-      {
-        id: "pd-leads",
-        label: "Lead capture",
-        level: "full" as const,
-        tooltip: "Create and update leads in Pipedrive.",
-      },
-      {
-        id: "pd-owners",
-        label: "Owner and activity stats",
-        level: "full" as const,
-        tooltip:
-          "Owners and activities are fully supported through the Pipedrive API.",
-      },
-      {
-        id: "pd-analytics",
-        label: "Sales analytics",
-        level: "full" as const,
-        tooltip:
-          "Salesperson stats and dashboards are first class with Pipedrive.",
-      },
+      { id: "pd-leads", label: "Lead capture", level: "full" as const, tooltip: "Create and update leads in Pipedrive." },
+      { id: "pd-owners", label: "Owner and activity stats", level: "full" as const, tooltip: "Owners and activities are fully supported through the Pipedrive API." },
+      { id: "pd-analytics", label: "Sales analytics", level: "full" as const, tooltip: "Salesperson stats and dashboards are first class with Pipedrive." },
     ];
   }
 
   if (crm === "salesforce") {
     return [
-      {
-        id: "sf-leads",
-        label: "Lead capture",
-        level: "full" as const,
-        tooltip: "Create leads and contacts inside Salesforce.",
-      },
-      {
-        id: "sf-owners",
-        label: "Owner and pipeline data",
-        level: "full" as const,
-        tooltip:
-          "Standard Salesforce objects power salesperson and pipeline stats.",
-      },
-      {
-        id: "sf-analytics",
-        label: "Sales analytics",
-        level: "full" as const,
-        tooltip:
-          "Ideal for advanced analytics and enterprise reporting requirements.",
-      },
+      { id: "sf-leads", label: "Lead capture", level: "full" as const, tooltip: "Create leads and contacts inside Salesforce." },
+      { id: "sf-owners", label: "Owner and pipeline data", level: "full" as const, tooltip: "Standard Salesforce objects power salesperson and pipeline stats." },
+      { id: "sf-analytics", label: "Sales analytics", level: "full" as const, tooltip: "Ideal for advanced analytics and enterprise reporting requirements." },
     ];
   }
 
   return [
-    {
-      id: "nutshell-leads",
-      label: "Lead capture",
-      level: "full" as const,
-      tooltip: "Create and sync leads into Nutshell.",
-    },
-    {
-      id: "nutshell-owners",
-      label: "Owner and activity stats",
-      level: "full" as const,
-      tooltip:
-        "Nutshell APIs expose owners, pipelines, and activities for stats.",
-    },
-    {
-      id: "nutshell-analytics",
-      label: "Sales analytics",
-      level: "full" as const,
-      tooltip:
-        "Full salesperson analytics available once an API key is connected.",
-    },
+    { id: "nutshell-leads", label: "Lead capture", level: "full" as const, tooltip: "Create and sync leads into Nutshell." },
+    { id: "nutshell-owners", label: "Owner and activity stats", level: "full" as const, tooltip: "Nutshell APIs expose owners, pipelines, and activities for stats." },
+    { id: "nutshell-analytics", label: "Sales analytics", level: "full" as const, tooltip: "Full salesperson analytics available once an API key is connected." },
   ];
 }
