@@ -3,7 +3,7 @@
 from typing import Optional
 import secrets
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
@@ -11,6 +11,7 @@ from app.db.session import SessionLocal
 from app.db import models
 from app.api.routes.auth import get_current_user
 from app.core.security import get_password_hash
+from app.services.email import send_user_invitation_email
 
 router = APIRouter()
 
@@ -75,6 +76,7 @@ def list_users(
 @router.post("/users", response_model=UserOut)
 def create_user(
     user_data: UserCreate,
+    background_tasks: BackgroundTasks,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -117,7 +119,19 @@ def create_user(
     db.commit()
     db.refresh(new_user)
 
-    # TODO: Send invitation email with temp password or reset link
+    # Get organization name for the email
+    org = db.query(models.Organization).filter(models.Organization.id == org_id).first()
+    org_name = org.name if org else None
+
+    # Send invitation email in background
+    background_tasks.add_task(
+        send_user_invitation_email,
+        recipient=new_user.email,
+        temp_password=temp_password,
+        inviter_email=current_user.email,
+        organization_name=org_name,
+        role=user_data.role,
+    )
 
     return UserOut(
         id=new_user.id,

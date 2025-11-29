@@ -346,6 +346,86 @@ View this lead in your Site2CRM dashboard.
     return send_email(subject, body_text, recipients, body_html)
 
 
+def send_user_invitation_email(
+    recipient: str,
+    temp_password: str,
+    inviter_email: Optional[str] = None,
+    organization_name: Optional[str] = None,
+    role: str = "USER",
+) -> bool:
+    """
+    Send invitation email to new user with temporary password.
+    """
+    subject = f"You've been invited to join Site2CRM"
+
+    org_text = f" at {organization_name}" if organization_name else ""
+    inviter_text = f" by {inviter_email}" if inviter_email else ""
+
+    role_descriptions = {
+        "OWNER": "full control over the organization",
+        "ADMIN": "manage settings and users",
+        "USER": "work with leads and reports",
+        "READ_ONLY": "view-only access",
+    }
+    role_desc = role_descriptions.get(role, "access to the platform")
+
+    body_text = f"""
+You've Been Invited to Site2CRM
+
+You've been invited to join Site2CRM{org_text}{inviter_text}.
+
+Your role: {role} ({role_desc})
+
+Here are your login credentials:
+Email: {recipient}
+Temporary Password: {temp_password}
+
+Please log in and change your password immediately.
+
+Login here: https://site2crm.io/login
+
+- The Site2CRM Team
+"""
+
+    content = f"""
+<h1 style="margin: 0 0 16px; font-size: 24px; font-weight: 600; color: #18181b;">
+    You've Been Invited!
+</h1>
+<p style="margin: 0 0 16px; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+    You've been invited to join Site2CRM{org_text}{inviter_text}.
+</p>
+<div style="margin: 24px 0; padding: 20px; background-color: #f4f4f5; border-radius: 12px;">
+    <p style="margin: 0 0 8px; font-size: 14px; color: #71717a;">Your role:</p>
+    <p style="margin: 0 0 16px; font-size: 18px; font-weight: 600; color: #6366f1;">
+        {role}
+        <span style="font-size: 14px; font-weight: 400; color: #71717a;"> - {role_desc}</span>
+    </p>
+    <p style="margin: 0 0 8px; font-size: 14px; color: #71717a;">Your login credentials:</p>
+    <table role="presentation" cellspacing="0" cellpadding="0" style="width: 100%; font-size: 15px;">
+        <tr>
+            <td style="padding: 4px 0; color: #71717a; width: 140px;">Email:</td>
+            <td style="padding: 4px 0; color: #18181b; font-weight: 500;">{recipient}</td>
+        </tr>
+        <tr>
+            <td style="padding: 4px 0; color: #71717a;">Temporary Password:</td>
+            <td style="padding: 4px 0; color: #18181b; font-weight: 600; font-family: monospace; background-color: #fff; padding: 8px; border-radius: 4px;">{temp_password}</td>
+        </tr>
+    </table>
+</div>
+<p style="margin: 0 0 8px; font-size: 14px; color: #ef4444; font-weight: 500;">
+    Please change your password after logging in.
+</p>
+{_button_html("Log In Now", "https://site2crm.io/login")}
+<p style="margin: 24px 0 0; font-size: 14px; color: #71717a; line-height: 1.6;">
+    If you weren't expecting this invitation, you can safely ignore this email.
+</p>
+"""
+
+    body_html = _base_html_template(content, f"You've been invited to join Site2CRM{org_text}")
+
+    return send_email(subject, body_text, [recipient], body_html)
+
+
 def send_contact_form_notification(
     recipients: Iterable[str],
     name: str,
