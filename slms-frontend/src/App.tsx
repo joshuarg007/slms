@@ -32,6 +32,7 @@ import ReportsPage from "@/pages/ReportsPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import AccountPage from "@/pages/AccountPage";
+import UsersPage from "@/pages/UsersPage";
 import BillingPage from "@/pages/BillingPage";
 import CurrentCRM from "@/pages/integrations/CurrentCRM";
 import UpdateCRM from "@/pages/integrations/UpdateCRM";
@@ -76,6 +77,7 @@ export default function App() {
               <Route path="integrations" element={<IntegrationsPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="account" element={<AccountPage />} />
+              <Route path="users" element={<UsersPage />} />
               <Route path="billing" element={<BillingPage />} />
               <Route path="integrations/current" element={<CurrentCRM />} />
               <Route path="integrations/update" element={<UpdateCRM />} />
