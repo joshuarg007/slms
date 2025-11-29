@@ -37,8 +37,11 @@ jobs:
               "/opt/site2crm/.venv/bin/pip install --upgrade pip",
               "/opt/site2crm/.venv/bin/pip install -r requirements.txt",
               "[ -f alembic.ini ] && /opt/site2crm/.venv/bin/alembic upgrade heads || true",
+              "for f in migrations/*.py; do [ -f \"$f\" ] && /home/ubuntu/site2crm/.venv/bin/python \"$f\" || true; done",
               "sudo systemctl daemon-reload",
               "sudo systemctl restart site2crm",
+              "sudo chown ubuntu:ubuntu /home/ubuntu/site2crm/test.db || true",
+              "sudo chmod 664 /home/ubuntu/site2crm/test.db || true",
               "sudo systemctl reload nginx || true",
               "sudo systemctl --no-pager -l status site2crm || true"
             ]' \
