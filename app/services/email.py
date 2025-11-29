@@ -179,6 +179,56 @@ def _button_html(text: str, url: str, color: str = "#6366f1") -> str:
 # Specific Email Types
 # =============================================================================
 
+def send_email_verification(
+    recipient: str,
+    verification_url: str,
+    user_name: Optional[str] = None,
+) -> bool:
+    """
+    Send email verification link to new user.
+    """
+    subject = "Verify Your Email - Site2CRM"
+    greeting = f"Hi {user_name}," if user_name else "Hi there,"
+
+    body_text = f"""
+{greeting}
+
+Welcome to Site2CRM! Please verify your email address to complete your registration.
+
+Click the link below to verify your email:
+{verification_url}
+
+This link will expire in 24 hours.
+
+If you didn't create an account with Site2CRM, you can safely ignore this email.
+
+- The Site2CRM Team
+"""
+
+    content = f"""
+<h1 style="margin: 0 0 16px; font-size: 24px; font-weight: 600; color: #18181b;">
+    Verify Your Email
+</h1>
+<p style="margin: 0 0 16px; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+    {greeting.replace(',', '')} Welcome to Site2CRM!
+</p>
+<p style="margin: 0 0 8px; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+    Please verify your email address to complete your registration and start capturing leads.
+</p>
+{_button_html("Verify Email", verification_url, "#10b981")}
+<p style="margin: 0 0 16px; font-size: 14px; color: #71717a; line-height: 1.6;">
+    This link will expire in 24 hours.
+</p>
+<p style="margin: 0; font-size: 14px; color: #71717a; line-height: 1.6;">
+    If you didn't create an account with Site2CRM, you can safely ignore this email.
+</p>
+"""
+
+    body_html = _base_html_template(content, "Verify your email to complete registration")
+
+    return send_email(subject, body_text, [recipient], body_html)
+
+
 def send_password_reset_email(
     recipient: str,
     reset_url: str,

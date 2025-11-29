@@ -76,6 +76,11 @@ class User(Base):
     # Default user for organization (for integrations, notifications, etc.)
     is_default = Column(Boolean, nullable=False, default=False)
 
+    # Email verification
+    email_verified = Column(Boolean, nullable=False, default=False)
+    email_verification_token = Column(String(100), nullable=True, index=True)
+    email_verification_sent_at = Column(DateTime, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Enforce tenancy at the model level too

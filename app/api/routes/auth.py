@@ -63,6 +63,14 @@ def login(
     if user.organization_id is None:
         raise HTTPException(status_code=403, detail="No organization assigned to this user")
 
+    # Check email verification
+    email_verified = getattr(user, "email_verified", True)  # Default to True for existing users
+    if not email_verified:
+        raise HTTPException(
+            status_code=403,
+            detail="Please verify your email address before logging in. Check your inbox for the verification link."
+        )
+
     access = security.create_access_token(user.email)
     refresh = security.create_refresh_token(user.email)
     security.set_auth_cookies(response, access, refresh)

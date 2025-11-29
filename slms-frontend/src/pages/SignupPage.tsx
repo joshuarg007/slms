@@ -39,12 +39,17 @@ export default function SignupPage() {
         body: JSON.stringify({ email, password }),
         credentials: "include",
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
         throw new Error(data.detail || `Signup failed: ${res.status}`);
       }
-      setOk("Account created! Redirecting to login...");
-      setTimeout(() => nav("/login", { replace: true }), 1500);
+      // Check if email verification is required
+      if (data.email_verification_required) {
+        setOk("Account created! Please check your email to verify your account before signing in.");
+      } else {
+        setOk("Account created! Redirecting to login...");
+        setTimeout(() => nav("/login", { replace: true }), 1500);
+      }
     } catch (e: any) {
       setErr(e?.message || "Signup failed");
     } finally {
@@ -152,11 +157,24 @@ export default function SignupPage() {
             )}
 
             {ok && (
-              <div className="mb-6 p-4 rounded-xl border border-green-200 bg-green-50 dark:bg-green-950/40 dark:border-green-900 flex items-start gap-3">
-                <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <div className="text-sm text-green-700 dark:text-green-300">{ok}</div>
+              <div className="mb-6 p-4 rounded-xl border border-green-200 bg-green-50 dark:bg-green-950/40 dark:border-green-900">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <div className="text-sm text-green-700 dark:text-green-300">{ok}</div>
+                </div>
+                {ok.includes("verify your account") && (
+                  <Link
+                    to="/login"
+                    className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-green-700 dark:text-green-300 hover:underline"
+                  >
+                    Go to Sign In
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </Link>
+                )}
               </div>
             )}
 
