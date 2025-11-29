@@ -1,4 +1,5 @@
 // src/pages/forms/FieldsPage.tsx
+import type { JSX } from "react";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 
