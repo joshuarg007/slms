@@ -1,20 +1,12 @@
 // src/pages/forms/EmbedPage.tsx
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { getEmbedCode } from "../../utils/api";
 
 interface EmbedCode {
   script_tag: string;
   iframe_tag: string;
   org_key: string;
-}
-
-async function authFetch(url: string, init: RequestInit = {}): Promise<Response> {
-  const headers: Record<string, string> = { ...(init.headers as Record<string, string>) };
-  try {
-    const tok = localStorage.getItem("access_token");
-    if (tok) headers.Authorization = `Bearer ${tok}`;
-  } catch { /* ignore */ }
-  return fetch(url, { credentials: "include", ...init, headers });
 }
 
 export default function EmbedPage() {
@@ -28,12 +20,7 @@ export default function EmbedPage() {
     let cancelled = false;
     async function load() {
       try {
-        const res = await authFetch("/api/forms/embed-code");
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.detail || "Failed to load embed code");
-        }
-        const data: EmbedCode = await res.json();
+        const data = await getEmbedCode();
         if (!cancelled) {
           setEmbedCode(data);
         }
