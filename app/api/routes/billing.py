@@ -89,6 +89,15 @@ def create_checkout_session(
 
     customer_id = _get_or_create_customer(db, org, user.email)
 
+    # Cancel existing subscription if switching plans
+    if org.stripe_subscription_id and org.subscription_status == "active":
+        try:
+            stripe.Subscription.cancel(org.stripe_subscription_id)
+            org.stripe_subscription_id = None
+            db.commit()
+        except stripe.error.StripeError:
+            pass  # Continue even if cancel fails
+
     session = stripe.checkout.Session.create(
         mode="subscription",
         customer=customer_id,
@@ -193,6 +202,61 @@ def start_trial(
         "message": f"Trial started! You have {TRIAL_DURATION_DAYS} days to try all features.",
         "trial_ends_at": org.trial_ends_at.isoformat(),
     }
+
+
+@router.post("/billing/cancel")
+def cancel_subscription(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Cancel the current subscription at period end."""
+    org = db.query(models.Organization).get(user.organization_id)
+    if not org:
+        raise HTTPException(404, "Organization not found")
+
+    if not org.stripe_subscription_id:
+        raise HTTPException(400, "No active subscription to cancel")
+
+    try:
+        # Cancel at period end (user keeps access until then)
+        stripe.Subscription.modify(
+            org.stripe_subscription_id,
+            cancel_at_period_end=True,
+        )
+        org.subscription_status = "canceling"
+        db.commit()
+
+        return {
+            "message": "Subscription will be canceled at the end of the billing period",
+            "current_period_end": org.current_period_end.isoformat() if org.current_period_end else None,
+        }
+    except stripe.error.StripeError as e:
+        raise HTTPException(400, f"Failed to cancel subscription: {str(e)}")
+
+
+@router.post("/billing/cancel-immediate")
+def cancel_subscription_immediate(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Cancel the current subscription immediately."""
+    org = db.query(models.Organization).get(user.organization_id)
+    if not org:
+        raise HTTPException(404, "Organization not found")
+
+    if not org.stripe_subscription_id:
+        raise HTTPException(400, "No active subscription to cancel")
+
+    try:
+        stripe.Subscription.cancel(org.stripe_subscription_id)
+        org.subscription_status = "canceled"
+        org.plan = "free"
+        org.stripe_subscription_id = None
+        db.commit()
+
+        return {"message": "Subscription canceled immediately"}
+    except stripe.error.StripeError as e:
+        raise HTTPException(400, f"Failed to cancel subscription: {str(e)}")
 
 
 @router.post("/billing/webhook")

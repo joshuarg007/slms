@@ -150,7 +150,29 @@ export default function BillingPage() {
     }
   }
 
-  const isActive = subscription?.subscription_status === "active";
+  async function cancelSubscription() {
+    if (!confirm("Are you sure you want to cancel your subscription? You will retain access until the end of your billing period.")) {
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch(`${getApiBase()}/billing/cancel`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j?.detail || "Unable to cancel subscription");
+      setSuccess("Subscription will be canceled at the end of your billing period.");
+      fetchSubscription();
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Cancel error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const isActive = subscription?.subscription_status === "active" || subscription?.subscription_status === "canceling";
   const isTrial = subscription?.is_trial_active;
   const isPaid = isActive && !isTrial;
 
@@ -233,16 +255,17 @@ export default function BillingPage() {
               </p>
             </div>
             <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+              subscription?.subscription_status === "canceling" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
               isPaid ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
               isTrial ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
               "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
             }`}>
-              {isPaid ? "Active" : isTrial ? "Trial" : "Free"}
+              {subscription?.subscription_status === "canceling" ? "Canceling" : isPaid ? "Active" : isTrial ? "Trial" : "Free"}
             </div>
           </div>
           {isPaid && subscription?.current_period_end && (
             <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-              Renews {new Date(subscription.current_period_end).toLocaleDateString()}
+              {subscription?.subscription_status === "canceling" ? "Ends" : "Renews"} {new Date(subscription.current_period_end).toLocaleDateString()}
               <span className="ml-2 text-gray-400">({subscription.billing_cycle})</span>
             </p>
           )}
@@ -293,124 +316,157 @@ export default function BillingPage() {
       </div>
 
       {/* Plan Selection */}
-      {!isPaid && (
-        <>
-          {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-4">
-            <span className={`text-sm ${billingCycle === "monthly" ? "text-gray-900 dark:text-white font-medium" : "text-gray-500"}`}>
-              Monthly
-            </span>
+      <>
+        {/* Billing Toggle */}
+        <div className="flex items-center justify-center gap-4">
+          <span className={`text-sm ${billingCycle === "monthly" ? "text-gray-900 dark:text-white font-medium" : "text-gray-500"}`}>
+            Monthly
+          </span>
+          <button
+            onClick={() => setBillingCycle(c => c === "monthly" ? "annual" : "monthly")}
+            className="relative w-14 h-7 bg-gray-200 dark:bg-gray-700 rounded-full transition-colors"
+          >
+            <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+              billingCycle === "annual" ? "translate-x-8" : "translate-x-1"
+            }`} />
+          </button>
+          <span className={`text-sm ${billingCycle === "annual" ? "text-gray-900 dark:text-white font-medium" : "text-gray-500"}`}>
+            Annual
+            <span className="ml-1 text-green-600 dark:text-green-400 font-medium">Save 17%</span>
+          </span>
+        </div>
+
+        {/* Start Trial CTA */}
+        {!isTrial && !isPaid && !subscription?.trial_ends_at && (
+          <div className="text-center">
             <button
-              onClick={() => setBillingCycle(c => c === "monthly" ? "annual" : "monthly")}
-              className="relative w-14 h-7 bg-gray-200 dark:bg-gray-700 rounded-full transition-colors"
+              onClick={startTrial}
+              disabled={busy}
+              className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium disabled:opacity-50"
             >
-              <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                billingCycle === "annual" ? "translate-x-8" : "translate-x-1"
-              }`} />
+              Or start a 14-day free trial
             </button>
-            <span className={`text-sm ${billingCycle === "annual" ? "text-gray-900 dark:text-white font-medium" : "text-gray-500"}`}>
-              Annual
-              <span className="ml-1 text-green-600 dark:text-green-400 font-medium">Save 17%</span>
-            </span>
           </div>
+        )}
 
-          {/* Start Trial CTA */}
-          {!isTrial && !subscription?.trial_ends_at && (
-            <div className="text-center">
-              <button
-                onClick={startTrial}
-                disabled={busy}
-                className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium disabled:opacity-50"
-              >
-                Or start a 14-day free trial
-              </button>
-            </div>
-          )}
+        {/* Plan Cards */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {PLANS.map((plan) => {
+            const price = billingCycle === "monthly" ? plan.monthlyPrice : plan.annualPrice;
+            const monthly = billingCycle === "annual" ? Math.round(plan.annualPrice / 12) : plan.monthlyPrice;
+            const isCurrent = subscription?.plan === plan.id && isPaid;
+            const isUpgrade = isPaid && plan.id === "pro" && subscription?.plan === "starter";
+            const isDowngrade = isPaid && plan.id === "starter" && subscription?.plan === "pro";
 
-          {/* Plan Cards */}
-          <div className="grid md:grid-cols-2 gap-6">
-            {PLANS.map((plan) => {
-              const price = billingCycle === "monthly" ? plan.monthlyPrice : plan.annualPrice;
-              const monthly = billingCycle === "annual" ? Math.round(plan.annualPrice / 12) : plan.monthlyPrice;
-              const isCurrent = subscription?.plan === plan.id;
+            const getButtonText = () => {
+              if (isCurrent) return "Current Plan";
+              if (isUpgrade) return `Upgrade to ${plan.name}`;
+              if (isDowngrade) return `Switch to ${plan.name}`;
+              if (isPaid) return `Switch to ${plan.name}`;
+              return `Subscribe to ${plan.name}`;
+            };
 
-              return (
-                <div
-                  key={plan.id}
-                  className={`relative rounded-2xl p-6 ${
-                    plan.popular
+            return (
+              <div
+                key={plan.id}
+                className={`relative rounded-2xl p-6 ${
+                  isCurrent
+                    ? "ring-2 ring-green-500 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                    : plan.popular
                       ? "bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-xl"
                       : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-                  }`}
-                >
-                  {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-yellow-400 text-yellow-900 text-xs font-semibold rounded-full">
-                      Most Popular
-                    </div>
-                  )}
-
-                  <h3 className={`text-lg font-semibold ${plan.popular ? "text-white" : "text-gray-900 dark:text-white"}`}>
-                    {plan.name}
-                  </h3>
-
-                  <div className="mt-4 flex items-baseline gap-1">
-                    <span className={`text-4xl font-bold ${plan.popular ? "text-white" : "text-gray-900 dark:text-white"}`}>
-                      ${monthly}
-                    </span>
-                    <span className={plan.popular ? "text-indigo-100" : "text-gray-500"}>/mo</span>
+                }`}
+              >
+                {plan.popular && !isCurrent && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-yellow-400 text-yellow-900 text-xs font-semibold rounded-full">
+                    Most Popular
                   </div>
+                )}
+                {isCurrent && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">
+                    Current Plan
+                  </div>
+                )}
 
-                  {billingCycle === "annual" && (
-                    <p className={`mt-1 text-sm ${plan.popular ? "text-indigo-100" : "text-gray-500"}`}>
-                      ${price} billed annually
-                    </p>
-                  )}
+                <h3 className={`text-lg font-semibold ${plan.popular && !isCurrent ? "text-white" : "text-gray-900 dark:text-white"}`}>
+                  {plan.name}
+                </h3>
 
-                  <ul className="mt-6 space-y-3">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-center gap-3">
-                        <svg className={`w-5 h-5 ${plan.popular ? "text-indigo-200" : "text-green-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span className={`text-sm ${plan.popular ? "text-white" : "text-gray-700 dark:text-gray-300"}`}>
-                          {feature}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                <div className="mt-4 flex items-baseline gap-1">
+                  <span className={`text-4xl font-bold ${plan.popular && !isCurrent ? "text-white" : "text-gray-900 dark:text-white"}`}>
+                    ${monthly}
+                  </span>
+                  <span className={plan.popular && !isCurrent ? "text-indigo-100" : "text-gray-500"}>/mo</span>
+                </div>
 
-                  <button
-                    onClick={() => checkout(plan.id)}
-                    disabled={busy || isCurrent}
-                    className={`mt-6 w-full py-3 font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                      plan.popular
+                {billingCycle === "annual" && (
+                  <p className={`mt-1 text-sm ${plan.popular && !isCurrent ? "text-indigo-100" : "text-gray-500"}`}>
+                    ${price} billed annually
+                  </p>
+                )}
+
+                <ul className="mt-6 space-y-3">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-center gap-3">
+                      <svg className={`w-5 h-5 ${plan.popular && !isCurrent ? "text-indigo-200" : "text-green-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className={`text-sm ${plan.popular && !isCurrent ? "text-white" : "text-gray-700 dark:text-gray-300"}`}>
+                        {feature}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  onClick={() => checkout(plan.id)}
+                  disabled={busy || isCurrent}
+                  className={`mt-6 w-full py-3 font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                    isCurrent
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 cursor-default"
+                      : plan.popular
                         ? "bg-white text-indigo-600 hover:bg-indigo-50"
                         : "bg-indigo-600 text-white hover:bg-indigo-700"
-                    }`}
-                  >
-                    {isCurrent ? "Current Plan" : `Subscribe to ${plan.name}`}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
+                  }`}
+                >
+                  {getButtonText()}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </>
 
       {/* Manage Billing (for paid users) */}
       {isPaid && (
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Manage Subscription</h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Update payment methods, view invoices, or change your plan
+            Update payment methods, view invoices, or cancel your subscription
           </p>
-          <button
-            onClick={openPortal}
-            disabled={busy}
-            className="mt-4 px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
-          >
-            Open Billing Portal
-          </button>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              onClick={openPortal}
+              disabled={busy}
+              className="px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+            >
+              Open Billing Portal
+            </button>
+            {subscription?.subscription_status !== "canceling" && (
+              <button
+                onClick={cancelSubscription}
+                disabled={busy}
+                className="px-6 py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-medium rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
+              >
+                Cancel Subscription
+              </button>
+            )}
+          </div>
+          {subscription?.subscription_status === "canceling" && (
+            <p className="mt-4 text-sm text-amber-600 dark:text-amber-400">
+              Your subscription is set to cancel at the end of your billing period.
+            </p>
+          )}
         </div>
       )}
 
