@@ -45,11 +45,11 @@ def get_db():
 
 
 def _success_url():
-    return f"{settings.frontend_base_url}/billing?status=success"
+    return f"{settings.frontend_base_url}/app/billing?status=success"
 
 
 def _cancel_url():
-    return f"{settings.frontend_base_url}/billing?status=cancel"
+    return f"{settings.frontend_base_url}/app/billing?status=cancel"
 
 
 def _get_or_create_customer(db: Session, org: models.Organization, email: str) -> str:
@@ -114,7 +114,7 @@ def create_portal_session(
         raise HTTPException(400, "No Stripe customer for this org")
     ps = stripe.billing_portal.Session.create(
         customer=org.stripe_customer_id,
-        return_url=f"{settings.frontend_base_url}/billing",
+        return_url=f"{settings.frontend_base_url}/app/billing",
     )
     return {"url": ps.url}
 
