@@ -204,6 +204,140 @@ def start_trial(
     }
 
 
+@router.post("/billing/setup-intent")
+def create_setup_intent(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Create a SetupIntent for updating payment method."""
+    org = db.query(models.Organization).get(user.organization_id)
+    if not org:
+        raise HTTPException(404, "Organization not found")
+
+    customer_id = _get_or_create_customer(db, org, user.email)
+
+    try:
+        setup_intent = stripe.SetupIntent.create(
+            customer=customer_id,
+            payment_method_types=["card"],
+        )
+        return {
+            "client_secret": setup_intent.client_secret,
+        }
+    except stripe.error.StripeError as e:
+        raise HTTPException(400, f"Failed to create setup intent: {str(e)}")
+
+
+@router.post("/billing/payment-method")
+def update_payment_method(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Set the most recent payment method as default for subscription."""
+    org = db.query(models.Organization).get(user.organization_id)
+    if not org or not org.stripe_customer_id:
+        raise HTTPException(400, "No Stripe customer found")
+
+    try:
+        # Get the customer's payment methods
+        payment_methods = stripe.PaymentMethod.list(
+            customer=org.stripe_customer_id,
+            type="card",
+            limit=1,
+        )
+
+        if not payment_methods.data:
+            raise HTTPException(400, "No payment method found")
+
+        pm_id = payment_methods.data[0].id
+
+        # Set as default for invoices
+        stripe.Customer.modify(
+            org.stripe_customer_id,
+            invoice_settings={"default_payment_method": pm_id},
+        )
+
+        # Update subscription if exists
+        if org.stripe_subscription_id:
+            stripe.Subscription.modify(
+                org.stripe_subscription_id,
+                default_payment_method=pm_id,
+            )
+
+        return {"message": "Payment method updated successfully"}
+    except stripe.error.StripeError as e:
+        raise HTTPException(400, f"Failed to update payment method: {str(e)}")
+
+
+@router.get("/billing/payment-method")
+def get_payment_method(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Get the current default payment method."""
+    org = db.query(models.Organization).get(user.organization_id)
+    if not org or not org.stripe_customer_id:
+        return {"payment_method": None}
+
+    try:
+        payment_methods = stripe.PaymentMethod.list(
+            customer=org.stripe_customer_id,
+            type="card",
+            limit=1,
+        )
+
+        if not payment_methods.data:
+            return {"payment_method": None}
+
+        pm = payment_methods.data[0]
+        return {
+            "payment_method": {
+                "brand": pm.card.brand,
+                "last4": pm.card.last4,
+                "exp_month": pm.card.exp_month,
+                "exp_year": pm.card.exp_year,
+            }
+        }
+    except stripe.error.StripeError:
+        return {"payment_method": None}
+
+
+@router.get("/billing/invoices")
+def get_invoices(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Get list of invoices for the organization."""
+    org = db.query(models.Organization).get(user.organization_id)
+    if not org or not org.stripe_customer_id:
+        return {"invoices": []}
+
+    try:
+        invoices = stripe.Invoice.list(
+            customer=org.stripe_customer_id,
+            limit=12,
+        )
+
+        return {
+            "invoices": [
+                {
+                    "id": inv.id,
+                    "number": inv.number,
+                    "amount_due": inv.amount_due,
+                    "amount_paid": inv.amount_paid,
+                    "currency": inv.currency,
+                    "status": inv.status,
+                    "created": inv.created,
+                    "hosted_invoice_url": inv.hosted_invoice_url,
+                    "invoice_pdf": inv.invoice_pdf,
+                }
+                for inv in invoices.data
+            ]
+        }
+    except stripe.error.StripeError:
+        return {"invoices": []}
+
+
 @router.post("/billing/cancel")
 def cancel_subscription(
     db: Session = Depends(get_db),
