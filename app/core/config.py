@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     stripe_price_starter_annual: str = ""
     stripe_price_pro_monthly: str = ""
     stripe_price_pro_annual: str = ""
+    stripe_price_pro_ai_monthly: str = ""
+    stripe_price_pro_ai_annual: str = ""
+
+    # AI Lead Consultant (Anthropic)
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-sonnet-4-20250514"
 
     frontend_base_url: str = "http://127.0.0.1:5173"
     api_base_url: str = "https://api.site2crm.io"  # Used for widget embed code

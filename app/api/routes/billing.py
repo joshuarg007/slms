@@ -24,6 +24,8 @@ PRICE_IDS = {
     "starter_annual": settings.stripe_price_starter_annual,
     "pro_monthly": settings.stripe_price_pro_monthly,
     "pro_annual": settings.stripe_price_pro_annual,
+    "pro_ai_monthly": settings.stripe_price_pro_ai_monthly,
+    "pro_ai_annual": settings.stripe_price_pro_ai_annual,
 }
 
 # Reverse mapping: price_id -> (plan, cycle)
@@ -66,7 +68,7 @@ def _get_or_create_customer(db: Session, org: models.Organization, email: str) -
 
 
 class CheckoutRequest(BaseModel):
-    plan: str = "pro"  # starter, pro
+    plan: str = "pro"  # starter, pro, pro_ai
     billing_cycle: str = "monthly"  # monthly, annual
 
 
@@ -154,6 +156,10 @@ def get_subscription_status(
             db.commit()
             limits = get_plan_limits("free")
 
+    # Calculate AI messages remaining
+    ai_limit = limits.ai_messages_per_month
+    ai_remaining = -1 if ai_limit == -1 else max(0, ai_limit - org.ai_messages_this_month) if ai_limit > 0 else 0
+
     return {
         "plan": org.plan,
         "billing_cycle": org.billing_cycle,
@@ -166,11 +172,16 @@ def get_subscription_status(
             "leads_this_month": org.leads_this_month,
             "leads_limit": limits.leads_per_month,
             "leads_remaining": max(0, limits.leads_per_month - org.leads_this_month) if limits.leads_per_month > 0 else -1,
+            "ai_messages_this_month": org.ai_messages_this_month,
+            "ai_messages_limit": ai_limit,
+            "ai_messages_remaining": ai_remaining,
         },
         "limits": {
             "leads_per_month": limits.leads_per_month,
             "forms": limits.forms,
             "crm_integrations": limits.crm_integrations,
+            "ai_messages_per_month": ai_limit,
+            "ai_features": limits.ai_features,
             "remove_branding": limits.remove_branding,
             "priority_support": limits.priority_support,
         },

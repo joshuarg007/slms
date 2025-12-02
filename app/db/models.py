@@ -30,13 +30,17 @@ class Organization(Base):
 
     stripe_customer_id = Column(String, index=True, nullable=True)
     stripe_subscription_id = Column(String, index=True, nullable=True)
-    plan = Column(String, nullable=False, default="free")  # free, trial, starter, pro, enterprise
+    plan = Column(String, nullable=False, default="free")  # free, trial, starter, pro, pro_ai, enterprise
     billing_cycle = Column(String, nullable=False, default="monthly")  # monthly, annual
     subscription_status = Column(String, nullable=False, default="inactive")  # inactive, trialing, active, past_due, canceled
     current_period_end = Column(DateTime, nullable=True)
     trial_ends_at = Column(DateTime, nullable=True)
     leads_this_month = Column(Integer, nullable=False, default=0)
     leads_month_reset = Column(DateTime, nullable=True)  # When to reset the counter
+
+    # AI usage tracking
+    ai_messages_this_month = Column(Integer, nullable=False, default=0)
+    ai_messages_month_reset = Column(DateTime, nullable=True)
 
     # "hubspot" | "pipedrive" | "salesforce" (stringly-typed; validated at app layer)
     active_crm = Column(String(20), nullable=False, default="hubspot")
@@ -225,3 +229,59 @@ class NotificationSettings(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     organization = relationship("Organization", backref="notification_settings")
+
+
+class ChatConversation(Base):
+    """AI chat conversations per user."""
+
+    __tablename__ = "chat_conversations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+
+    title = Column(String(255), nullable=True)  # Auto-generated from first message
+    context_type = Column(String(50), nullable=False, default="general")  # general, lead_analysis, coaching
+    context_id = Column(Integer, nullable=True)  # e.g., lead_id if analyzing specific lead
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    organization = relationship("Organization", backref="chat_conversations")
+    user = relationship("User", backref="chat_conversations")
+    messages = relationship("ChatMessage", back_populates="conversation", cascade="all, delete-orphan")
+
+
+class ChatMessage(Base):
+    """Individual messages in a chat conversation."""
+
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(
+        Integer,
+        ForeignKey("chat_conversations.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+
+    role = Column(String(20), nullable=False)  # "user" or "assistant"
+    content = Column(Text, nullable=False)
+
+    # Token tracking for cost analysis
+    tokens_input = Column(Integer, nullable=False, default=0)
+    tokens_output = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    conversation = relationship("ChatConversation", back_populates="messages")
