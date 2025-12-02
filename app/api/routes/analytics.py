@@ -445,13 +445,27 @@ def generate_recommendations(
 def get_team_kpis(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
-    days: int = Query(default=30, ge=7, le=365),
+    days: int = Query(default=30, ge=7, le=1095),
+    start_date: Optional[str] = Query(default=None, description="Start date YYYY-MM-DD"),
+    end_date_param: Optional[str] = Query(default=None, alias="end_date", description="End date YYYY-MM-DD"),
 ):
     """Get team KPI summary for the specified period."""
 
-    end_date = datetime.utcnow()
-    start_date = end_date - timedelta(days=days)
+    # Use custom date range if provided, otherwise use days
+    if start_date and end_date_param:
+        try:
+            start = datetime.strptime(start_date, "%Y-%m-%d")
+            end = datetime.strptime(end_date_param, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+        except ValueError:
+            start = datetime.utcnow() - timedelta(days=days)
+            end = datetime.utcnow()
+    else:
+        end = datetime.utcnow()
+        start = end - timedelta(days=days)
+
     org_id = user.organization_id
+    start_date = start
+    end_date = end
 
     # Get salespeople KPIs
     salespeople = get_salesperson_kpis(db, org_id, start_date, end_date)
@@ -518,11 +532,23 @@ def get_team_kpis(
 def get_dashboard_metrics(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
+    start_date: Optional[str] = Query(default=None, description="Start date YYYY-MM-DD"),
+    end_date_param: Optional[str] = Query(default=None, alias="end_date", description="End date YYYY-MM-DD"),
 ):
     """Get comprehensive dashboard metrics."""
 
     org_id = user.organization_id
     now = datetime.utcnow()
+
+    # Parse custom date range if provided
+    custom_start = None
+    custom_end = None
+    if start_date and end_date_param:
+        try:
+            custom_start = datetime.strptime(start_date, "%Y-%m-%d")
+            custom_end = datetime.strptime(end_date_param, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+        except ValueError:
+            pass
 
     # Current month
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)

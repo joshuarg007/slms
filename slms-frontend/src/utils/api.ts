@@ -467,12 +467,19 @@ export interface RecommendationsResponse {
 }
 
 // Analytics endpoints
-export async function getTeamKPIs(days = 30): Promise<TeamKPISummary> {
-  return fetchJSON<TeamKPISummary>(`${baseUrl}/analytics/kpis${toQuery({ days })}`);
+export async function getTeamKPIs(params: {
+  days?: number;
+  start_date?: string;
+  end_date?: string;
+} = { days: 30 }): Promise<TeamKPISummary> {
+  return fetchJSON<TeamKPISummary>(`${baseUrl}/analytics/kpis${toQuery(params)}`);
 }
 
-export async function getSalesDashboard(): Promise<SalesDashboardMetrics> {
-  return fetchJSON<SalesDashboardMetrics>(`${baseUrl}/analytics/dashboard`);
+export async function getSalesDashboard(params: {
+  start_date?: string;
+  end_date?: string;
+} = {}): Promise<SalesDashboardMetrics> {
+  return fetchJSON<SalesDashboardMetrics>(`${baseUrl}/analytics/dashboard${toQuery(params)}`);
 }
 
 export async function getRecommendations(): Promise<RecommendationsResponse> {

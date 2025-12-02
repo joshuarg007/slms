@@ -1,6 +1,12 @@
 // src/pages/TeamKPIPage.tsx
 import { useEffect, useState } from "react";
 import { getTeamKPIs, TeamKPISummary, SalespersonKPI } from "../utils/api";
+import DateRangePicker, {
+  DateRange,
+  getDateRangeFromDays,
+  formatDateForApi,
+} from "../components/DateRangePicker";
+import ExportCsvButton from "../components/ExportCsvButton";
 
 function formatCurrency(value: number): string {
   if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
@@ -192,16 +198,19 @@ export default function TeamKPIPage() {
   const [data, setData] = useState<TeamKPISummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [days, setDays] = useState(30);
+  const [dateRange, setDateRange] = useState<DateRange>(getDateRangeFromDays(30));
 
   useEffect(() => {
     loadData();
-  }, [days]);
+  }, [dateRange]);
 
   async function loadData() {
     try {
       setLoading(true);
-      const result = await getTeamKPIs(days);
+      const result = await getTeamKPIs({
+        start_date: formatDateForApi(dateRange.startDate),
+        end_date: formatDateForApi(dateRange.endDate),
+      });
       setData(result);
       setError(null);
     } catch (err) {
@@ -209,6 +218,30 @@ export default function TeamKPIPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // Prepare CSV export data
+  function getExportData() {
+    if (!data) return [];
+    return data.salespeople.map((sp) => ({
+      name: sp.display_name,
+      email: sp.email,
+      total_leads: sp.total_leads,
+      won_leads: sp.won_leads,
+      lost_leads: sp.lost_leads,
+      in_pipeline: sp.in_pipeline,
+      close_rate: `${sp.close_rate}%`,
+      total_revenue: sp.total_revenue,
+      avg_deal_size: sp.avg_deal_size,
+      quota: sp.quota,
+      quota_attainment: `${sp.quota_attainment}%`,
+      calls: sp.calls_count,
+      emails: sp.emails_count,
+      meetings: sp.meetings_count,
+      activities_per_lead: sp.activities_per_lead,
+      avg_days_to_close: sp.avg_days_to_close,
+      period: dateRange.label,
+    }));
   }
 
   if (loading) {
@@ -229,7 +262,7 @@ export default function TeamKPIPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Team Performance</h1>
           <p className="text-sm text-gray-500">
@@ -238,17 +271,11 @@ export default function TeamKPIPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <select
-            value={days}
-            onChange={(e) => setDays(Number(e.target.value))}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-          >
-            <option value={7}>Last 7 days</option>
-            <option value={30}>Last 30 days</option>
-            <option value={90}>Last 90 days</option>
-            <option value={180}>Last 6 months</option>
-            <option value={365}>Last year</option>
-          </select>
+          <DateRangePicker value={dateRange} onChange={setDateRange} />
+          <ExportCsvButton
+            rows={getExportData()}
+            filename={`team-kpi-${formatDateForApi(new Date())}.csv`}
+          />
           <button
             onClick={loadData}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
