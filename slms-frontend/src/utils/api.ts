@@ -565,6 +565,75 @@ export async function refreshAllScores(): Promise<{ message: string }> {
   return fetchJSON<{ message: string }>(`${baseUrl}/scoring/refresh`, { method: "POST" });
 }
 
+// Gamification types
+export interface LeaderboardEntry {
+  rank: number;
+  user_id: number;
+  display_name: string;
+  email: string;
+  avatar_color: string;
+  value: number;
+  change: number;
+  streak: number;
+}
+
+export interface LeaderboardResponse {
+  metric: string;
+  metric_label: string;
+  period: string;
+  period_label: string;
+  entries: LeaderboardEntry[];
+  total_participants: number;
+  last_updated: string;
+}
+
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  earned_at?: string;
+  progress?: number;
+}
+
+export interface UserBadges {
+  user_id: number;
+  display_name: string;
+  earned_badges: Badge[];
+  in_progress_badges: Badge[];
+  total_points: number;
+}
+
+export interface GamificationOverview {
+  current_rank: number;
+  total_participants: number;
+  points_this_month: number;
+  badges_earned: number;
+  active_competitions: number;
+  streak_days: number;
+}
+
+// Gamification endpoints
+export async function getLeaderboard(params: {
+  metric?: "revenue" | "deals" | "activities" | "close_rate";
+  period?: "week" | "month" | "quarter" | "year";
+} = {}): Promise<LeaderboardResponse> {
+  return fetchJSON<LeaderboardResponse>(`${baseUrl}/gamification/leaderboard${toQuery(params)}`);
+}
+
+export async function getUserBadges(userId: number): Promise<UserBadges> {
+  return fetchJSON<UserBadges>(`${baseUrl}/gamification/badges/${userId}`);
+}
+
+export async function getMyBadges(): Promise<UserBadges> {
+  return fetchJSON<UserBadges>(`${baseUrl}/gamification/my-badges`);
+}
+
+export async function getGamificationOverview(): Promise<GamificationOverview> {
+  return fetchJSON<GamificationOverview>(`${baseUrl}/gamification/overview`);
+}
+
 // Named plus default export
 export const api = {
   login,
@@ -598,6 +667,11 @@ export const api = {
   getAtRiskLeads,
   getScoringInsights,
   refreshAllScores,
+  // Gamification
+  getLeaderboard,
+  getUserBadges,
+  getMyBadges,
+  getGamificationOverview,
 };
 
 export default api;
