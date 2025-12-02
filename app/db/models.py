@@ -96,6 +96,16 @@ class Lead(Base):
     deal_value = Column(Numeric(12, 2), nullable=True)  # Potential or actual deal value
     closed_at = Column(DateTime, nullable=True)  # When deal was won/lost
 
+    # AI Lead Scoring (0-100)
+    score = Column(Integer, nullable=True, index=True)  # Total score
+    score_engagement = Column(Integer, nullable=True)  # Engagement component
+    score_source = Column(Integer, nullable=True)  # Source quality component
+    score_value = Column(Integer, nullable=True)  # Deal value component
+    score_velocity = Column(Integer, nullable=True)  # Pipeline velocity component
+    score_fit = Column(Integer, nullable=True)  # Profile fit component
+    win_probability = Column(Integer, nullable=True)  # Predicted win % (0-100)
+    score_updated_at = Column(DateTime, nullable=True)  # When score was last calculated
+
     # Assigned salesperson
     assigned_user_id = Column(
         Integer,

@@ -30,6 +30,7 @@ from app.api.routes import contact as contact_routes
 from app.api.routes import password_reset as password_reset_routes
 from app.api.routes import chat as chat_routes
 from app.api.routes import analytics as analytics_routes
+from app.api.routes import scoring as scoring_routes
 
 # Scheduler for digest emails
 from app.services.scheduler import start_scheduler, stop_scheduler
@@ -94,6 +95,7 @@ app.include_router(contact_routes.router, prefix="/api", tags=["Contact"])
 app.include_router(password_reset_routes.router, prefix="/api", tags=["Auth"])
 app.include_router(chat_routes.router, prefix="/api", tags=["AI Chat"])
 app.include_router(analytics_routes.router, prefix="/api", tags=["Analytics"])
+app.include_router(scoring_routes.router, prefix="/api", tags=["Lead Scoring"])
 
 # DB
 models.Base.metadata.create_all(bind=engine)

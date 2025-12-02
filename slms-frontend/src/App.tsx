@@ -45,6 +45,7 @@ import ChatPage from "@/pages/ChatPage";
 import SalesDashboardPage from "@/pages/SalesDashboardPage";
 import TeamKPIPage from "@/pages/TeamKPIPage";
 import RecommendationsPage from "@/pages/RecommendationsPage";
+import LeadScoringPage from "@/pages/LeadScoringPage";
 
 export default function App() {
   return (
@@ -95,6 +96,7 @@ export default function App() {
               <Route path="sales-dashboard" element={<SalesDashboardPage />} />
               <Route path="team-kpi" element={<TeamKPIPage />} />
               <Route path="recommendations" element={<RecommendationsPage />} />
+              <Route path="lead-scoring" element={<LeadScoringPage />} />
             </Route>
           </Route>
 

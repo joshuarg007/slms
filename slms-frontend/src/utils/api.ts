@@ -483,6 +483,81 @@ export async function getSalespersonKPI(userId: number, days = 30): Promise<Sale
   return fetchJSON<SalespersonKPI>(`${baseUrl}/analytics/salesperson/${userId}${toQuery({ days })}`);
 }
 
+// Lead Scoring types
+export interface LeadScoreResponse {
+  lead_id: number;
+  lead_name: string;
+  lead_email: string;
+  lead_company: string | null;
+  lead_status: string;
+  total_score: number;
+  engagement_score: number;
+  source_score: number;
+  value_score: number;
+  velocity_score: number;
+  fit_score: number;
+  win_probability: number;
+  predicted_close_days: number | null;
+  best_next_action: string;
+  score_reasons: string[];
+  risk_factors: string[];
+}
+
+export interface ScoredLeadsResponse {
+  leads: LeadScoreResponse[];
+  total_count: number;
+  avg_score: number;
+  high_score_count: number;
+  at_risk_count: number;
+}
+
+export interface ScoreDistribution {
+  hot: number;
+  warm: number;
+  cool: number;
+  cold: number;
+}
+
+export interface ScoringInsights {
+  total_active_leads: number;
+  avg_score: number;
+  distribution: ScoreDistribution;
+  top_sources: { source: string; avg_score: number; count: number }[];
+  at_risk_leads: number;
+  hot_leads: number;
+}
+
+// Lead Scoring endpoints
+export async function getLeadScore(leadId: number): Promise<LeadScoreResponse> {
+  return fetchJSON<LeadScoreResponse>(`${baseUrl}/scoring/lead/${leadId}`);
+}
+
+export async function getScoredLeads(params: {
+  status?: string;
+  min_score?: number;
+  max_score?: number;
+  limit?: number;
+  sort?: string;
+} = {}): Promise<ScoredLeadsResponse> {
+  return fetchJSON<ScoredLeadsResponse>(`${baseUrl}/scoring/leads${toQuery(params)}`);
+}
+
+export async function getHotLeads(limit = 10): Promise<LeadScoreResponse[]> {
+  return fetchJSON<LeadScoreResponse[]>(`${baseUrl}/scoring/hot${toQuery({ limit })}`);
+}
+
+export async function getAtRiskLeads(limit = 10): Promise<LeadScoreResponse[]> {
+  return fetchJSON<LeadScoreResponse[]>(`${baseUrl}/scoring/at-risk${toQuery({ limit })}`);
+}
+
+export async function getScoringInsights(): Promise<ScoringInsights> {
+  return fetchJSON<ScoringInsights>(`${baseUrl}/scoring/insights`);
+}
+
+export async function refreshAllScores(): Promise<{ message: string }> {
+  return fetchJSON<{ message: string }>(`${baseUrl}/scoring/refresh`, { method: "POST" });
+}
+
 // Named plus default export
 export const api = {
   login,
@@ -509,6 +584,13 @@ export const api = {
   getSalesDashboard,
   getRecommendations,
   getSalespersonKPI,
+  // Lead Scoring
+  getLeadScore,
+  getScoredLeads,
+  getHotLeads,
+  getAtRiskLeads,
+  getScoringInsights,
+  refreshAllScores,
 };
 
 export default api;
