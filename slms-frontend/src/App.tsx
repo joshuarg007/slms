@@ -41,6 +41,7 @@ import Notifications from "@/pages/integrations/Notifications";
 import FieldsPage from "@/pages/forms/FieldsPage";
 import StylesPage from "@/pages/forms/StylesPage";
 import EmbedPage from "@/pages/forms/EmbedPage";
+import ChatPage from "@/pages/ChatPage";
 
 export default function App() {
   return (
@@ -87,6 +88,7 @@ export default function App() {
               <Route path="forms/fields" element={<FieldsPage />} />
               <Route path="forms/styles" element={<StylesPage />} />
               <Route path="forms/embed" element={<EmbedPage />} />
+              <Route path="chat" element={<ChatPage />} />
             </Route>
           </Route>
 

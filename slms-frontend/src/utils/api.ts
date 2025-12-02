@@ -300,6 +300,74 @@ export async function getEmbedCode(): Promise<EmbedCode> {
   return fetchJSON<EmbedCode>(`${baseUrl}/forms/embed-code`);
 }
 
+// AI Chat types
+export interface ChatMessage {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+}
+
+export interface ChatConversation {
+  id: number;
+  title: string | null;
+  context_type: string;
+  context_id: number | null;
+  message_count?: number;
+  messages?: ChatMessage[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SendMessageRequest {
+  message: string;
+  conversation_id?: number;
+  context_type?: string;
+  context_id?: number;
+}
+
+export interface SendMessageResponse {
+  conversation_id: number;
+  message_id: number;
+  response: string;
+  tokens_used: number;
+}
+
+export interface AIUsage {
+  messages_used: number;
+  messages_limit: number;
+  messages_remaining: number;
+  reset_date: string | null;
+  ai_enabled: boolean;
+  ai_features: string[];
+}
+
+// AI Chat endpoints
+export async function sendChatMessage(req: SendMessageRequest): Promise<SendMessageResponse> {
+  return fetchJSON<SendMessageResponse>(`${baseUrl}/chat/messages`, {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}
+
+export async function listChatConversations(limit = 20, offset = 0): Promise<ChatConversation[]> {
+  return fetchJSON<ChatConversation[]>(`${baseUrl}/chat/conversations${toQuery({ limit, offset })}`);
+}
+
+export async function getChatConversation(id: number): Promise<ChatConversation> {
+  return fetchJSON<ChatConversation>(`${baseUrl}/chat/conversations/${id}`);
+}
+
+export async function deleteChatConversation(id: number): Promise<{ message: string }> {
+  return fetchJSON<{ message: string }>(`${baseUrl}/chat/conversations/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function getAIUsage(): Promise<AIUsage> {
+  return fetchJSON<AIUsage>(`${baseUrl}/chat/usage`);
+}
+
 // Named plus default export
 export const api = {
   login,
@@ -315,6 +383,12 @@ export const api = {
   getFormConfig,
   updateFormConfig,
   getEmbedCode,
+  // AI Chat
+  sendChatMessage,
+  listChatConversations,
+  getChatConversation,
+  deleteChatConversation,
+  getAIUsage,
 };
 
 export default api;
