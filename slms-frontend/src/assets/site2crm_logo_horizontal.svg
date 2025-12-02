@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 50" fill="none">
+  <defs>
+    <!-- Primary gradient (indigo to violet) -->
+    <linearGradient id="primaryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="50%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <!-- Glow effect for the 2 -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Icon gradient -->
+    <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <!-- Spark gradient -->
+    <linearGradient id="sparkGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f472b6"/>
+      <stop offset="100%" stop-color="#c084fc"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Modern Icon: Abstract flow/connection symbol -->
+  <g transform="translate(2, 3)">
+    <!-- Background pill shape -->
+    <rect x="0" y="0" width="44" height="44" rx="12" fill="url(#iconGradient)"/>
+
+    <!-- Connection flow lines -->
+    <g transform="translate(8, 10)">
+      <!-- Input dots (website) -->
+      <circle cx="4" cy="6" r="3" fill="white" opacity="0.9"/>
+      <circle cx="4" cy="18" r="3" fill="white" opacity="0.7"/>
+
+      <!-- Flow arrows -->
+      <path d="M8 6 Q14 6 16 12 Q18 18 24 18" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.9"/>
+      <path d="M8 18 Q14 18 16 12 Q18 6 24 6" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.7"/>
+
+      <!-- Output dot (CRM) -->
+      <circle cx="26" cy="12" r="4" fill="white"/>
+
+      <!-- Spark/pulse effect -->
+      <circle cx="16" cy="12" r="2" fill="url(#sparkGradient)"/>
+    </g>
+  </g>
+
+  <!-- Text: Site -->
+  <text x="56" y="34" font-family="'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="26" font-weight="600" fill="#1f2937" letter-spacing="-0.5">Site</text>
+
+  <!-- The COOL "2" - tighter spacing -->
+  <g transform="translate(105, 7)">
+    <!-- Glow background -->
+    <text y="27" font-family="'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="30" font-weight="800" fill="url(#primaryGradient)" filter="url(#glow)" letter-spacing="-1">2</text>
+    <!-- Main 2 with gradient -->
+    <text y="27" font-family="'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="30" font-weight="800" fill="url(#primaryGradient)" letter-spacing="-1">2</text>
+    <!-- Highlight spark on the 2 -->
+    <circle cx="14" cy="10" r="3" fill="url(#sparkGradient)" opacity="0.8"/>
+  </g>
+
+  <!-- Text: CRM -->
+  <text x="125" y="34" font-family="'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="26" font-weight="600" fill="#6b7280" letter-spacing="-0.5">CRM</text>
+</svg>

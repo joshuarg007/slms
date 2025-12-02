@@ -1,7 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthProvider";
-import logo from "@/assets/site2crm_logo.png";
+import logo from "@/assets/site2crm_logo_horizontal.svg";
 
 const API = import.meta.env.VITE_API_URL || "";
 

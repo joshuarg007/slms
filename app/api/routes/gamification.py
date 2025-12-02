@@ -313,6 +313,15 @@ def get_leaderboard(
         models.Salesperson.is_active == True,
     ).all()
 
+    # Set metric_label based on metric type
+    metric_labels = {
+        "revenue": "Revenue",
+        "deals": "Deals Closed",
+        "activities": "Activities",
+        "close_rate": "Close Rate",
+    }
+    metric_label = metric_labels.get(metric, "Revenue")
+
     # Calculate metrics for each
     entries_data = []
     for sp in salespeople:

@@ -1,9 +1,11 @@
 // src/components/QuickCreateMenu.tsx
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import CSVImportModal from "./CSVImportModal";
 
 export default function QuickCreateMenu() {
   const [open, setOpen] = useState(false);
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
   const nav = useNavigate();
 
@@ -57,11 +59,11 @@ export default function QuickCreateMenu() {
             className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800"
             onClick={() => {
               setOpen(false);
-              nav("/reports");
+              setCsvModalOpen(true);
             }}
-            title="Upload CSV import (coming soon)"
+            title="Import leads from CSV file"
           >
-            Import CSV (soon)
+            Import CSV
           </button>
 
           <button
@@ -76,6 +78,15 @@ export default function QuickCreateMenu() {
           </button>
         </div>
       )}
+
+      <CSVImportModal
+        isOpen={csvModalOpen}
+        onClose={() => setCsvModalOpen(false)}
+        onImportComplete={() => {
+          setCsvModalOpen(false);
+          nav("/leads");
+        }}
+      />
     </div>
   );
 }

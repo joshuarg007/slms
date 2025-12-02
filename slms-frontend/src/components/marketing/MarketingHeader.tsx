@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import logo from "@/assets/site2crm_logo.png";
+import logo from "@/assets/site2crm_logo_horizontal.svg";
 
 const NAV_LINKS = [
   { to: "/", label: "Home" },
@@ -43,6 +43,7 @@ export default function MarketingHeader() {
 
   return (
     <header
+      role="banner"
       className={`sticky top-0 z-50 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b transition-shadow duration-200 ${
         scrolled
           ? "border-gray-200 dark:border-gray-800 shadow-sm"
@@ -57,7 +58,7 @@ export default function MarketingHeader() {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav role="navigation" aria-label="Main navigation" className="hidden md:flex items-center gap-1">
             {NAV_LINKS.map((link) => {
               const isActive = link.to === "/"
                 ? location.pathname === "/"
@@ -118,15 +119,19 @@ export default function MarketingHeader() {
           mobileOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         onClick={() => setMobileOpen(false)}
+        aria-hidden="true"
       />
 
       {/* Mobile Nav Panel */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Mobile navigation menu"
         className={`fixed top-16 right-0 bottom-0 w-full max-w-sm bg-white dark:bg-gray-950 z-50 md:hidden transform transition-transform duration-300 ease-out overflow-y-auto ${
           mobileOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <nav className="p-6">
+        <nav role="navigation" aria-label="Mobile navigation" className="p-6">
           <div className="flex flex-col gap-1">
             {NAV_LINKS.map((link) => {
               const isActive = link.to === "/"

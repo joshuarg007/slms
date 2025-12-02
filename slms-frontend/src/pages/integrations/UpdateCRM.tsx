@@ -2,15 +2,50 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getApiBase, refresh } from "@/utils/api";
-import CrmCapabilityChips from "@/components/CRMCapabilityChips";
+
+// Import CRM logos
+import hubspotLogo from "@/assets/hubspot_logo_long.png";
+import pipedriveLogo from "@/assets/pipedrive_logo_long.png";
+import salesforceLogo from "@/assets/salesforce_logo.png";
+import nutshellLogo from "@/assets/nutshell_logo_long.png";
 
 type CRM = "hubspot" | "pipedrive" | "salesforce" | "nutshell";
 
-const CRM_OPTIONS: { id: CRM; label: string }[] = [
-  { id: "hubspot", label: "HubSpot" },
-  { id: "pipedrive", label: "Pipedrive" },
-  { id: "salesforce", label: "Salesforce" },
-  { id: "nutshell", label: "Nutshell CRM" },
+const CRM_OPTIONS: {
+  id: CRM;
+  label: string;
+  description: string;
+  gradient: string;
+  logo: string;
+}[] = [
+  {
+    id: "hubspot",
+    label: "HubSpot",
+    description: "Lead sync with free tier support",
+    gradient: "from-orange-500 to-red-500",
+    logo: hubspotLogo,
+  },
+  {
+    id: "pipedrive",
+    label: "Pipedrive",
+    description: "Full API access, ideal for analytics",
+    gradient: "from-green-500 to-emerald-600",
+    logo: pipedriveLogo,
+  },
+  {
+    id: "salesforce",
+    label: "Salesforce",
+    description: "Enterprise OAuth with advanced reporting",
+    gradient: "from-blue-500 to-cyan-500",
+    logo: salesforceLogo,
+  },
+  {
+    id: "nutshell",
+    label: "Nutshell",
+    description: "Lightweight CRM with full API",
+    gradient: "from-purple-500 to-violet-600",
+    logo: nutshellLogo,
+  },
 ];
 
 type CredentialSummary = {
@@ -64,10 +99,10 @@ export default function UpdateCRM() {
   const [activeCRM, setActiveCRM] = useState<CRM>("hubspot");
   const [editing, setEditing] = useState<CRM>("hubspot");
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
 
   const [creds, setCreds] = useState<CredentialSummary[]>([]);
-  const [loadingCreds, setLoadingCreds] = useState(false);
+  const [loadingCreds, setLoadingCreds] = useState(true);
 
   const [hubspotToken, setHubspotToken] = useState("");
   const [pipedriveToken, setPipedriveToken] = useState("");
@@ -76,7 +111,6 @@ export default function UpdateCRM() {
 
   const [sfConnected, setSfConnected] = useState(false);
   const [sfBusy, setSfBusy] = useState(false);
-  const [sfErr, setSfErr] = useState<string | null>(null);
 
   // Load active CRM and credentials
   useEffect(() => {
@@ -92,17 +126,11 @@ export default function UpdateCRM() {
         ]);
 
         if (!activeRes.ok) {
-          const t = await activeRes.text().catch(() => "");
-          throw new Error(
-            `Failed to load active CRM: ${activeRes.status} ${activeRes.statusText} ${t}`
-          );
+          throw new Error("Failed to load active CRM");
         }
 
         if (!credsRes.ok) {
-          const t = await credsRes.text().catch(() => "");
-          throw new Error(
-            `Failed to load credentials: ${credsRes.status} ${credsRes.statusText} ${t}`
-          );
+          throw new Error("Failed to load credentials");
         }
 
         const activeJson = (await activeRes.json()) as { provider: CRM };
@@ -120,13 +148,12 @@ export default function UpdateCRM() {
         setSfConnected(Boolean(hasSF));
       } catch (e: any) {
         if (!cancelled) {
-          setMsg(
-            e?.message ||
-              "Could not load active CRM and credentials. Defaulting to HubSpot."
-          );
+          setMsg({ type: "error", text: e?.message || "Could not load CRM settings." });
           setActiveCRM("hubspot");
           setEditing("hubspot");
         }
+      } finally {
+        if (!cancelled) setLoadingCreds(false);
       }
     }
 
@@ -141,9 +168,7 @@ export default function UpdateCRM() {
     setLoadingCreds(true);
     try {
       const res = await authFetch(`${getApiBase()}/integrations/credentials`);
-      if (!res.ok) {
-        return;
-      }
+      if (!res.ok) return;
       const items = (await res.json()) as CredentialSummary[];
       setCreds(items || []);
 
@@ -158,7 +183,7 @@ export default function UpdateCRM() {
     }
   }
 
-  // Detect ?salesforce=connected after OAuth and refresh status, then clean URL
+  // Detect ?salesforce=connected after OAuth
   useEffect(() => {
     (async () => {
       const usp = new URLSearchParams(window.location.search);
@@ -167,32 +192,23 @@ export default function UpdateCRM() {
           await refreshCreds();
         } finally {
           usp.delete("salesforce");
-          const next = `${window.location.pathname}${
-            usp.toString() ? `?${usp}` : ""
-          }`;
+          const next = `${window.location.pathname}${usp.toString() ? `?${usp}` : ""}`;
           window.history.replaceState({}, "", next);
-          setMsg("Salesforce connected.");
+          setMsg({ type: "success", text: "Salesforce connected successfully!" });
         }
       }
     })();
   }, []);
 
-  function onSelect(next: CRM) {
-    setEditing(next);
-  }
-
   async function onSave() {
     if (editing === activeCRM) {
-      setMsg("No changes to save.");
+      setMsg({ type: "info", text: "No changes to save." });
       return;
     }
 
     const confirmed = window.confirm(
-      `Switch active CRM from ${labelOf(
-        activeCRM
-      )} to ${labelOf(editing)}?\n\n` +
-        "This changes where new leads and salesperson stats are pulled from. " +
-        "You can switch back any time on this page."
+      `Switch active CRM from ${labelOf(activeCRM)} to ${labelOf(editing)}?\n\n` +
+        "This changes where new leads and salesperson stats are pulled from."
     );
 
     if (!confirmed) {
@@ -208,16 +224,13 @@ export default function UpdateCRM() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ provider: editing }),
       });
-      if (!r.ok) {
-        const t = await r.text().catch(() => "");
-        throw new Error(`Save failed: ${r.status} ${r.statusText} – ${t}`);
-      }
+      if (!r.ok) throw new Error("Save failed");
       const j = (await r.json()) as { provider: CRM };
       setActiveCRM(j.provider);
       setEditing(j.provider);
-      setMsg(`Active CRM set to ${labelOf(j.provider)}.`);
+      setMsg({ type: "success", text: `Active CRM set to ${labelOf(j.provider)}.` });
     } catch (e: any) {
-      setMsg(e?.message || "Failed to save selection.");
+      setMsg({ type: "error", text: e?.message || "Failed to save selection." });
       setEditing(activeCRM);
     } finally {
       setSaving(false);
@@ -226,11 +239,10 @@ export default function UpdateCRM() {
 
   async function connectSalesforce() {
     setSfBusy(true);
-    setSfErr(null);
     try {
       window.location.href = `${getApiBase()}/integrations/salesforce/auth`;
     } catch (e: any) {
-      setSfErr(e?.message || "Failed to start Salesforce auth.");
+      setMsg({ type: "error", text: e?.message || "Failed to start Salesforce auth." });
       setSfBusy(false);
     }
   }
@@ -248,7 +260,7 @@ export default function UpdateCRM() {
         : nutshellToken.trim();
 
     if (!value) {
-      setMsg("Enter a token before saving.");
+      setMsg({ type: "error", text: "Enter a token before saving." });
       return;
     }
 
@@ -266,19 +278,14 @@ export default function UpdateCRM() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) {
-        const t = await res.text().catch(() => "");
-        throw new Error(
-          `Failed to save credentials: ${res.status} ${res.statusText} – ${t}`
-        );
-      }
+      if (!res.ok) throw new Error("Failed to save credentials");
       await refreshCreds();
       if (provider === "hubspot") setHubspotToken("");
       if (provider === "pipedrive") setPipedriveToken("");
       if (provider === "nutshell") setNutshellToken("");
-      setMsg(`${labelOf(provider)} credentials saved.`);
+      setMsg({ type: "success", text: `${labelOf(provider)} credentials saved!` });
     } catch (e: any) {
-      setMsg(e?.message || "Failed to save credentials.");
+      setMsg({ type: "error", text: e?.message || "Failed to save credentials." });
     } finally {
       setTokenBusy(null);
     }
@@ -289,483 +296,290 @@ export default function UpdateCRM() {
   const salesforceCred = getActiveCredential("salesforce");
   const nutshellCred = getActiveCredential("nutshell");
 
+  function getCredFor(id: CRM) {
+    if (id === "hubspot") return hubspotCred;
+    if (id === "pipedrive") return pipedriveCred;
+    if (id === "salesforce") return salesforceCred;
+    if (id === "nutshell") return nutshellCred;
+    return undefined;
+  }
+
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      {/* Header */}
-      <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Update CRM</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 max-w-xl">
-            Choose your active CRM and manage organization level credentials.
-            This controls where new leads are sent and which CRM powers analytics.
-          </p>
-        </div>
-        <div className="flex flex-col items-start gap-2 sm:items-end">
-          <button
-            onClick={onSave}
-            disabled={saving || editing === activeCRM}
-            className="rounded-md bg-indigo-600 text-white px-4 py-2 text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-60"
-          >
-            {saving ? "Saving…" : "Save changes"}
-          </button>
-          <Link
-            to="/integrations/current"
-            className="text-xs text-indigo-600 hover:underline"
-          >
-            View current CRM overview
-          </Link>
+    <div className="mx-auto max-w-5xl">
+      {/* Header with gradient accent */}
+      <header className="mb-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">CRM Integrations</h1>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 max-w-lg">
+              Connect your CRM to sync leads and power analytics. Choose from HubSpot, Pipedrive, Salesforce, or Nutshell.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/app/integrations/current"
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              View Current
+            </Link>
+            <button
+              onClick={onSave}
+              disabled={saving || editing === activeCRM}
+              className="px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all disabled:opacity-50 disabled:shadow-none"
+            >
+              {saving ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Saving...
+                </span>
+              ) : "Save Changes"}
+            </button>
+          </div>
         </div>
       </header>
 
       {/* Message banner */}
       {msg && (
-        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-200">
-          {msg}
+        <div className={`mb-6 rounded-xl border px-4 py-3 flex items-center gap-3 ${
+          msg.type === "success"
+            ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800/50 dark:bg-emerald-900/20 dark:text-emerald-200"
+            : msg.type === "error"
+            ? "border-red-200 bg-red-50 text-red-800 dark:border-red-800/50 dark:bg-red-900/20 dark:text-red-200"
+            : "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800/50 dark:bg-blue-900/20 dark:text-blue-200"
+        }`}>
+          {msg.type === "success" && (
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )}
+          {msg.type === "error" && (
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )}
+          {msg.type === "info" && (
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )}
+          <span className="text-sm font-medium">{msg.text}</span>
         </div>
       )}
 
-      {/* Active CRM selector */}
-      <section className="mb-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="max-w-md">
-            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Active CRM
+      {/* Current Active CRM Banner */}
+      <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-200/50 dark:border-indigo-800/30">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
             </div>
-            <div className="mt-1 text-base font-medium">
-              {labelOf(activeCRM)}
+            <div>
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Active CRM</div>
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">{labelOf(activeCRM)}</div>
             </div>
-            <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-              Lead capture supports all CRMs. Salesperson analytics are available
-              for Pipedrive, Nutshell, and Salesforce. HubSpot analytics may
-              require additional scopes on paid HubSpot plans.
-            </p>
           </div>
+          {editing !== activeCRM && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-sm font-medium">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              Switching to {labelOf(editing)}
+            </div>
+          )}
+        </div>
+      </div>
 
-          <div className="mt-1 grid gap-2 sm:mt-0 sm:grid-cols-2">
-            {CRM_OPTIONS.map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => onSelect(opt.id)}
-                className={[
-                  "rounded-xl border px-3 py-3 text-sm text-left transition-colors",
-                  editing === opt.id
-                    ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30"
-                    : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800",
-                ].join(" ")}
-              >
-                <div className="flex flex-col gap-1">
-                  <span className="font-medium">{opt.label}</span>
-                  {activeCRM === opt.id && (
-                    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
-                      Current
-                    </span>
+      {/* 2x2 Grid of CRM Options */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {CRM_OPTIONS.map((opt) => {
+          const cred = getCredFor(opt.id);
+          const isActive = activeCRM === opt.id;
+          const isSelected = editing === opt.id;
+          const isConnected = opt.id === "salesforce" ? sfConnected : Boolean(cred);
+
+          return (
+            <div
+              key={opt.id}
+              onClick={() => setEditing(opt.id)}
+              className={`relative rounded-2xl border-2 p-5 cursor-pointer transition-all duration-200 ${
+                isSelected
+                  ? "border-indigo-500 bg-white dark:bg-gray-800 shadow-lg shadow-indigo-500/10"
+                  : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md"
+              }`}
+            >
+              {/* Selection indicator */}
+              {isSelected && (
+                <div className="absolute top-4 right-4 w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              )}
+
+              {/* Header with Logo */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="h-8 flex items-center">
+                  <img
+                    src={opt.logo}
+                    alt={opt.label}
+                    className="h-full w-auto object-contain max-w-[140px] dark:brightness-0 dark:invert"
+                  />
+                </div>
+                {isActive && (
+                  <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                    Active
+                  </span>
+                )}
+              </div>
+
+              {/* Description */}
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{opt.description}</p>
+
+              {/* Connection Status */}
+              <div className="flex items-center gap-2 mb-3">
+                <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"}`} />
+                <span className={`text-xs font-medium ${isConnected ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-gray-400"}`}>
+                  {isConnected ? "Connected" : "Not connected"}
+                </span>
+                {cred?.token_suffix && (
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    ...{cred.token_suffix}
+                  </span>
+                )}
+              </div>
+
+              {/* Capabilities */}
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                <span className="px-2 py-1 text-[10px] font-medium rounded-md bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                  Lead Capture
+                </span>
+                <span className={`px-2 py-1 text-[10px] font-medium rounded-md ${
+                  opt.id === "hubspot"
+                    ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                    : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                }`}>
+                  {opt.id === "hubspot" ? "Limited Analytics" : "Full Analytics"}
+                </span>
+                {opt.id === "salesforce" && (
+                  <span className="px-2 py-1 text-[10px] font-medium rounded-md bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                    OAuth
+                  </span>
+                )}
+              </div>
+
+              {/* Action area - only show when selected */}
+              {isSelected && (
+                <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
+                  {opt.id === "salesforce" ? (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); connectSalesforce(); }}
+                      disabled={sfBusy}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all disabled:opacity-50"
+                    >
+                      {sfBusy ? (
+                        <>
+                          <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          Connecting...
+                        </>
+                      ) : sfConnected ? (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          Manage Connection
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                          </svg>
+                          Connect with OAuth
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="password"
+                        value={opt.id === "hubspot" ? hubspotToken : opt.id === "pipedrive" ? pipedriveToken : nutshellToken}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          if (opt.id === "hubspot") setHubspotToken(e.target.value);
+                          else if (opt.id === "pipedrive") setPipedriveToken(e.target.value);
+                          else setNutshellToken(e.target.value);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        placeholder={`Enter ${opt.label} API token`}
+                        className="flex-1 px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                      />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); saveToken(opt.id as "hubspot" | "pipedrive" | "nutshell"); }}
+                        disabled={tokenBusy === opt.id}
+                        className={`px-4 py-2 text-sm font-medium text-white bg-gradient-to-r ${opt.gradient} rounded-xl hover:shadow-lg transition-all disabled:opacity-50`}
+                      >
+                        {tokenBusy === opt.id ? "..." : "Save"}
+                      </button>
+                    </div>
                   )}
                 </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
 
-                <div className="mt-2 text-[11px] text-gray-600 dark:text-gray-400">
-                  {opt.id === "hubspot" && "Best for HubSpot lead sync."}
-                  {opt.id === "pipedrive" && "Full analytics with low friction API."}
-                  {opt.id === "salesforce" &&
-                    "OAuth connection with advanced reporting."}
-                  {opt.id === "nutshell" && "Lightweight CRM with API access."}
-                </div>
-              </button>
-            ))}
+      {/* Help section */}
+      <div className="mt-8 p-5 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+          </div>
+          <div>
+            <h4 className="font-semibold text-gray-900 dark:text-white mb-1">Need help connecting?</h4>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              Each CRM requires different credentials. Check our integration guides for step-by-step instructions.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <a href="https://developers.hubspot.com/docs/api/private-apps" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm text-orange-600 hover:text-orange-700 font-medium">
+                HubSpot Docs
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+              </a>
+              <span className="text-gray-300 dark:text-gray-600">|</span>
+              <a href="https://pipedrive.readme.io/docs" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm text-green-600 hover:text-green-700 font-medium">
+                Pipedrive Docs
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+              </a>
+              <span className="text-gray-300 dark:text-gray-600">|</span>
+              <a href="https://developer.salesforce.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium">
+                Salesforce Docs
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+              </a>
+              <span className="text-gray-300 dark:text-gray-600">|</span>
+              <a href="https://developers.nutshell.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700 font-medium">
+                Nutshell Docs
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+              </a>
+            </div>
           </div>
         </div>
-      </section>
-
-      {/* Provider sections */}
-      <div className="grid gap-6">
-        {/* HubSpot */}
-        <section
-          className={`rounded-2xl border px-5 py-4 ${
-            editing === "hubspot"
-              ? "border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900"
-              : "border-dashed border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 opacity-80"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold">HubSpot</h3>
-            <div className="flex items-center gap-2 text-xs">
-              {hubspotCred ? (
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-200">
-                  Connected
-                </span>
-              ) : (
-                <span className="rounded-full border border-gray-300 dark:border-gray-700 px-2 py-0.5 text-gray-600 dark:text-gray-400">
-                  No token
-                </span>
-              )}
-              {activeCRM === "hubspot" && (
-                <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200">
-                  Active
-                </span>
-              )}
-            </div>
-          </div>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Lead capture works on HubSpot Free. Advanced salesperson analytics
-            need extra API scopes that are only available on paid HubSpot plans.
-          </p>
-
-          <CrmCapabilityChips
-            items={[
-              {
-                id: "hubspot-leads",
-                label: "Lead capture",
-                level: "full",
-                tooltip: "Push new leads and contacts into HubSpot.",
-              },
-              {
-                id: "hubspot-owners",
-                label: "Owner lookup",
-                level: "partial",
-                tooltip:
-                  "Requires owner scopes on a paid HubSpot plan or private app token.",
-              },
-              {
-                id: "hubspot-analytics",
-                label: "Sales analytics",
-                level: "limited",
-                tooltip:
-                  "Full salesperson stats require a HubSpot Professional tier portal.",
-              },
-            ]}
-          />
-
-          <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-            {loadingCreds ? (
-              <span>Checking credentials…</span>
-            ) : hubspotCred ? (
-              <span>
-                Active token ending in{" "}
-                <code>…{hubspotCred.token_suffix || "****"}</code>
-              </span>
-            ) : (
-              <span>No HubSpot token saved yet for this organization.</span>
-            )}
-          </div>
-
-          {editing === "hubspot" && (
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <input
-                type="password"
-                value={hubspotToken}
-                onChange={(e) => setHubspotToken(e.target.value)}
-                placeholder="Enter HubSpot token or private app key"
-                className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-              />
-              <button
-                onClick={() => saveToken("hubspot")}
-                disabled={tokenBusy === "hubspot"}
-                className="rounded-md bg-indigo-600 text-white px-4 py-2 text-sm disabled:opacity-60"
-              >
-                {tokenBusy === "hubspot" ? "Saving…" : "Save token"}
-              </button>
-            </div>
-          )}
-
-          <div className="mt-3">
-            <a
-              href="https://developers.hubspot.com/docs/api/private-apps"
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm text-indigo-600 hover:underline"
-            >
-              HubSpot developer docs
-            </a>
-          </div>
-        </section>
-
-        {/* Pipedrive */}
-        <section
-          className={`rounded-2xl border px-5 py-4 ${
-            editing === "pipedrive"
-              ? "border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900"
-              : "border-dashed border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 opacity-80"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold">Pipedrive</h3>
-            <div className="flex items-center gap-2 text-xs">
-              {pipedriveCred ? (
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-200">
-                  Connected
-                </span>
-              ) : (
-                <span className="rounded-full border border-gray-300 dark:border-gray-700 px-2 py-0.5 text-gray-600 dark:text-gray-400">
-                  No token
-                </span>
-              )}
-              {activeCRM === "pipedrive" && (
-                <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200">
-                  Active
-                </span>
-              )}
-            </div>
-          </div>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Use a company wide API token. Pipedrive enables full API access on all
-            plans, which makes it ideal for development and advanced analytics.
-          </p>
-
-          <CrmCapabilityChips
-            items={[
-              {
-                id: "pd-leads",
-                label: "Lead capture",
-                level: "full",
-                tooltip: "Create and update leads in Pipedrive.",
-              },
-              {
-                id: "pd-owners",
-                label: "Owner and activity stats",
-                level: "full",
-                tooltip:
-                  "Owners and activities are fully supported through the API.",
-              },
-              {
-                id: "pd-analytics",
-                label: "Sales analytics",
-                level: "full",
-                tooltip:
-                  "Your salespeople stats dashboard uses Pipedrive as a first class source.",
-              },
-            ]}
-          />
-
-          <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-            {loadingCreds ? (
-              <span>Checking credentials…</span>
-            ) : pipedriveCred ? (
-              <span>
-                Active token ending in{" "}
-                <code>…{pipedriveCred.token_suffix || "****"}</code>
-              </span>
-            ) : (
-              <span>No Pipedrive token saved yet for this organization.</span>
-            )}
-          </div>
-
-          {editing === "pipedrive" && (
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <input
-                type="password"
-                value={pipedriveToken}
-                onChange={(e) => setPipedriveToken(e.target.value)}
-                placeholder="Enter Pipedrive API token"
-                className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-              />
-              <button
-                onClick={() => saveToken("pipedrive")}
-                disabled={tokenBusy === "pipedrive"}
-                className="rounded-md bg-indigo-600 text-white px-4 py-2 text-sm disabled:opacity-60"
-              >
-                {tokenBusy === "pipedrive" ? "Saving…" : "Save token"}
-              </button>
-            </div>
-          )}
-
-          <div className="mt-3">
-            <a
-              href="https://pipedrive.readme.io/docs/marketplace-and-api"
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm text-indigo-600 hover:underline"
-            >
-              Pipedrive API docs
-            </a>
-          </div>
-        </section>
-
-        {/* Salesforce */}
-        <section
-          className={`rounded-2xl border px-5 py-4 ${
-            editing === "salesforce"
-              ? "border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900"
-              : "border-dashed border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 opacity-80"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold">Salesforce</h3>
-            <div className="flex items-center gap-2 text-xs">
-              {salesforceCred ? (
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-200">
-                  Connected
-                </span>
-              ) : (
-                <span className="rounded-full border border-gray-300 dark:border-gray-700 px-2 py-0.5 text-gray-600 dark:text-gray-400">
-                  No connection
-                </span>
-              )}
-              {activeCRM === "salesforce" && (
-                <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200">
-                  Active
-                </span>
-              )}
-            </div>
-          </div>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Connect a Salesforce org by authorizing a connected app. This works
-            well with developer sandboxes for testing and with paid editions for
-            production.
-          </p>
-
-          <CrmCapabilityChips
-            items={[
-              {
-                id: "sf-leads",
-                label: "Lead capture",
-                level: "full",
-                tooltip: "Create leads and contacts inside Salesforce.",
-              },
-              {
-                id: "sf-owners",
-                label: "Owner and pipeline data",
-                level: "full",
-                tooltip:
-                  "Use standard Salesforce objects to power salesperson stats.",
-              },
-              {
-                id: "sf-analytics",
-                label: "Sales analytics",
-                level: "full",
-                tooltip:
-                  "Salesforce support is ideal for advanced analytics and enterprise customers.",
-              },
-            ]}
-          />
-
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <div className="text-sm">
-              <div className="font-medium">Connection status</div>
-              <div className="text-gray-600 dark:text-gray-400">
-                {sfConnected ? "Connected" : "Not connected"}
-              </div>
-              {sfErr && (
-                <div className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:border-red-900 dark:text-red-300">
-                  {sfErr}
-                </div>
-              )}
-            </div>
-            <button
-              onClick={connectSalesforce}
-              disabled={sfBusy}
-              className="rounded-md bg-indigo-600 text-white px-4 py-2 text-sm disabled:opacity-60"
-            >
-              {sfConnected
-                ? sfBusy
-                  ? "Opening…"
-                  : "Manage connection"
-                : sfBusy
-                ? "Connecting…"
-                : "Connect Salesforce"}
-            </button>
-          </div>
-        </section>
-
-        {/* Nutshell */}
-        <section
-          className={`rounded-2xl border px-5 py-4 ${
-            editing === "nutshell"
-              ? "border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900"
-              : "border-dashed border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 opacity-80"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold">Nutshell CRM</h3>
-            <div className="flex items-center gap-2 text-xs">
-              {nutshellCred ? (
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-200">
-                  Connected
-                </span>
-              ) : (
-                <span className="rounded-full border border-gray-300 dark:border-gray-700 px-2 py-0.5 text-gray-600 dark:text-gray-400">
-                  No key
-                </span>
-              )}
-              {activeCRM === "nutshell" && (
-                <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200">
-                  Active
-                </span>
-              )}
-            </div>
-          </div>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Use an API key per organization. Nutshell can power both lead capture
-            and salesperson analytics once a key is connected.
-          </p>
-
-          <CrmCapabilityChips
-            items={[
-              {
-                id: "nutshell-leads",
-                label: "Lead capture",
-                level: "full",
-                tooltip: "Create and sync leads into Nutshell.",
-              },
-              {
-                id: "nutshell-owners",
-                label: "Owner and activity stats",
-                level: "full",
-                tooltip:
-                  "Nutshell APIs expose owners, pipelines, and activities for stats.",
-              },
-              {
-                id: "nutshell-analytics",
-                label: "Sales analytics",
-                level: "full",
-                tooltip:
-                  "Full salesperson analytics available when an API key is connected.",
-              },
-            ]}
-          />
-
-          <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-            {loadingCreds ? (
-              <span>Checking credentials…</span>
-            ) : nutshellCred ? (
-              <span>
-                Active key ending in{" "}
-                <code>…{nutshellCred.token_suffix || "****"}</code>
-              </span>
-            ) : (
-              <span>No Nutshell key saved yet for this organization.</span>
-            )}
-          </div>
-
-          {editing === "nutshell" && (
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <input
-                type="password"
-                value={nutshellToken}
-                onChange={(e) => setNutshellToken(e.target.value)}
-                placeholder="Enter Nutshell API key"
-                className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-              />
-              <button
-                onClick={() => saveToken("nutshell")}
-                disabled={tokenBusy === "nutshell"}
-                className="rounded-md bg-indigo-600 text-white px-4 py-2 text-sm disabled:opacity-60"
-              >
-                {tokenBusy === "nutshell" ? "Saving…" : "Save key"}
-              </button>
-            </div>
-          )}
-
-          <div className="mt-3">
-            <a
-              href="https://developers.nutshell.com/"
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm text-indigo-600 hover:underline"
-            >
-              Nutshell developer docs
-            </a>
-          </div>
-        </section>
       </div>
     </div>
   );

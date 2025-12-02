@@ -419,19 +419,6 @@ export default function Notifications() {
         </div>
       </div>
 
-      {/* Coming Soon */}
-      <div className="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-800/50 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
-        <svg className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <div>
-          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Coming Soon</div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Slack channels and other destinations can be wired into the same rules that power email alerts.
-          </p>
-        </div>
-      </div>
-
       {loading && (
         <div className="text-center text-sm text-gray-500 dark:text-gray-400">
           Loading current notification settings...

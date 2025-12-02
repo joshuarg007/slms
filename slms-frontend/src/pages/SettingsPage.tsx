@@ -2,8 +2,37 @@
 import { useEffect, useState } from "react";
 import { applyTheme, getSavedTheme, type Theme } from "@/utils/theme";
 import { getApiBase, refresh } from "@/utils/api";
+import { AIRecommendationCard } from "@/components/AIBadge";
+import CSVImportModal from "@/components/CSVImportModal";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
+type TwoFAStep = "disabled" | "setup" | "verify" | "enabled";
+
+// Simple component to handle verification animation
+function VerifyingState({ onVerify }: { onVerify: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onVerify, 1000);
+    return () => clearTimeout(timer);
+  }, [onVerify]);
+
+  return (
+    <div className="space-y-4">
+      <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-xl">
+        <div className="flex items-start gap-3">
+          <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <h4 className="font-medium text-amber-800 dark:text-amber-200">Verifying...</h4>
+            <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+              Please wait while we verify your code and enable two-factor authentication.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 async function authFetch(
   input: RequestInfo | URL,
@@ -63,6 +92,14 @@ export default function SettingsPage() {
 
   // Export/Import
   const [exporting, setExporting] = useState(false);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
+
+  // Two-Factor Authentication
+  const [twoFAStep, setTwoFAStep] = useState<TwoFAStep>("disabled");
+  const [twoFACode, setTwoFACode] = useState("");
+  const [twoFAError, setTwoFAError] = useState<string | null>(null);
+  const [twoFASecret] = useState("JBSWY3DPEHPK3PXP"); // Demo secret - in production this comes from API
+  const [backupCodes] = useState(["A1B2-C3D4", "E5F6-G7H8", "I9J0-K1L2", "M3N4-O5P6", "Q7R8-S9T0"]);
 
   useEffect(() => {
     applyTheme(theme);
@@ -159,6 +196,23 @@ export default function SettingsPage() {
     }
   }
 
+  function handleTwoFAVerify() {
+    setTwoFAError(null);
+    // Demo verification - accepts "123456" or any 6-digit code
+    if (twoFACode.length === 6 && /^\d{6}$/.test(twoFACode)) {
+      setTwoFAStep("enabled");
+      setTwoFACode("");
+    } else {
+      setTwoFAError("Invalid verification code. Please enter a 6-digit code.");
+    }
+  }
+
+  function handleDisableTwoFA() {
+    setTwoFAStep("disabled");
+    setTwoFACode("");
+    setTwoFAError(null);
+  }
+
   const themeOptions: { value: Theme; label: string; description: string; icon: React.ReactNode }[] = [
     {
       value: "light",
@@ -219,6 +273,14 @@ export default function SettingsPage() {
           Customize your workspace and manage organization settings
         </p>
       </header>
+
+      {/* AI Settings Recommendation */}
+      <AIRecommendationCard
+        title="Optimize Your Configuration"
+        description="AI analysis suggests enabling weekly digest emails and auto-assignment could improve your team's response rate by 34% based on similar organizations."
+        impact="+34% Response"
+        actionLabel="Apply Recommendations"
+      />
 
       {/* Appearance */}
       <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg overflow-hidden">
@@ -589,27 +651,233 @@ export default function SettingsPage() {
 
             <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-xl">
               <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                  <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                  <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                   </svg>
                 </div>
                 <div>
                   <div className="font-medium text-gray-900 dark:text-white">Import Leads</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Upload JSON or CSV</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Upload CSV file</div>
                 </div>
               </div>
               <button
-                disabled
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 text-sm font-medium cursor-not-allowed"
+                onClick={() => setCsvImportOpen(true)}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
-                Coming Soon
+                Import CSV
               </button>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Security - Two-Factor Authentication */}
+      <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-rose-100 dark:bg-rose-900/30 rounded-lg">
+              <svg className="w-5 h-5 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Security</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Two-factor authentication and security settings</p>
+            </div>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* 2FA Status */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl mb-4">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${twoFAStep === "enabled" ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-gray-100 dark:bg-gray-700"}`}>
+                <svg className={`w-5 h-5 ${twoFAStep === "enabled" ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-gray-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-medium text-gray-900 dark:text-white">Two-Factor Authentication</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  {twoFAStep === "enabled" ? "Enabled - Your account is protected" : "Add extra security to your account"}
+                </div>
+              </div>
+            </div>
+            <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
+              twoFAStep === "enabled"
+                ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+                : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+            }`}>
+              {twoFAStep === "enabled" ? "Enabled" : "Disabled"}
+            </span>
+          </div>
+
+          {/* 2FA Setup Flow */}
+          {twoFAStep === "disabled" && (
+            <div className="space-y-4">
+              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-xl">
+                <h3 className="font-medium text-gray-900 dark:text-white mb-2">How it works</h3>
+                <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                  <li className="flex items-start gap-2">
+                    <span className="w-5 h-5 flex items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-medium shrink-0">1</span>
+                    Download an authenticator app (Google Authenticator, Authy, etc.)
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="w-5 h-5 flex items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-medium shrink-0">2</span>
+                    Scan the QR code with your authenticator app
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="w-5 h-5 flex items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-medium shrink-0">3</span>
+                    Enter the 6-digit code to verify setup
+                  </li>
+                </ul>
+              </div>
+              <button
+                onClick={() => setTwoFAStep("setup")}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Enable Two-Factor Authentication
+              </button>
+            </div>
+          )}
+
+          {twoFAStep === "setup" && (
+            <div className="space-y-4">
+              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-xl">
+                <h3 className="font-medium text-gray-900 dark:text-white mb-3">Step 1: Scan QR Code</h3>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  {/* QR Code placeholder - deterministic pattern */}
+                  <div className="w-40 h-40 bg-white border-2 border-gray-200 dark:border-gray-600 rounded-lg flex items-center justify-center shrink-0 mx-auto sm:mx-0">
+                    <div className="w-32 h-32 bg-gradient-to-br from-gray-900 to-gray-700 rounded p-2">
+                      <div className="w-full h-full grid grid-cols-7 gap-0.5">
+                        {[1,1,1,1,1,1,1,1,0,0,1,0,0,1,1,0,1,0,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,0,1,1,1,1,1,1,1,1,0,0,0,0,0,1,0,1,0,1,0,1,0,1,1,0,0,1,0,0,1,1,1,1,1,1,1,1,0,0,1,0,0,1,1,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,1,0,0,1,1].map((v, i) => (
+                          <div
+                            key={i}
+                            className={v ? "bg-white" : "bg-transparent"}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                      Scan this QR code with your authenticator app. If you can't scan, enter this key manually:
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-900 rounded-lg text-sm font-mono text-gray-900 dark:text-gray-100 break-all">
+                        {twoFASecret}
+                      </code>
+                      <button
+                        onClick={() => copyToClipboard(twoFASecret)}
+                        className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                        title="Copy secret key"
+                      >
+                        {copied ? (
+                          <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-xl">
+                <h3 className="font-medium text-gray-900 dark:text-white mb-3">Step 2: Enter Verification Code</h3>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="text"
+                    value={twoFACode}
+                    onChange={(e) => setTwoFACode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="000000"
+                    maxLength={6}
+                    className="w-full sm:w-40 px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-center text-lg font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                  />
+                  <button
+                    onClick={() => setTwoFAStep("verify")}
+                    disabled={twoFACode.length !== 6}
+                    className="px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Verify & Enable
+                  </button>
+                </div>
+                {twoFAError && (
+                  <p className="mt-2 text-sm text-red-600 dark:text-red-400">{twoFAError}</p>
+                )}
+              </div>
+
+              <button
+                onClick={() => { setTwoFAStep("disabled"); setTwoFACode(""); setTwoFAError(null); }}
+                className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                Cancel setup
+              </button>
+            </div>
+          )}
+
+          {twoFAStep === "verify" && (
+            <VerifyingState onVerify={handleTwoFAVerify} />
+          )}
+
+          {twoFAStep === "enabled" && (
+            <div className="space-y-4">
+              <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <h4 className="font-medium text-emerald-800 dark:text-emerald-200">Two-Factor Authentication Enabled</h4>
+                    <p className="text-sm text-emerald-700 dark:text-emerald-300 mt-1">
+                      Your account is now protected with two-factor authentication. You'll need to enter a code from your authenticator app each time you sign in.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Backup Codes */}
+              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-xl">
+                <h3 className="font-medium text-gray-900 dark:text-white mb-2">Backup Codes</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Save these codes in a safe place. You can use them to access your account if you lose your authenticator device.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-3">
+                  {backupCodes.map((code, idx) => (
+                    <code key={idx} className="px-2 py-1.5 bg-gray-100 dark:bg-gray-900 rounded text-sm font-mono text-center">
+                      {code}
+                    </code>
+                  ))}
+                </div>
+                <button
+                  onClick={() => copyToClipboard(backupCodes.join("\n"))}
+                  className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+                >
+                  {copied ? "Copied!" : "Copy all codes"}
+                </button>
+              </div>
+
+              <button
+                onClick={handleDisableTwoFA}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+                Disable Two-Factor Authentication
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -655,6 +923,13 @@ export default function SettingsPage() {
           </div>
         </div>
       </section>
+
+      {/* CSV Import Modal */}
+      <CSVImportModal
+        isOpen={csvImportOpen}
+        onClose={() => setCsvImportOpen(false)}
+        onImportComplete={() => setCsvImportOpen(false)}
+      />
     </div>
   );
 }

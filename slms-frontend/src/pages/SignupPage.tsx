@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getApiBase } from "@/utils/api";
-import logo from "@/assets/site2crm_logo.png";
+import logo from "@/assets/site2crm_logo_horizontal.svg";
 
 export default function SignupPage() {
   const nav = useNavigate();

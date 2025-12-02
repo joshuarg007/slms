@@ -1,10 +1,32 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
 
 export default function HelpMenu() {
   const [open, setOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
   const nav = useNavigate();
+
+  // Listen for ? key to open shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+      if (e.key === "?" && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setShortcutsOpen(true);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
@@ -35,10 +57,11 @@ export default function HelpMenu() {
             Documentation
           </button>
           <button
-            className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800"
-            onClick={() => { setOpen(false); alert("Keyboard shortcuts: (coming soon)"); }}
+            className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-between"
+            onClick={() => { setOpen(false); setShortcutsOpen(true); }}
           >
-            Keyboard Shortcuts
+            <span>Keyboard Shortcuts</span>
+            <kbd className="ml-2 px-1.5 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">?</kbd>
           </button>
           <a
             className="block px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -49,6 +72,11 @@ export default function HelpMenu() {
           </a>
         </div>
       )}
+
+      <KeyboardShortcutsModal
+        isOpen={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+      />
     </div>
   );
 }

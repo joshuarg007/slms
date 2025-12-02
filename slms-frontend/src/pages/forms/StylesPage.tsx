@@ -35,6 +35,25 @@ const STYLE_OPTIONS: { id: FormStyle; name: string; description: string; availab
   { id: "drawer", name: "Slide-in Drawer", description: "Form slides in from the side of the screen", available: true },
 ];
 
+interface ThemePreset {
+  id: string;
+  name: string;
+  primaryColor: string;
+  borderRadius: string;
+  preview: { bg: string; accent: string };
+}
+
+const THEME_PRESETS: ThemePreset[] = [
+  { id: "modern-blue", name: "Modern Blue", primaryColor: "#2563eb", borderRadius: "12px", preview: { bg: "from-blue-500 to-indigo-600", accent: "bg-blue-500" } },
+  { id: "emerald", name: "Emerald", primaryColor: "#059669", borderRadius: "8px", preview: { bg: "from-emerald-500 to-teal-600", accent: "bg-emerald-500" } },
+  { id: "sunset", name: "Sunset", primaryColor: "#ea580c", borderRadius: "16px", preview: { bg: "from-orange-500 to-rose-600", accent: "bg-orange-500" } },
+  { id: "purple-haze", name: "Purple Haze", primaryColor: "#7c3aed", borderRadius: "20px", preview: { bg: "from-purple-500 to-pink-600", accent: "bg-purple-500" } },
+  { id: "minimal", name: "Minimal", primaryColor: "#18181b", borderRadius: "4px", preview: { bg: "from-zinc-700 to-zinc-900", accent: "bg-zinc-800" } },
+  { id: "coral", name: "Coral", primaryColor: "#f43f5e", borderRadius: "10px", preview: { bg: "from-rose-500 to-pink-600", accent: "bg-rose-500" } },
+  { id: "ocean", name: "Ocean", primaryColor: "#0891b2", borderRadius: "14px", preview: { bg: "from-cyan-500 to-blue-600", accent: "bg-cyan-500" } },
+  { id: "forest", name: "Forest", primaryColor: "#16a34a", borderRadius: "6px", preview: { bg: "from-green-600 to-emerald-700", accent: "bg-green-600" } },
+];
+
 async function authFetch(url: string, init: RequestInit = {}): Promise<Response> {
   const headers: Record<string, string> = { ...(init.headers as Record<string, string>) };
   try {
@@ -62,6 +81,16 @@ export default function StylesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+
+  const applyPreset = (preset: ThemePreset) => {
+    setStyling({
+      ...styling,
+      primaryColor: preset.primaryColor,
+      borderRadius: preset.borderRadius,
+    });
+    setSelectedPreset(preset.id);
+  };
 
   // Load existing config
   useEffect(() => {
@@ -191,10 +220,70 @@ export default function StylesPage() {
                   </svg>
                 )}
               </div>
-              {!style.available && (
-                <span className="absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500">
-                  Coming Soon
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Theme Presets */}
+      <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-medium">Theme Presets</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Quick-start with a professionally designed theme</p>
+          </div>
+          {selectedPreset && (
+            <button
+              onClick={() => setSelectedPreset(null)}
+              className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              Clear selection
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {THEME_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              onClick={() => applyPreset(preset)}
+              className={`group relative rounded-xl border-2 p-3 text-left transition-all duration-200 ${
+                selectedPreset === preset.id
+                  ? "border-indigo-500 ring-2 ring-indigo-500/20"
+                  : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+              }`}
+            >
+              {/* Color preview */}
+              <div
+                className={`h-12 rounded-lg bg-gradient-to-br ${preset.preview.bg} mb-2 shadow-sm group-hover:shadow-md transition-shadow`}
+              >
+                {/* Mini form preview */}
+                <div className="p-2 flex flex-col gap-1">
+                  <div className="h-1.5 bg-white/40 rounded-full w-3/4" />
+                  <div className="h-1.5 bg-white/30 rounded-full w-1/2" />
+                  <div
+                    className="h-2 bg-white/60 rounded mt-1"
+                    style={{ borderRadius: preset.borderRadius }}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded-full shadow-inner"
+                  style={{ backgroundColor: preset.primaryColor }}
+                />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {preset.name}
                 </span>
+              </div>
+              <div className="text-xs text-gray-400 mt-0.5">
+                {preset.borderRadius} radius
+              </div>
+              {selectedPreset === preset.id && (
+                <div className="absolute top-2 right-2">
+                  <svg className="w-5 h-5 text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
               )}
             </button>
           ))}

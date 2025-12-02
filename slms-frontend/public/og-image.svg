@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e1b4b"/>
+      <stop offset="50%" style="stop-color:#312e81"/>
+      <stop offset="100%" style="stop-color:#4c1d95"/>
+    </linearGradient>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="50%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#a855f7"/>
+    </linearGradient>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="50%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#a855f7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGradient)"/>
+
+  <!-- Decorative circles -->
+  <circle cx="100" cy="100" r="200" fill="#6366f1" opacity="0.1"/>
+  <circle cx="1100" cy="530" r="250" fill="#a855f7" opacity="0.1"/>
+  <circle cx="900" cy="150" r="150" fill="#8b5cf6" opacity="0.08"/>
+
+  <!-- Logo icon -->
+  <g transform="translate(520, 180)">
+    <rect x="0" y="0" width="160" height="160" rx="32" fill="url(#logoGradient)" filter="drop-shadow(0 25px 50px rgba(99, 102, 241, 0.4))"/>
+    <g transform="translate(32, 32)">
+      <circle cx="12" cy="18" r="9" fill="white" opacity="0.9"/>
+      <circle cx="12" cy="54" r="9" fill="white" opacity="0.7"/>
+      <path d="M24 18 Q42 18 48 36 Q54 54 72 54" stroke="white" stroke-width="7.5" fill="none" stroke-linecap="round" opacity="0.9"/>
+      <path d="M24 54 Q42 54 48 36 Q54 18 72 18" stroke="white" stroke-width="7.5" fill="none" stroke-linecap="round" opacity="0.7"/>
+      <circle cx="72" cy="36" r="10.5" fill="white"/>
+    </g>
+  </g>
+
+  <!-- Brand name -->
+  <text x="600" y="410" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="600" fill="white" text-anchor="middle">
+    Site<tspan fill="url(#textGradient)" font-weight="700">2</tspan>CRM
+  </text>
+
+  <!-- Tagline -->
+  <text x="600" y="480" font-family="system-ui, -apple-system, sans-serif" font-size="28" fill="#a5b4fc" text-anchor="middle">
+    AI-Powered Lead Analytics for SaaS
+  </text>
+
+  <!-- Bottom bar -->
+  <rect x="0" y="590" width="1200" height="40" fill="#0f172a" opacity="0.5"/>
+  <text x="600" y="618" font-family="system-ui, -apple-system, sans-serif" font-size="18" fill="#94a3b8" text-anchor="middle">
+    site2crm.io
+  </text>
+</svg>

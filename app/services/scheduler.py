@@ -22,6 +22,7 @@ from app.services.email import (
     send_daily_digest,
     send_weekly_digest,
     send_salesperson_digest,
+    send_recommendations_digest,
 )
 
 logger = logging.getLogger(__name__)
@@ -70,6 +71,15 @@ def start_scheduler():
         CronTrigger(day_of_week="mon", hour=8, minute=30),
         id="salesperson_digest",
         name="Salesperson Performance Digest",
+        replace_existing=True,
+    )
+
+    # Weekly recommendations: Wednesday 9am UTC
+    sched.add_job(
+        run_recommendations_digest,
+        CronTrigger(day_of_week="wed", hour=9, minute=0),
+        id="recommendations_digest",
+        name="Weekly AI Recommendations",
         replace_existing=True,
     )
 
@@ -354,6 +364,76 @@ async def run_salesperson_digest():
         db.close()
 
     logger.info("Salesperson digest job completed")
+
+
+async def run_recommendations_digest():
+    """Send weekly AI-generated recommendations to organizations with the setting enabled."""
+    logger.info("Running recommendations digest job")
+
+    db = SessionLocal()
+    try:
+        from app.api.routes.analytics import get_salesperson_kpis, get_source_metrics, generate_recommendations
+
+        orgs = db.query(models.Organization).all()
+        now = datetime.utcnow()
+        start_date = now - timedelta(days=90)
+
+        for org in orgs:
+            try:
+                # Check if recommendations digest is enabled (default ON for weekly)
+                settings = _get_org_notification_settings(db, org.id)
+                if settings and not settings.weekly_digest:
+                    continue
+
+                recipients = _get_org_users_emails(db, org.id)
+                if not recipients:
+                    continue
+
+                # Generate recommendations
+                salespeople_kpis = get_salesperson_kpis(db, org.id, start_date, now)
+                source_metrics = get_source_metrics(db, org.id, start_date, now)
+                recommendations = generate_recommendations(db, org.id, salespeople_kpis, source_metrics)
+
+                if not recommendations:
+                    logger.info(f"No recommendations for org {org.id}, skipping")
+                    continue
+
+                # Convert to dicts for email
+                recommendations_list = [
+                    {
+                        "category": rec.category,
+                        "priority": rec.priority,
+                        "title": rec.title,
+                        "description": rec.description,
+                        "metric": rec.metric,
+                        "action": rec.action,
+                    }
+                    for rec in recommendations[:10]  # Top 10
+                ]
+
+                # Count by priority
+                high_priority = sum(1 for r in recommendations if r.priority == "high")
+                medium_priority = sum(1 for r in recommendations if r.priority == "medium")
+
+                # Send email
+                send_recommendations_digest(
+                    recipients=recipients,
+                    organization_name=org.name,
+                    recommendations=recommendations_list,
+                    high_priority_count=high_priority,
+                    medium_priority_count=medium_priority,
+                    generated_at=now.strftime("%b %d, %Y"),
+                )
+
+                logger.info(f"Sent recommendations digest to org {org.id} ({len(recommendations)} recommendations)")
+
+            except Exception as e:
+                logger.error(f"Error sending recommendations digest to org {org.id}: {e}")
+
+    finally:
+        db.close()
+
+    logger.info("Recommendations digest job completed")
 
 
 # =============================================================================

@@ -9,11 +9,11 @@ const FOOTER_LINKS = {
   Company: [
     { to: "/about", label: "About" },
     { to: "/contact", label: "Contact" },
+    { href: "https://axiondeep.com", label: "Axion Deep", external: true },
   ],
-  Integrations: [
-    { to: "/features#integrations", label: "HubSpot" },
-    { to: "/features#integrations", label: "Salesforce" },
-    { to: "/features#integrations", label: "Pipedrive" },
+  "More Products": [
+    { href: "https://axiondeep.com/projects/quanta", label: "QUANTA", external: true },
+    { href: "https://axiondeep.com/projects/forma", label: "Forma", external: true },
   ],
   Legal: [
     { to: "/privacy", label: "Privacy Policy" },
@@ -23,16 +23,24 @@ const FOOTER_LINKS = {
 
 export default function MarketingFooter() {
   return (
-    <footer className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+    <footer role="contentinfo" aria-label="Site footer" className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <Link to="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">S2</span>
+            <Link to="/" className="flex items-center gap-2.5 mb-4 group">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:shadow-indigo-500/40 transition-shadow">
+                <svg className="w-5 h-5" viewBox="0 0 28 24" fill="none">
+                  <circle cx="4" cy="6" r="3" fill="white" opacity="0.9"/>
+                  <circle cx="4" cy="18" r="3" fill="white" opacity="0.7"/>
+                  <path d="M8 6 Q14 6 16 12 Q18 18 24 18" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.9"/>
+                  <path d="M8 18 Q14 18 16 12 Q18 6 24 6" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.7"/>
+                  <circle cx="24" cy="12" r="3.5" fill="white"/>
+                </svg>
               </div>
-              <span className="font-semibold text-gray-900 dark:text-white">Site2CRM</span>
+              <span className="font-semibold text-gray-900 dark:text-white">
+                Site<span className="bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 bg-clip-text text-transparent font-bold">2</span>CRM
+              </span>
             </Link>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Turn website visitors into CRM leads. No code required.
@@ -44,14 +52,28 @@ export default function MarketingFooter() {
             <div key={title}>
               <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">{title}</h4>
               <ul className="space-y-3">
-                {links.map((link) => (
+                {links.map((link: { to?: string; href?: string; label: string; external?: boolean }) => (
                   <li key={link.label}>
-                    <Link
-                      to={link.to}
-                      className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                    >
-                      {link.label}
-                    </Link>
+                    {link.external ? (
+                      <a
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors inline-flex items-center gap-1"
+                      >
+                        {link.label}
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    ) : (
+                      <Link
+                        to={link.to || "/"}
+                        className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                      >
+                        {link.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -61,9 +83,20 @@ export default function MarketingFooter() {
 
         {/* Bottom */}
         <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            &copy; {new Date().getFullYear()} Site2CRM. All rights reserved.
-          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              &copy; {new Date().getFullYear()} Site2CRM. All rights reserved.
+            </p>
+            <span className="hidden sm:block text-gray-300 dark:text-gray-700">|</span>
+            <a
+              href="https://axiondeep.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-500 hover:to-violet-500 font-medium"
+            >
+              An Axion Deep Product
+            </a>
+          </div>
           <div className="flex items-center gap-4">
             {/* Social Links */}
             <a

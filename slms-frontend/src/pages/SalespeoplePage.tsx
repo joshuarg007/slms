@@ -1,7 +1,13 @@
 // src/pages/SalespeoplePage.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import StatsCards, { Row } from "@/components/StatsCards";
+import SalesScoreboard from "@/components/SalesScoreboard";
 import { getApiBase } from "@/utils/api";
+import AIInsightWidget from "@/components/AIInsightWidget";
+import { useGamification } from "@/contexts/GamificationContext";
+import { DemoTeamToggle } from "@/components/DemoSalespersonCard";
+import { RotatingWisdom } from "@/components/WisdomTooltip";
+import { DEMO_SALESPEOPLE } from "@/data/demoSalespeople";
 
 function authFetch(input: RequestInfo | URL, init: RequestInit = {}) {
   const headers: Record<string, string> = {
@@ -25,11 +31,38 @@ function authFetch(input: RequestInfo | URL, init: RequestInit = {}) {
   });
 }
 
+type ViewMode = "cards" | "scoreboard";
+
 export default function SalespeoplePage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [days, setDays] = useState(7);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("scoreboard");
+
+  // Gamification
+  const { showDemoTeam, setShowDemoTeam, canMuteDemoTeam, getDemoPerformance } = useGamification();
+
+  // Merge real rows with demo salespeople
+  const mergedRows = useMemo(() => {
+    if (!showDemoTeam) return rows;
+
+    const demoPerformance = getDemoPerformance();
+    const demoRows: Row[] = DEMO_SALESPEOPLE.map((person) => {
+      const perf = demoPerformance.find(p => p.user_id === person.id);
+      return {
+        owner_id: String(person.id),
+        owner_name: person.display_name,
+        owner_email: person.email,
+        emails_last_n_days: perf?.emails_count || Math.floor((perf?.total_activities || 50) * 0.3),
+        calls_last_n_days: perf?.calls_count || Math.floor((perf?.total_activities || 50) * 0.25),
+        meetings_last_n_days: perf?.meetings_count || Math.floor((perf?.total_activities || 50) * 0.2),
+        new_deals_last_n_days: perf?.won_leads || 2,
+      };
+    });
+
+    return [...rows, ...demoRows];
+  }, [rows, showDemoTeam, getDemoPerformance]);
 
   useEffect(() => {
     let cancelled = false;
@@ -111,26 +144,69 @@ export default function SalespeoplePage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Salespeople</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Track salesperson activity and performance metrics
-          </p>
-        </div>
+      <header className="space-y-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Salespeople</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Track salesperson activity and performance metrics
+            </p>
+          </div>
 
-        <div className="flex items-center gap-3">
-          <label className="text-sm text-gray-600 dark:text-gray-400">Time period:</label>
-          <select
-            value={days}
-            onChange={(e) => setDays(Number(e.target.value))}
-            className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-          >
-            <option value={7}>Last 7 days</option>
-            <option value={14}>Last 14 days</option>
-            <option value={30}>Last 30 days</option>
-          </select>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* View Toggle */}
+            <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+              <button
+                onClick={() => setViewMode("scoreboard")}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  viewMode === "scoreboard"
+                    ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Scoreboard
+                </span>
+              </button>
+              <button
+                onClick={() => setViewMode("cards")}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  viewMode === "cards"
+                    ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                  </svg>
+                  Cards
+                </span>
+              </button>
+            </div>
+
+            <DemoTeamToggle
+              showDemoTeam={showDemoTeam}
+              onToggle={() => setShowDemoTeam(!showDemoTeam)}
+              canMute={canMuteDemoTeam}
+              variant="minimal"
+            />
+            <label className="text-sm text-gray-600 dark:text-gray-400">Time period:</label>
+            <select
+              value={days}
+              onChange={(e) => setDays(Number(e.target.value))}
+              className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/50 min-h-[44px]"
+            >
+              <option value={7}>Last 7 days</option>
+              <option value={14}>Last 14 days</option>
+              <option value={30}>Last 30 days</option>
+            </select>
+          </div>
         </div>
+        <RotatingWisdom />
       </header>
 
       {/* Error/Warning */}
@@ -160,7 +236,7 @@ export default function SalespeoplePage() {
       )}
 
       {/* Empty State */}
-      {!loading && !error && rows.length === 0 && (
+      {!loading && !error && mergedRows.length === 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg p-12 text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
             <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -174,9 +250,22 @@ export default function SalespeoplePage() {
         </div>
       )}
 
-      {/* Stats Cards */}
-      {!loading && !error && rows.length > 0 && (
-        <StatsCards rows={rows} days={days} />
+      {/* Content */}
+      {!loading && !error && mergedRows.length > 0 && (
+        <>
+          <AIInsightWidget
+            variant="inline"
+            insights={[
+              { icon: "trending", text: "Sarah Chen has the highest close rate at 34%. Consider having her mentor newer reps." }
+            ]}
+            ctaText="Get Team Insights"
+          />
+          {viewMode === "scoreboard" ? (
+            <SalesScoreboard data={mergedRows} days={days} />
+          ) : (
+            <StatsCards rows={mergedRows} days={days} />
+          )}
+        </>
       )}
     </div>
   );

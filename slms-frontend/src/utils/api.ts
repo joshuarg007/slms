@@ -205,6 +205,19 @@ export async function createPublicLead(
   );
 }
 
+// Create a new lead (authenticated)
+export async function createLead(
+  payload: Partial<Lead> & { email: string; name: string },
+): Promise<{ message: string; lead_id: number }> {
+  return fetchJSON<{ message: string; lead_id: number }>(
+    `${baseUrl}/leads`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
 // Authed leads and dashboard
 export async function getLeads(params: {
   q?: string;
@@ -634,6 +647,81 @@ export async function getGamificationOverview(): Promise<GamificationOverview> {
   return fetchJSON<GamificationOverview>(`${baseUrl}/gamification/overview`);
 }
 
+// Automation types
+export interface AssignmentPreview {
+  user_id: number;
+  display_name: string;
+  current_workload: number;
+  close_rate: number;
+  estimated_assignment_pct: number;
+}
+
+export interface AssignmentPreviewResponse {
+  strategy: string;
+  strategy_description: string;
+  salespeople: AssignmentPreview[];
+  unassigned_leads: number;
+}
+
+export interface AssignmentStrategy {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface AutomationSettings {
+  auto_assign_enabled: boolean;
+  assignment_strategy: string;
+  notify_on_assignment: boolean;
+  daily_digest_enabled: boolean;
+  weekly_recommendations_enabled: boolean;
+}
+
+export interface AutomationStats {
+  total_leads: number;
+  assigned_leads: number;
+  unassigned_leads: number;
+  assignment_rate: number;
+  active_salespeople: number;
+  avg_workload_per_rep: number;
+}
+
+export interface BulkAssignResponse {
+  assignments_made: number;
+  assignments: { lead_id: number; assigned_to_user_id: number; assigned_to_name: string }[];
+}
+
+// Automation endpoints
+export async function getAssignmentStrategies(): Promise<AssignmentStrategy[]> {
+  return fetchJSON<AssignmentStrategy[]>(`${baseUrl}/automation/strategies`);
+}
+
+export async function getAssignmentPreview(strategy = "best_fit"): Promise<AssignmentPreviewResponse> {
+  return fetchJSON<AssignmentPreviewResponse>(`${baseUrl}/automation/preview${toQuery({ strategy })}`);
+}
+
+export async function bulkAssignLeads(strategy = "best_fit", limit = 100): Promise<BulkAssignResponse> {
+  return fetchJSON<BulkAssignResponse>(`${baseUrl}/automation/assign-bulk`, {
+    method: "POST",
+    body: JSON.stringify({ strategy, limit }),
+  });
+}
+
+export async function getAutomationSettings(): Promise<AutomationSettings> {
+  return fetchJSON<AutomationSettings>(`${baseUrl}/automation/settings`);
+}
+
+export async function updateAutomationSettings(settings: Partial<AutomationSettings>): Promise<AutomationSettings> {
+  return fetchJSON<AutomationSettings>(`${baseUrl}/automation/settings`, {
+    method: "PUT",
+    body: JSON.stringify(settings),
+  });
+}
+
+export async function getAutomationStats(): Promise<AutomationStats> {
+  return fetchJSON<AutomationStats>(`${baseUrl}/automation/stats`);
+}
+
 // Named plus default export
 export const api = {
   login,
@@ -642,6 +730,7 @@ export const api = {
   clearToken,
   me,
   createPublicLead,
+  createLead,
   getLeads,
   getDashboardMetrics,
   listIntegrationCredentials,
@@ -672,6 +761,13 @@ export const api = {
   getUserBadges,
   getMyBadges,
   getGamificationOverview,
+  // Automation
+  getAssignmentStrategies,
+  getAssignmentPreview,
+  bulkAssignLeads,
+  getAutomationSettings,
+  updateAutomationSettings,
+  getAutomationStats,
 };
 
 export default api;

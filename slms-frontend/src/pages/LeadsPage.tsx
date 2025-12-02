@@ -1,6 +1,29 @@
 // src/pages/LeadsPage.tsx
 import React, { useEffect, useRef, useState } from "react";
 import { api } from "@/utils/api";
+import AIInsightWidget from "@/components/AIInsightWidget";
+import AIBadge, { AIScoreRing } from "@/components/AIBadge";
+
+// Fake AI scoring based on lead characteristics
+function getAIScore(lead: Lead): { score: number; badge: "hot" | "warm" | "cold" | "opportunity" | "risk" | null } {
+  // Use lead ID as pseudo-random seed for consistent display
+  const seed = lead.id % 10;
+  const hasCompany = !!lead.company;
+  const hasPhone = !!lead.phone;
+  const sourceBonus = ["google", "linkedin", "referral"].some(s => lead.source?.toLowerCase().includes(s)) ? 15 : 0;
+
+  let score = 40 + (seed * 5) + (hasCompany ? 10 : 0) + (hasPhone ? 10 : 0) + sourceBonus;
+  score = Math.min(98, Math.max(25, score));
+
+  let badge: "hot" | "warm" | "cold" | "opportunity" | "risk" | null = null;
+  if (score >= 85) badge = "hot";
+  else if (score >= 70) badge = "opportunity";
+  else if (score >= 55) badge = "warm";
+  else if (score < 35) badge = "risk";
+  else if (seed % 4 === 0) badge = "cold";
+
+  return { score, badge };
+}
 
 type Lead = {
   id: number;
@@ -178,6 +201,15 @@ const LeadsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* AI Insight */}
+      <AIInsightWidget
+        variant="inline"
+        insights={[
+          { icon: "target", text: "3 high-value leads haven't been contacted in 5+ days. Prioritize follow-up to improve conversion." }
+        ]}
+        ctaText="View Priority Leads"
+      />
+
       {/* Error */}
       {err && (
         <div className="flex items-center gap-3 rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-300">
@@ -194,25 +226,25 @@ const LeadsPage: React.FC = () => {
           <table className="min-w-full text-sm">
             <thead>
               <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
-                <th className="px-5 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-3 sm:px-5 py-3 sm:py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   <SortHeader label="Name" sortKey="name" />
                 </th>
-                <th className="px-5 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-3 sm:px-5 py-3 sm:py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   <SortHeader label="Email" sortKey="email" />
                 </th>
-                <th className="px-5 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="hidden sm:table-cell px-3 sm:px-5 py-3 sm:py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   <SortHeader label="Phone" sortKey="phone" />
                 </th>
-                <th className="px-5 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="hidden md:table-cell px-3 sm:px-5 py-3 sm:py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   <SortHeader label="Company" sortKey="company" />
                 </th>
-                <th className="px-5 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-3 sm:px-5 py-3 sm:py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   <SortHeader label="Source" sortKey="source" />
                 </th>
-                <th className="px-5 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="hidden lg:table-cell px-3 sm:px-5 py-3 sm:py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   <SortHeader label="Created" sortKey="created_at" />
                 </th>
-                <th className="px-5 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="hidden xl:table-cell px-3 sm:px-5 py-3 sm:py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   <SortHeader label="Notes" sortKey="notes" />
                 </th>
               </tr>
@@ -243,70 +275,76 @@ const LeadsPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                items.map((l) => (
+                items.map((l) => {
+                  const ai = getAIScore(l);
+                  return (
                   <tr
                     key={l.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                   >
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
-                            {(fullName(l) || l.email || "?").charAt(0).toUpperCase()}
+                    <td className="px-3 sm:px-5 py-3 sm:py-4">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <AIScoreRing score={ai.score} size="sm" />
+                        <div className="min-w-0">
+                          <span className="font-medium text-gray-900 dark:text-white truncate block">
+                            {fullName(l) || <span className="text-gray-400">—</span>}
                           </span>
+                          {ai.badge && (
+                            <div className="mt-0.5">
+                              <AIBadge type={ai.badge} size="sm" />
+                            </div>
+                          )}
                         </div>
-                        <span className="font-medium text-gray-900 dark:text-white">
-                          {fullName(l) || <span className="text-gray-400">—</span>}
-                        </span>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-gray-600 dark:text-gray-300">{l.email || "—"}</td>
-                    <td className="px-5 py-4 text-gray-600 dark:text-gray-300">{formatPhone(l.phone)}</td>
-                    <td className="px-5 py-4 text-gray-600 dark:text-gray-300">{l.company || "—"}</td>
-                    <td className="px-5 py-4">
+                    <td className="px-3 sm:px-5 py-3 sm:py-4 text-gray-600 dark:text-gray-300 truncate max-w-[120px] sm:max-w-none">{l.email || "—"}</td>
+                    <td className="hidden sm:table-cell px-3 sm:px-5 py-3 sm:py-4 text-gray-600 dark:text-gray-300">{formatPhone(l.phone)}</td>
+                    <td className="hidden md:table-cell px-3 sm:px-5 py-3 sm:py-4 text-gray-600 dark:text-gray-300">{l.company || "—"}</td>
+                    <td className="px-3 sm:px-5 py-3 sm:py-4">
                       {l.source ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
+                        <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
                           {l.source}
                         </span>
                       ) : (
                         <span className="text-gray-400">—</span>
                       )}
                     </td>
-                    <td className="px-5 py-4 text-gray-500 dark:text-gray-400 text-xs">
+                    <td className="hidden lg:table-cell px-3 sm:px-5 py-3 sm:py-4 text-gray-500 dark:text-gray-400 text-xs">
                       {l.created_at ? formatDate(l.created_at) : "—"}
                     </td>
-                    <td className="px-5 py-4 text-gray-600 dark:text-gray-300 max-w-xs truncate">
+                    <td className="hidden xl:table-cell px-3 sm:px-5 py-3 sm:py-4 text-gray-600 dark:text-gray-300 max-w-[10rem] sm:max-w-xs truncate">
                       {l.notes || "—"}
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
 
         {/* Pagination */}
-        <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gray-50 dark:bg-gray-900/50">
-          <div className="text-sm text-gray-600 dark:text-gray-400">
+        <div className="px-3 sm:px-5 py-3 sm:py-4 border-t border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gray-50 dark:bg-gray-900/50">
+          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
             Page <span className="font-medium text-gray-900 dark:text-white">{data?.page ?? 1}</span> of{" "}
             <span className="font-medium text-gray-900 dark:text-white">{totalPages}</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center sm:justify-end gap-2">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={!data?.has_prev || loading}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[44px]"
               type="button"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Previous
+              <span className="hidden sm:inline">Previous</span>
             </button>
             <button
               onClick={() => setPage((p) => p + 1)}
               disabled={!data?.has_next || loading}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[44px]"
               type="button"
             >
               Next

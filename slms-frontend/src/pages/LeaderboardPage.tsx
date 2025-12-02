@@ -1,5 +1,5 @@
 // src/pages/LeaderboardPage.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   getLeaderboard,
   getMyBadges,
@@ -9,6 +9,20 @@ import {
   GamificationOverview,
   Badge,
 } from "../utils/api";
+import AIInsightWidget from "../components/AIInsightWidget";
+import {
+  RadialGauge,
+  ProgressRing,
+  ComparisonBar,
+  AnimatedBarChart,
+  GRADIENTS,
+  CHART_COLORS,
+} from "../components/charts";
+import { useGamification } from "@/contexts/GamificationContext";
+import { DemoTeamToggle } from "@/components/DemoSalespersonCard";
+import { RotatingWisdom } from "@/components/WisdomTooltip";
+import UnderdogCelebration, { ImprovementBadge } from "@/components/UnderdogCelebration";
+import { isDemoSalesperson, getDemoSalesperson } from "@/data/demoSalespeople";
 
 // Badge icon mapping
 function BadgeIcon({ icon, className }: { icon: string; className?: string }) {
@@ -64,16 +78,16 @@ function BadgeIcon({ icon, className }: { icon: string; className?: string }) {
 }
 
 const badgeColors: Record<string, string> = {
-  yellow: "bg-yellow-100 text-yellow-700 border-yellow-300",
-  green: "bg-green-100 text-green-700 border-green-300",
-  purple: "bg-purple-100 text-purple-700 border-purple-300",
-  blue: "bg-blue-100 text-blue-700 border-blue-300",
-  gold: "bg-amber-100 text-amber-700 border-amber-300",
-  orange: "bg-orange-100 text-orange-700 border-orange-300",
-  red: "bg-red-100 text-red-700 border-red-300",
-  teal: "bg-teal-100 text-teal-700 border-teal-300",
-  emerald: "bg-emerald-100 text-emerald-700 border-emerald-300",
-  indigo: "bg-indigo-100 text-indigo-700 border-indigo-300",
+  yellow: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700",
+  green: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700",
+  purple: "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-700",
+  blue: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-700",
+  gold: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700",
+  orange: "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-300 dark:border-orange-700",
+  red: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-300 dark:border-red-700",
+  teal: "bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 border-teal-300 dark:border-teal-700",
+  emerald: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700",
+  indigo: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-indigo-300 dark:border-indigo-700",
 };
 
 function BadgeCard({ badge, earned = false }: { badge: Badge; earned?: boolean }) {
@@ -81,32 +95,32 @@ function BadgeCard({ badge, earned = false }: { badge: Badge; earned?: boolean }
 
   return (
     <div
-      className={`p-3 rounded-lg border-2 transition-all ${
+      className={`p-3 rounded-xl border-2 transition-all ${
         earned
-          ? `${colorClass} shadow-sm`
-          : "bg-gray-50 text-gray-400 border-gray-200"
+          ? `${colorClass}`
+          : "bg-gray-50 dark:bg-gray-800/50 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700"
       }`}
     >
       <div className="flex items-center gap-3">
-        <div className={`p-2 rounded-full ${earned ? "bg-white/50" : "bg-gray-200"}`}>
+        <div className={`p-2 rounded-xl ${earned ? "bg-white/50 dark:bg-black/20" : "bg-gray-200 dark:bg-gray-700"}`}>
           <BadgeIcon icon={badge.icon} className="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className={`font-medium text-sm ${earned ? "" : "text-gray-500"}`}>
+          <p className={`font-medium text-sm ${earned ? "" : "text-gray-500 dark:text-gray-400"}`}>
             {badge.name}
           </p>
-          <p className={`text-xs ${earned ? "opacity-80" : "text-gray-400"}`}>
+          <p className={`text-xs ${earned ? "opacity-80" : "text-gray-400 dark:text-gray-500"}`}>
             {badge.description}
           </p>
         </div>
         {!earned && badge.progress !== undefined && badge.progress > 0 && (
-          <div className="w-12 text-center">
-            <div className="text-xs font-medium text-gray-500">
+          <div className="w-14 text-center">
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
               {badge.progress.toFixed(0)}%
             </div>
-            <div className="h-1 bg-gray-200 rounded-full mt-1">
+            <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full mt-1 overflow-hidden">
               <div
-                className="h-full bg-blue-500 rounded-full"
+                className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
                 style={{ width: `${badge.progress}%` }}
               />
             </div>
@@ -132,27 +146,27 @@ function formatValue(value: number, metric: string): string {
 function RankBadge({ rank }: { rank: number }) {
   if (rank === 1) {
     return (
-      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-500 flex items-center justify-center text-white font-bold shadow-lg">
+      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center text-white font-bold shadow-lg shadow-amber-500/30 text-lg">
         1
       </div>
     );
   }
   if (rank === 2) {
     return (
-      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white font-bold shadow">
+      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white font-bold shadow-lg shadow-gray-400/30 text-lg">
         2
       </div>
     );
   }
   if (rank === 3) {
     return (
-      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-white font-bold shadow">
+      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-600 to-amber-700 flex items-center justify-center text-white font-bold shadow-lg shadow-amber-600/30 text-lg">
         3
       </div>
     );
   }
   return (
-    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-medium">
+    <div className="w-11 h-11 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-400 font-semibold text-lg">
       {rank}
     </div>
   );
@@ -166,6 +180,14 @@ export default function LeaderboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [metric, setMetric] = useState<"revenue" | "deals" | "activities" | "close_rate">("revenue");
   const [period, setPeriod] = useState<"week" | "month" | "quarter" | "year">("month");
+  const [mounted, setMounted] = useState(false);
+
+  // Gamification context
+  const { showDemoTeam, setShowDemoTeam, getDemoPerformance, underdogMoments, clearUnderdogMoment, canMuteDemoTeam } = useGamification();
+
+  useEffect(() => {
+    setTimeout(() => setMounted(true), 100);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -190,138 +212,362 @@ export default function LeaderboardPage() {
     }
   }
 
+  // Merge real and demo salespeople for leaderboard
+  const mergedEntries = useMemo(() => {
+    // Extended entry type for demo support
+    type ExtendedEntry = {
+      user_id: number;
+      display_name: string;
+      email: string;
+      value: number;
+      rank: number;
+      change: number;
+      avatar_color: string;
+      streak?: number;
+      isDemo?: boolean;
+      demoId?: number;
+    };
+
+    let entries: ExtendedEntry[] = leaderboard?.entries.map(e => ({ ...e })) || [];
+
+    // Add demo salespeople if enabled
+    if (showDemoTeam) {
+      const demoPerformance = getDemoPerformance();
+      const demoEntries: ExtendedEntry[] = demoPerformance.map((perf) => {
+        const person = getDemoSalesperson(perf.user_id);
+        let value = 0;
+        switch (metric) {
+          case "revenue":
+            value = perf.total_revenue;
+            break;
+          case "deals":
+            value = perf.won_leads;
+            break;
+          case "activities":
+            value = perf.total_activities || (perf.calls_count + perf.emails_count + perf.meetings_count);
+            break;
+          case "close_rate":
+            value = perf.close_rate;
+            break;
+        }
+        return {
+          user_id: perf.user_id,
+          display_name: person?.display_name || "Demo Salesperson",
+          email: person?.archetype || "demo@site2crm.com",
+          value,
+          rank: 0,
+          change: Math.floor(Math.random() * 3) - 1,
+          avatar_color: person?.avatar_color || "bg-gradient-to-br from-amber-500 to-orange-600",
+          isDemo: true,
+          demoId: perf.user_id,
+        };
+      });
+
+      entries = [...entries, ...demoEntries];
+    }
+
+    // Sort by value and assign ranks
+    entries.sort((a, b) => b.value - a.value);
+    entries.forEach((entry, idx) => {
+      entry.rank = idx + 1;
+    });
+
+    return entries;
+  }, [leaderboard, showDemoTeam, getDemoPerformance, metric]);
+
+  // Get current underdog moment to celebrate
+  const currentUnderdogMoment = underdogMoments[0] || null;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative w-16 h-16">
+            <div className="absolute inset-0 rounded-full border-4 border-indigo-100 dark:border-indigo-900/30" />
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-indigo-600 animate-spin" />
+          </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Loading leaderboard...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-        {error}
+      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-6 text-red-700 dark:text-red-400">
+        <div className="flex items-center gap-3">
+          <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>{error}</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 transition-all duration-500 ${mounted ? "opacity-100" : "opacity-0"}`}>
+      {/* Underdog Celebration Modal */}
+      {currentUnderdogMoment && (
+        <UnderdogCelebration
+          moment={currentUnderdogMoment}
+          onClose={() => clearUnderdogMoment(currentUnderdogMoment.userId)}
+        />
+      )}
+
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Leaderboard</h1>
-          <p className="text-sm text-gray-500">Track your progress and compete with the team</p>
+      <div className={`space-y-4 transition-all duration-500 ${mounted ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Leaderboard</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Track your progress and compete with the team</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            {/* Demo Team Toggle */}
+            <DemoTeamToggle
+              showDemoTeam={showDemoTeam}
+              onToggle={() => setShowDemoTeam(!showDemoTeam)}
+              canMute={canMuteDemoTeam}
+              variant="minimal"
+            />
+            <select
+              value={metric}
+              onChange={(e) => setMetric(e.target.value as typeof metric)}
+              className="px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 min-h-[44px]"
+            >
+              <option value="revenue">Revenue</option>
+              <option value="deals">Deals Closed</option>
+              <option value="activities">Activities</option>
+              <option value="close_rate">Close Rate</option>
+            </select>
+            <select
+              value={period}
+              onChange={(e) => setPeriod(e.target.value as typeof period)}
+              className="px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 min-h-[44px]"
+            >
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="quarter">This Quarter</option>
+              <option value="year">This Year</option>
+            </select>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <select
-            value={metric}
-            onChange={(e) => setMetric(e.target.value as typeof metric)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="revenue">Revenue</option>
-            <option value="deals">Deals Closed</option>
-            <option value="activities">Activities</option>
-            <option value="close_rate">Close Rate</option>
-          </select>
-          <select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value as typeof period)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-            <option value="quarter">This Quarter</option>
-            <option value="year">This Year</option>
-          </select>
-        </div>
+        {/* Rotating Wisdom */}
+        <RotatingWisdom />
       </div>
 
       {/* Overview Cards */}
       {overview && (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow p-4 text-white">
-            <p className="text-blue-100 text-sm">Your Rank</p>
-            <p className="text-3xl font-bold">#{overview.current_rank}</p>
-            <p className="text-blue-100 text-xs">of {overview.total_participants}</p>
+        <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 transition-all duration-500 delay-75 ${mounted ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
+          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-5 text-white shadow-lg shadow-indigo-500/25">
+            <p className="text-indigo-100 text-sm">Your Rank</p>
+            <p className="text-3xl font-bold mt-1">#{overview.current_rank}</p>
+            <p className="text-indigo-200 text-xs mt-1">of {overview.total_participants}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <p className="text-gray-500 text-sm">Points This Month</p>
-            <p className="text-2xl font-bold text-gray-900">{overview.points_this_month.toLocaleString()}</p>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Points This Month</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{overview.points_this_month.toLocaleString()}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <p className="text-gray-500 text-sm">Badges Earned</p>
-            <p className="text-2xl font-bold text-purple-600">{overview.badges_earned}</p>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Badges Earned</p>
+            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{overview.badges_earned}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <p className="text-gray-500 text-sm">Active Streak</p>
-            <p className="text-2xl font-bold text-orange-600">{overview.streak_days} days</p>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Active Streak</p>
+            <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">{overview.streak_days} days</p>
           </div>
-          <div className="col-span-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg shadow p-4 text-white">
+          <div className="col-span-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-5 text-white shadow-lg shadow-purple-500/25">
             <p className="text-purple-100 text-sm">Next Badge</p>
             {badges?.in_progress_badges[0] ? (
-              <div className="flex items-center gap-2 mt-1">
-                <BadgeIcon icon={badges.in_progress_badges[0].icon} className="w-5 h-5" />
+              <div className="flex items-center gap-2 mt-2">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <BadgeIcon icon={badges.in_progress_badges[0].icon} className="w-5 h-5" />
+                </div>
                 <span className="font-medium">{badges.in_progress_badges[0].name}</span>
                 <span className="text-purple-200 text-sm">
                   ({badges.in_progress_badges[0].progress?.toFixed(0)}%)
                 </span>
               </div>
             ) : (
-              <p className="font-medium mt-1">All badges earned!</p>
+              <p className="font-medium mt-2">All badges earned!</p>
             )}
           </div>
         </div>
       )}
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Leaderboard */}
-        <div className="lg:col-span-2 bg-white rounded-lg shadow">
-          <div className="px-5 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">
-              {leaderboard?.metric_label} - {leaderboard?.period_label}
-            </h3>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {leaderboard?.entries.map((entry) => (
-              <div
-                key={entry.user_id}
-                className={`px-5 py-4 flex items-center gap-4 transition-colors ${
-                  entry.rank <= 3 ? "bg-gradient-to-r from-yellow-50/50 to-transparent" : "hover:bg-gray-50"
-                }`}
-              >
-                <RankBadge rank={entry.rank} />
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${entry.avatar_color}`}
-                >
-                  {entry.display_name.charAt(0).toUpperCase()}
+      {/* Performance Visualization */}
+      {mergedEntries.length > 0 && (
+        <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 transition-all duration-500 delay-100 ${mounted ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
+          {/* Top Performers Bar Chart */}
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-900">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900">{entry.display_name}</p>
-                  <p className="text-sm text-gray-500 truncate">{entry.email}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold text-gray-900">
-                    {formatValue(entry.value, leaderboard.metric)}
-                  </p>
-                  {entry.change !== 0 && (
-                    <p
-                      className={`text-sm ${
-                        entry.change > 0 ? "text-green-600" : "text-red-600"
-                      }`}
-                    >
-                      {entry.change > 0 ? "+" : ""}
-                      {entry.change}
-                    </p>
-                  )}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Performance Comparison</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{leaderboard?.metric_label}</p>
                 </div>
               </div>
-            ))}
+            </div>
+            <div className="p-6">
+              <AnimatedBarChart
+                data={mergedEntries.slice(0, 6).map(e => ({
+                  name: e.display_name.split(' ')[0],
+                  value: e.value,
+                }))}
+                height={240}
+                horizontal
+                colors={CHART_COLORS.gradient}
+                barRadius={6}
+              />
+            </div>
+          </div>
 
-            {leaderboard?.entries.length === 0 && (
-              <div className="px-5 py-12 text-center text-gray-500">
+          {/* Your Rank Visual */}
+          {overview && (
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+              <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-900">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/25">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Your Progress</h3>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="flex items-center justify-around">
+                  <RadialGauge
+                    value={(1 - (overview.current_rank - 1) / Math.max(overview.total_participants - 1, 1)) * 100}
+                    label="Rank Percentile"
+                    sublabel={`#${overview.current_rank} of ${overview.total_participants}`}
+                    size={160}
+                    thickness={16}
+                    gradient="indigo"
+                  />
+                  <div className="space-y-4 flex-1 max-w-xs ml-8">
+                    <ComparisonBar
+                      label="Points This Month"
+                      value={overview.points_this_month}
+                      maxValue={Math.max(overview.points_this_month * 1.5, 5000)}
+                      gradient="purple"
+                      formatValue={(v) => v.toLocaleString() + ' pts'}
+                    />
+                    <ComparisonBar
+                      label="Badges Earned"
+                      value={overview.badges_earned}
+                      maxValue={15}
+                      gradient="amber"
+                      formatValue={(v) => v.toString()}
+                    />
+                    <ComparisonBar
+                      label="Active Streak"
+                      value={overview.streak_days}
+                      maxValue={30}
+                      gradient="emerald"
+                      formatValue={(v) => v + ' days'}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* AI Coaching Tip */}
+      <div className={`transition-all duration-500 delay-150 ${mounted ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
+        <AIInsightWidget
+          variant="banner"
+          insights={[
+            { icon: "trending", text: "You're just 3 deals away from the 'Deal Closer' badge! Focus on your proposal-stage leads to level up." }
+          ]}
+          ctaText="Get Personalized Tips"
+        />
+      </div>
+
+      {/* Main Content Grid */}
+      <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 transition-all duration-500 delay-150 ${mounted ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
+        {/* Leaderboard */}
+        <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-900">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {leaderboard?.metric_label} - {leaderboard?.period_label}
+                </h3>
+              </div>
+            </div>
+          </div>
+          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+            {mergedEntries.map((entry, idx) => {
+              const isDemo = (entry as any).isDemo;
+              const demoPerson = isDemo ? getDemoSalesperson((entry as any).demoId) : null;
+              return (
+                <div
+                  key={`${entry.user_id}-${isDemo ? 'demo' : 'real'}`}
+                  className={`px-6 py-4 flex items-center gap-4 transition-all ${
+                    entry.rank <= 3
+                      ? "bg-gradient-to-r from-amber-50/50 to-transparent dark:from-amber-900/10 dark:to-transparent"
+                      : isDemo
+                        ? "bg-gradient-to-r from-indigo-50/30 to-transparent dark:from-indigo-900/10 dark:to-transparent hover:from-indigo-50/50 dark:hover:from-indigo-900/20"
+                        : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  }`}
+                  style={{ animationDelay: `${idx * 50}ms` }}
+                >
+                  <RankBadge rank={entry.rank} />
+                  <div
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center text-white font-semibold ${entry.avatar_color}`}
+                  >
+                    {isDemo ? "🎯" : entry.display_name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-gray-900 dark:text-white">{entry.display_name}</p>
+                      {isDemo && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300">
+                          DEMO
+                        </span>
+                      )}
+                      {entry.rank <= 3 && !isDemo && (
+                        <span className="text-amber-500 text-sm">⭐</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                      {isDemo ? demoPerson?.archetype : entry.email}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">
+                      {formatValue(entry.value, leaderboard?.metric || metric)}
+                    </p>
+                    {entry.change !== 0 && (
+                      <p
+                        className={`text-sm font-medium ${
+                          entry.change > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                        }`}
+                      >
+                        {entry.change > 0 ? "+" : ""}
+                        {entry.change}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {mergedEntries.length === 0 && (
+              <div className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                 No data available for this period
               </div>
             )}
@@ -331,14 +577,21 @@ export default function LeaderboardPage() {
         {/* Badges Section */}
         <div className="space-y-6">
           {/* Earned Badges */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Your Badges</h3>
-              <span className="text-sm text-gray-500">{badges?.total_points} pts</span>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-900 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/25">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Your Badges</h3>
+              </div>
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{badges?.total_points} pts</span>
             </div>
             <div className="p-4 space-y-3">
               {badges?.earned_badges.length === 0 ? (
-                <p className="text-gray-500 text-sm text-center py-4">
+                <p className="text-gray-500 dark:text-gray-400 text-sm text-center py-4">
                   No badges earned yet. Keep going!
                 </p>
               ) : (
@@ -351,9 +604,16 @@ export default function LeaderboardPage() {
 
           {/* In Progress */}
           {badges?.in_progress_badges && badges.in_progress_badges.length > 0 && (
-            <div className="bg-white rounded-lg shadow">
-              <div className="px-5 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">In Progress</h3>
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+              <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-900">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">In Progress</h3>
+                </div>
               </div>
               <div className="p-4 space-y-3">
                 {badges.in_progress_badges.map((badge) => (
@@ -364,18 +624,24 @@ export default function LeaderboardPage() {
           )}
 
           {/* Quick Stats */}
-          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow p-5 text-white">
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 text-white">
             <h3 className="font-semibold mb-4">Leaderboard Stats</h3>
             <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-gray-400">Total Participants</span>
-                <span className="font-medium">{leaderboard?.total_participants}</span>
+                <span className="font-medium">{mergedEntries.length}</span>
               </div>
-              <div className="flex justify-between">
+              {showDemoTeam && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">Demo Team</span>
+                  <span className="font-medium text-indigo-400">9 members</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center">
                 <span className="text-gray-400">Period</span>
                 <span className="font-medium">{leaderboard?.period_label}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-gray-400">Last Updated</span>
                 <span className="font-medium">
                   {leaderboard?.last_updated

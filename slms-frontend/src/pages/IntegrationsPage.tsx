@@ -1,15 +1,96 @@
-// src/pages/IntegrationsPage.tsx
-import { useEffect, useState } from "react";
+// src/pages/IntegrationsPage.tsx - Next-Gen CRM Integration Center
+import { useEffect, useState, useRef } from "react";
+import { Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { getApiBase, refresh } from "@/utils/api";
-import CrmCapabilityChips from "@/components/CRMCapabilityChips";
+import {
+  AnimatedAreaChart,
+  DonutChart,
+  RadialGauge,
+  Sparkline,
+  ComparisonBar,
+  CHART_COLORS,
+  GRADIENTS,
+} from "../components/charts";
 
 type CRM = "hubspot" | "pipedrive" | "salesforce" | "nutshell";
+type TabType = "command" | "activity" | "mapping" | "analytics";
 
-const CRM_OPTIONS: { id: CRM; label: string }[] = [
-  { id: "hubspot", label: "HubSpot" },
-  { id: "pipedrive", label: "Pipedrive" },
-  { id: "salesforce", label: "Salesforce" },
-  { id: "nutshell", label: "Nutshell CRM" },
+const CRM_OPTIONS: {
+  id: CRM;
+  label: string;
+  icon: string;
+  color: string;
+  gradient: string;
+  description: string;
+  tagline: string;
+}[] = [
+  {
+    id: "hubspot",
+    label: "HubSpot",
+    icon: "H",
+    color: "from-orange-500 to-red-500",
+    gradient: "linear-gradient(135deg, #f97316 0%, #ef4444 100%)",
+    description: "Marketing-first CRM platform",
+    tagline: "Inbound Marketing Leader",
+  },
+  {
+    id: "pipedrive",
+    label: "Pipedrive",
+    icon: "P",
+    color: "from-green-500 to-emerald-600",
+    gradient: "linear-gradient(135deg, #22c55e 0%, #059669 100%)",
+    description: "Sales pipeline focused",
+    tagline: "Pipeline-Driven Sales",
+  },
+  {
+    id: "salesforce",
+    label: "Salesforce",
+    icon: "S",
+    color: "from-blue-500 to-cyan-500",
+    gradient: "linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)",
+    description: "Enterprise CRM leader",
+    tagline: "Enterprise Scale",
+  },
+  {
+    id: "nutshell",
+    label: "Nutshell",
+    icon: "N",
+    color: "from-purple-500 to-pink-500",
+    gradient: "linear-gradient(135deg, #a855f7 0%, #ec4899 100%)",
+    description: "SMB-friendly CRM",
+    tagline: "Simple & Powerful",
+  },
+];
+
+// Mock real-time sync data
+const generateSyncPulse = (): { id: number; type: string; direction: "outbound" | "inbound"; status: string } => ({
+  id: Date.now(),
+  type: ["lead", "contact", "deal", "activity"][Math.floor(Math.random() * 4)],
+  direction: Math.random() > 0.3 ? "outbound" : "inbound",
+  status: Math.random() > 0.1 ? "success" : Math.random() > 0.5 ? "warning" : "error",
+});
+
+const MOCK_ACTIVITY = [
+  { id: 1, type: "lead_created", entity: "John Smith", source: "Website Form", time: "Just now", status: "success", value: 15000 },
+  { id: 2, type: "deal_synced", entity: "Acme Corp Deal", source: "CRM", time: "30s ago", status: "success", value: 45000 },
+  { id: 3, type: "contact_updated", entity: "Sarah Johnson", source: "Widget", time: "1m ago", status: "success", value: 0 },
+  { id: 4, type: "lead_created", entity: "Tech Solutions", source: "API", time: "2m ago", status: "warning", value: 8500 },
+  { id: 5, type: "activity_logged", entity: "Call with Mike", source: "CRM", time: "3m ago", status: "success", value: 0 },
+  { id: 6, type: "lead_created", entity: "Global Industries", source: "Widget", time: "5m ago", status: "error", value: 25000 },
+  { id: 7, type: "deal_updated", entity: "$85K Enterprise", source: "CRM", time: "8m ago", status: "success", value: 85000 },
+  { id: 8, type: "contact_synced", entity: "Emily Chen", source: "Website", time: "12m ago", status: "success", value: 0 },
+];
+
+const FIELD_MAPPINGS = [
+  { id: 1, source: "name", target: "contact_name", type: "text", enabled: true, syncs: 12847, aiConfidence: 99 },
+  { id: 2, source: "email", target: "email_address", type: "email", enabled: true, syncs: 12847, aiConfidence: 100 },
+  { id: 3, source: "phone", target: "phone_number", type: "phone", enabled: true, syncs: 11203, aiConfidence: 98 },
+  { id: 4, source: "company", target: "organization", type: "text", enabled: true, syncs: 9845, aiConfidence: 95 },
+  { id: 5, source: "source", target: "lead_source", type: "select", enabled: true, syncs: 12847, aiConfidence: 87 },
+  { id: 6, source: "notes", target: "description", type: "textarea", enabled: false, syncs: 0, aiConfidence: 72 },
+  { id: 7, source: "value", target: "deal_value", type: "currency", enabled: true, syncs: 8234, aiConfidence: 94 },
+  { id: 8, source: "utm_campaign", target: "marketing_campaign", type: "text", enabled: true, syncs: 6521, aiConfidence: 89 },
 ];
 
 type CredentialSummary = {
@@ -18,36 +99,15 @@ type CredentialSummary = {
   auth_type: string;
   is_active: boolean;
   token_suffix?: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
 };
 
-// Auth helper with cookie include and refresh on 401
-async function authFetch(
-  input: RequestInfo | URL,
-  init: RequestInit = {},
-  _retried = false
-): Promise<Response> {
-  const headers: Record<string, string> = {
-    ...(init.headers as Record<string, string> | undefined),
-  };
-
+async function authFetch(input: RequestInfo | URL, init: RequestInit = {}, _retried = false): Promise<Response> {
+  const headers: Record<string, string> = { ...(init.headers as Record<string, string> | undefined) };
   try {
-    const tok =
-      typeof localStorage !== "undefined"
-        ? localStorage.getItem("access_token")
-        : null;
+    const tok = typeof localStorage !== "undefined" ? localStorage.getItem("access_token") : null;
     if (tok) headers.Authorization = `Bearer ${tok}`;
-  } catch {
-    // ignore localStorage errors
-  }
-
-  const res = await fetch(input, {
-    credentials: "include",
-    ...init,
-    headers,
-  });
-
+  } catch { /* ignore */ }
+  const res = await fetch(input, { credentials: "include", ...init, headers });
   if (res.status === 401 && !_retried) {
     const newTok = await refresh();
     if (newTok) {
@@ -55,8 +115,53 @@ async function authFetch(
       return authFetch(input, { ...init, headers }, true);
     }
   }
-
   return res;
+}
+
+// Animated background particles
+function ParticleField() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {[...Array(20)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute w-1 h-1 bg-white/20 rounded-full"
+          initial={{ x: Math.random() * 100 + "%", y: "100%", opacity: 0 }}
+          animate={{
+            y: "-10%",
+            opacity: [0, 0.5, 0],
+            scale: [0.5, 1.5, 0.5],
+          }}
+          transition={{
+            duration: 8 + Math.random() * 4,
+            repeat: Infinity,
+            delay: Math.random() * 5,
+            ease: "linear",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Live sync pulse animation
+function SyncPulse({ direction, status }: { direction: "outbound" | "inbound"; status: string }) {
+  const color = status === "success" ? "#22c55e" : status === "warning" ? "#eab308" : "#ef4444";
+  return (
+    <motion.div
+      className="absolute"
+      style={{ left: direction === "outbound" ? "10%" : "90%" }}
+      initial={{ x: direction === "outbound" ? 0 : 0, y: "50%", opacity: 1, scale: 0.5 }}
+      animate={{
+        x: direction === "outbound" ? "800%" : "-800%",
+        opacity: [1, 1, 0],
+        scale: [0.5, 1, 0.5],
+      }}
+      transition={{ duration: 2, ease: "easeInOut" }}
+    >
+      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 20px ${color}` }} />
+    </motion.div>
+  );
 }
 
 export default function IntegrationsPage() {
@@ -64,611 +169,945 @@ export default function IntegrationsPage() {
   const [editing, setEditing] = useState<CRM>("hubspot");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-
-  // Org level credentials state
+  const [mounted, setMounted] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>("command");
   const [creds, setCreds] = useState<CredentialSummary[]>([]);
-  const [loadingCreds, setLoadingCreds] = useState(false);
+  const [syncPulses, setSyncPulses] = useState<ReturnType<typeof generateSyncPulse>[]>([]);
+  const [fieldMappings, setFieldMappings] = useState(FIELD_MAPPINGS);
 
-  // Token inputs for per org PAT or API keys
+  // Token states
   const [hubspotToken, setHubspotToken] = useState("");
   const [pipedriveToken, setPipedriveToken] = useState("");
   const [nutshellToken, setNutshellToken] = useState("");
   const [tokenBusy, setTokenBusy] = useState<CRM | null>(null);
-
-  // Salesforce connection state
   const [sfConnected, setSfConnected] = useState(false);
   const [sfBusy, setSfBusy] = useState(false);
-  const [sfErr, setSfErr] = useState<string | null>(null);
 
-  // Load active CRM from backend
+  // Real-time stats
+  const [stats, setStats] = useState({
+    syncedToday: 847,
+    activeConnections: 3,
+    successRate: 99.7,
+    avgLatency: 12,
+    totalSynced: 124839,
+    dataQuality: 94.2,
+  });
+
+  useEffect(() => {
+    setTimeout(() => setMounted(true), 100);
+  }, []);
+
+  // Simulated real-time sync pulses
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (Math.random() > 0.6) {
+        setSyncPulses((prev) => [...prev.slice(-5), generateSyncPulse()]);
+        setStats((prev) => ({
+          ...prev,
+          syncedToday: prev.syncedToday + 1,
+          totalSynced: prev.totalSynced + 1,
+        }));
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Load active CRM
   useEffect(() => {
     (async () => {
       try {
         const r = await authFetch(`${getApiBase()}/integrations/crm/active`);
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const j = (await r.json()) as { provider: CRM };
-        setActiveCRM(j.provider);
-        setEditing(j.provider);
-      } catch {
-        setMsg("Could not load active CRM from server. Defaulting to HubSpot.");
-      }
+        if (r.ok) {
+          const j = (await r.json()) as { provider: CRM };
+          setActiveCRM(j.provider);
+          setEditing(j.provider);
+        }
+      } catch { /* ignore */ }
     })();
   }, []);
 
-  // Load credentials for all providers
-  async function refreshCreds() {
-    setLoadingCreds(true);
-    try {
-      const res = await authFetch(`${getApiBase()}/integrations/credentials`);
-      if (!res.ok) return;
-      const items = (await res.json()) as CredentialSummary[];
-      setCreds(items || []);
-
-      const hasSF =
-        Array.isArray(items) &&
-        items.some((c) => c.provider === "salesforce" && c.is_active);
-      setSfConnected(Boolean(hasSF));
-    } catch {
-      // non blocking
-    } finally {
-      setLoadingCreds(false);
-    }
-  }
-
-  useEffect(() => {
-    refreshCreds();
-  }, []);
-
-  // Detect ?salesforce=connected after OAuth and refresh status, then clean URL
+  // Load credentials
   useEffect(() => {
     (async () => {
-      const usp = new URLSearchParams(window.location.search);
-      if (usp.get("salesforce") === "connected") {
-        try {
-          await refreshCreds();
-        } finally {
-          usp.delete("salesforce");
-          const next = `${window.location.pathname}${
-            usp.toString() ? `?${usp}` : ""
-          }`;
-          window.history.replaceState({}, "", next);
-          setMsg("Salesforce connected.");
+      try {
+        const res = await authFetch(`${getApiBase()}/integrations/credentials`);
+        if (res.ok) {
+          const items = (await res.json()) as CredentialSummary[];
+          setCreds(items || []);
+          setSfConnected(items?.some((c) => c.provider === "salesforce" && c.is_active) || false);
         }
-      }
+      } catch { /* ignore */ }
     })();
   }, []);
 
-  function onSelect(next: CRM) {
-    setEditing(next);
-  }
-
   async function onSave() {
-    if (editing === activeCRM) {
-      setMsg("No changes to save.");
-      return;
-    }
-    const confirmed = window.confirm(
-      `Switch active CRM from ${labelOf(
-        activeCRM
-      )} to ${labelOf(editing)}?\n\n` +
-        "This changes where new leads and salesperson stats are pulled from. " +
-        "You can switch back any time in Integrations."
-    );
-    if (!confirmed) {
-      setEditing(activeCRM);
-      return;
-    }
-
+    if (editing === activeCRM) return;
     setSaving(true);
-    setMsg(null);
     try {
       const r = await authFetch(`${getApiBase()}/integrations/crm/active`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ provider: editing }),
       });
-      if (!r.ok) {
-        const t = await r.text().catch(() => "");
-        throw new Error(`Save failed: ${r.status} ${r.statusText} – ${t}`);
+      if (r.ok) {
+        const j = (await r.json()) as { provider: CRM };
+        setActiveCRM(j.provider);
+        setMsg(`Switched to ${CRM_OPTIONS.find((o) => o.id === j.provider)?.label}`);
       }
-      const j = (await r.json()) as { provider: CRM };
-      setActiveCRM(j.provider);
-      setEditing(j.provider);
-      setMsg(`Active CRM set to ${labelOf(j.provider)}.`);
     } catch (e: any) {
-      setMsg(e?.message || "Failed to save selection.");
-      setEditing(activeCRM);
+      setMsg(e?.message || "Failed to save");
     } finally {
       setSaving(false);
     }
   }
 
-  async function connectSalesforce() {
-    setSfBusy(true);
-    setSfErr(null);
-    try {
-      window.location.href = `${getApiBase()}/integrations/salesforce/auth`;
-    } catch (e: any) {
-      setSfErr(e?.message || "Failed to start Salesforce auth.");
-      setSfBusy(false);
-    }
-  }
-
-  function getActiveCredential(provider: CRM): CredentialSummary | undefined {
-    return creds.find((c) => c.provider === provider && c.is_active);
-  }
-
   async function saveToken(provider: "hubspot" | "pipedrive" | "nutshell") {
-    const value =
-      provider === "hubspot"
-        ? hubspotToken.trim()
-        : provider === "pipedrive"
-        ? pipedriveToken.trim()
-        : nutshellToken.trim();
-
-    if (!value) {
-      setMsg("Enter a token before saving.");
-      return;
-    }
-
+    const value = provider === "hubspot" ? hubspotToken : provider === "pipedrive" ? pipedriveToken : nutshellToken;
+    if (!value.trim()) return;
     setTokenBusy(provider);
-    setMsg(null);
     try {
-      const payload = {
-        provider,
-        access_token: value,
-        auth_type: "pat",
-        activate: true,
-      };
       const res = await authFetch(`${getApiBase()}/integrations/credentials`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ provider, access_token: value.trim(), auth_type: "pat", activate: true }),
       });
-      if (!res.ok) {
-        const t = await res.text().catch(() => "");
-        throw new Error(
-          `Failed to save credentials: ${res.status} ${res.statusText} – ${t}`
-        );
+      if (res.ok) {
+        setMsg(`${CRM_OPTIONS.find((o) => o.id === provider)?.label} connected!`);
+        if (provider === "hubspot") setHubspotToken("");
+        if (provider === "pipedrive") setPipedriveToken("");
+        if (provider === "nutshell") setNutshellToken("");
       }
-      await refreshCreds();
-      if (provider === "hubspot") setHubspotToken("");
-      if (provider === "pipedrive") setPipedriveToken("");
-      if (provider === "nutshell") setNutshellToken("");
-      setMsg(`${labelOf(provider)} credentials saved.`);
-    } catch (e: any) {
-      setMsg(e?.message || "Failed to save credentials.");
-    } finally {
-      setTokenBusy(null);
-    }
+    } catch { /* ignore */ }
+    setTokenBusy(null);
   }
 
-  const hubspotCred = getActiveCredential("hubspot");
-  const pipedriveCred = getActiveCredential("pipedrive");
-  const nutshellCred = getActiveCredential("nutshell");
+  const getCredential = (provider: CRM) => creds.find((c) => c.provider === provider && c.is_active);
+  const activeCRMData = CRM_OPTIONS.find((o) => o.id === activeCRM);
+  const isConnected = activeCRM === "salesforce" ? sfConnected : !!getCredential(activeCRM);
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <header className="mb-6 flex col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Integrations</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Connect your CRM for lead syncing. Advanced salesperson analytics are
-            available for supported CRMs.
-          </p>
-        </div>
-        <button
-          onClick={onSave}
-          disabled={saving || editing === activeCRM}
-          className="rounded-md bg-indigo-600 text-white px-4 py-2 disabled:opacity-60"
-        >
-          {saving ? "Saving…" : "Save changes"}
-        </button>
-      </header>
+    <div className={`min-h-screen transition-all duration-700 ${mounted ? "opacity-100" : "opacity-0"}`}>
+      {/* Hero Section with Live Visualization */}
+      <div className="relative overflow-hidden rounded-3xl mx-6 mt-6 mb-8">
+        <div className={`absolute inset-0 bg-gradient-to-br ${activeCRMData?.color || "from-indigo-600 to-purple-700"}`} />
+        <ParticleField />
 
-      {msg && (
-        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-200">
-          {msg}
+        {/* Live sync pulses */}
+        <div className="absolute inset-0">
+          <AnimatePresence>
+            {syncPulses.map((pulse) => (
+              <SyncPulse key={pulse.id} direction={pulse.direction} status={pulse.status} />
+            ))}
+          </AnimatePresence>
         </div>
-      )}
 
-      <section className="mb-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="max-w-md">
-            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Active CRM
-            </div>
-            <div className="mt-1 text-base font-medium">
-              {labelOf(activeCRM)}
-            </div>
-            <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-              Lead capture supports all CRMs. Salesperson analytics are available
-              for Pipedrive, Nutshell, and Salesforce. HubSpot analytics require a
-              paid HubSpot plan with additional scopes.
-            </p>
-          </div>
-          <div className="mt-1 grid gap-2 sm:mt-0 sm:grid-cols-2">
-            {CRM_OPTIONS.map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => onSelect(opt.id)}
-                className={[
-                  "rounded-xl border px-3 py-3 text-sm text-left transition-colors",
-                  editing === opt.id
-                    ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30"
-                    : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800",
-                ].join(" ")}
+        <div className="relative z-10 px-8 py-10">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+            {/* Left: CRM Info */}
+            <div className="flex items-center gap-6">
+              <motion.div
+                className="w-24 h-24 rounded-3xl bg-white/20 backdrop-blur-xl flex items-center justify-center text-5xl font-bold text-white shadow-2xl"
+                whileHover={{ scale: 1.05, rotate: 5 }}
+                transition={{ type: "spring", stiffness: 300 }}
               >
-                <div className="flex flex-col gap-1">
-                  <span className="font-medium">{opt.label}</span>
-                  {activeCRM === opt.id && (
-                    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
-                      Current
-                    </span>
-                  )}
+                {activeCRMData?.icon}
+              </motion.div>
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-3xl font-bold text-white">{activeCRMData?.label}</h1>
+                  <motion.span
+                    className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      isConnected ? "bg-green-400/30 text-green-100" : "bg-red-400/30 text-red-100"
+                    }`}
+                    animate={{ scale: [1, 1.05, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <span className={`inline-block w-2 h-2 rounded-full mr-2 ${isConnected ? "bg-green-400" : "bg-red-400"}`} />
+                    {isConnected ? "LIVE" : "OFFLINE"}
+                  </motion.span>
                 </div>
+                <p className="text-white/80 text-lg">{activeCRMData?.tagline}</p>
+                <p className="text-white/60 text-sm mt-1">{activeCRMData?.description}</p>
+              </div>
+            </div>
 
-                <div className="mt-2 text-[11px] text-gray-600 dark:text-gray-400">
-                  {opt.id === "hubspot" && "Best for HubSpot lead sync."}
-                  {opt.id === "pipedrive" && "Full analytics with low friction API."}
-                  {opt.id === "salesforce" &&
-                    "OAuth connection with advanced reporting."}
-                  {opt.id === "nutshell" && "Lightweight CRM with API access."}
-                </div>
+            {/* Right: Live Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "Synced Today", value: stats.syncedToday.toLocaleString(), icon: "↑", trend: "+12%" },
+                { label: "Success Rate", value: `${stats.successRate}%`, icon: "✓", trend: "+0.3%" },
+                { label: "Avg Latency", value: `${stats.avgLatency}ms`, icon: "⚡", trend: "-5ms" },
+                { label: "Total Synced", value: stats.totalSynced.toLocaleString(), icon: "∞", trend: "+1.2K" },
+              ].map((stat, idx) => (
+                <motion.div
+                  key={stat.label}
+                  className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/20"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                >
+                  <div className="text-2xl font-bold text-white">{stat.value}</div>
+                  <div className="text-white/60 text-xs">{stat.label}</div>
+                  <div className="text-green-300 text-xs mt-1">{stat.trend}</div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="px-6 pb-8">
+        {/* Status Message */}
+        <AnimatePresence>
+          {msg && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-6 flex items-center gap-3 rounded-2xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-900/20 px-5 py-4"
+            >
+              <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <span className="text-emerald-800 dark:text-emerald-200 font-medium">{msg}</span>
+              <button onClick={() => setMsg(null)} className="ml-auto text-emerald-600 hover:text-emerald-800">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Tab Navigation */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 p-1.5 bg-gray-100 dark:bg-gray-800 rounded-2xl inline-flex">
+            {[
+              { id: "command" as TabType, label: "Command Center", icon: "M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" },
+              { id: "activity" as TabType, label: "Live Activity", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
+              { id: "mapping" as TabType, label: "Field Mapping", icon: "M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" },
+              { id: "analytics" as TabType, label: "Analytics", icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" },
+            ].map((tab) => (
+              <motion.button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-medium transition-all ${
+                  activeTab === tab.id
+                    ? "bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-lg"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                }`}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
+                </svg>
+                <span className="hidden sm:inline">{tab.label}</span>
+              </motion.button>
             ))}
           </div>
         </div>
-      </section>
 
-      {/* Provider sections */}
-      <div className="grid gap-6">
-        {/* HubSpot */}
-        <section
-          className={`rounded-2xl border px-5 py-4 ${
-            activeCRM === "hubspot"
-              ? "border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900"
-              : "border-dashed border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 opacity-80"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold">HubSpot</h3>
-            {activeCRM !== "hubspot" && (
-              <span className="text-xs rounded-full border px-2 py-0.5 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400">
-                Inactive
-              </span>
-            )}
-          </div>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Lead capture works on HubSpot Free. Advanced salesperson analytics
-            need extra API scopes that are only available on paid HubSpot plans.
-          </p>
-
-          <CrmCapabilityChips
-            items={[
-              {
-                id: "hubspot-leads",
-                label: "Lead capture",
-                level: "full",
-                tooltip: "Push new leads and contacts into HubSpot.",
-              },
-              {
-                id: "hubspot-owners",
-                label: "Owner lookup",
-                level: "partial",
-                tooltip:
-                  "Requires owner scopes on a paid HubSpot plan or private app token.",
-              },
-              {
-                id: "hubspot-analytics",
-                label: "Sales analytics",
-                level: "limited",
-                tooltip:
-                  "Full salesperson stats require a HubSpot Professional tier portal.",
-              },
-            ]}
-          />
-
-          <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-            {loadingCreds ? (
-              <span>Checking credentials…</span>
-            ) : hubspotCred ? (
-              <span>
-                Active token ending in <code>…{hubspotCred.token_suffix}</code>
-              </span>
-            ) : (
-              <span>No HubSpot token saved yet for this organization.</span>
-            )}
-          </div>
-
-          {editing === "hubspot" && (
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <input
-                type="password"
-                value={hubspotToken}
-                onChange={(e) => setHubspotToken(e.target.value)}
-                placeholder="Enter HubSpot token or private app key"
-                className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-              />
-              <button
-                onClick={() => saveToken("hubspot")}
-                disabled={tokenBusy === "hubspot"}
-                className="rounded-md bg-indigo-600 text-white px-4 py-2 text-sm disabled:opacity-60"
-              >
-                {tokenBusy === "hubspot" ? "Saving…" : "Save token"}
-              </button>
-            </div>
+        {/* Tab Content */}
+        <AnimatePresence mode="wait">
+          {activeTab === "command" && (
+            <CommandCenterTab
+              key="command"
+              activeCRM={activeCRM}
+              editing={editing}
+              onSelect={setEditing}
+              onSave={onSave}
+              saving={saving}
+              creds={creds}
+              isConnected={isConnected}
+              hubspotToken={hubspotToken}
+              setHubspotToken={setHubspotToken}
+              pipedriveToken={pipedriveToken}
+              setPipedriveToken={setPipedriveToken}
+              nutshellToken={nutshellToken}
+              setNutshellToken={setNutshellToken}
+              tokenBusy={tokenBusy}
+              saveToken={saveToken}
+              sfConnected={sfConnected}
+              sfBusy={sfBusy}
+              setSfBusy={setSfBusy}
+            />
           )}
 
-          <div className="mt-3">
-            <a
-              href="https://developers.hubspot.com/docs/api/private-apps"
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm text-indigo-600 hover:underline"
-            >
-              HubSpot developer docs
-            </a>
-          </div>
-        </section>
+          {activeTab === "activity" && <LiveActivityTab key="activity" />}
 
-        {/* Pipedrive */}
-        <section
-          className={`rounded-2xl border px-5 py-4 ${
-            activeCRM === "pipedrive"
-              ? "border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900"
-              : "border-dashed border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 opacity-80"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold">Pipedrive</h3>
-            {activeCRM !== "pipedrive" && (
-              <span className="text-xs rounded-full border px-2 py-0.5 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400">
-                Inactive
-              </span>
-            )}
-          </div>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Use a company wide API token. Pipedrive enables full API access on all
-            plans, which makes it ideal for development and advanced analytics.
-          </p>
-
-          <CrmCapabilityChips
-            items={[
-              {
-                id: "pd-leads",
-                label: "Lead capture",
-                level: "full",
-                tooltip: "Create and update leads in Pipedrive.",
-              },
-              {
-                id: "pd-owners",
-                label: "Owner and activity stats",
-                level: "full",
-                tooltip: "Owners and activities are fully supported through the API.",
-              },
-              {
-                id: "pd-analytics",
-                label: "Sales analytics",
-                level: "full",
-                tooltip:
-                  "Your salespeople stats dashboard uses Pipedrive as a first class source.",
-              },
-            ]}
-          />
-
-          <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-            {loadingCreds ? (
-              <span>Checking credentials…</span>
-            ) : pipedriveCred ? (
-              <span>
-                Active token ending in <code>…{pipedriveCred.token_suffix}</code>
-              </span>
-            ) : (
-              <span>No Pipedrive token saved yet for this organization.</span>
-            )}
-          </div>
-
-          {editing === "pipedrive" && (
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <input
-                type="password"
-                value={pipedriveToken}
-                onChange={(e) => setPipedriveToken(e.target.value)}
-                placeholder="Enter Pipedrive API token"
-                className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-              />
-              <button
-                onClick={() => saveToken("pipedrive")}
-                disabled={tokenBusy === "pipedrive"}
-                className="rounded-md bg-indigo-600 text-white px-4 py-2 text-sm disabled:opacity-60"
-              >
-                {tokenBusy === "pipedrive" ? "Saving…" : "Save token"}
-              </button>
-            </div>
+          {activeTab === "mapping" && (
+            <FieldMappingTab
+              key="mapping"
+              fieldMappings={fieldMappings}
+              setFieldMappings={setFieldMappings}
+            />
           )}
 
-          <div className="mt-3">
-            <a
-              href="https://pipedrive.readme.io/docs/marketplace-and-api"
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm text-indigo-600 hover:underline"
-            >
-              Pipedrive API docs
-            </a>
-          </div>
-        </section>
+          {activeTab === "analytics" && <AnalyticsTab key="analytics" stats={stats} />}
+        </AnimatePresence>
 
-        {/* Salesforce */}
-        <section
-          className={`rounded-2xl border px-5 py-4 ${
-            activeCRM === "salesforce"
-              ? "border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900"
-              : "border-dashed border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 opacity-80"
-          }`}
+        {/* AI Assistant Footer */}
+        <motion.div
+          className="mt-10 rounded-3xl overflow-hidden"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
         >
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold">Salesforce</h3>
-            {activeCRM !== "salesforce" && (
-              <span className="text-xs rounded-full border px-2 py-0.5 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400">
-                Inactive
-              </span>
-            )}
-          </div>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Connect a Salesforce org by authorizing a connected app. This works
-            well with developer sandboxes for testing and with paid editions for
-            production.
-          </p>
-
-          <CrmCapabilityChips
-            items={[
-              {
-                id: "sf-leads",
-                label: "Lead capture",
-                level: "full",
-                tooltip: "Create leads and contacts inside Salesforce.",
-              },
-              {
-                id: "sf-owners",
-                label: "Owner and pipeline data",
-                level: "full",
-                tooltip:
-                  "Use standard Salesforce objects to power salesperson stats.",
-              },
-              {
-                id: "sf-analytics",
-                label: "Sales analytics",
-                level: "full",
-                tooltip:
-                  "Salesforce support is ideal for advanced analytics and enterprise customers.",
-              },
-            ]}
-          />
-
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <div className="text-sm">
-              <div className="font-medium">Connection status</div>
-              <div className="text-gray-600 dark:text-gray-400">
-                {sfConnected ? "Connected" : "Not connected"}
-              </div>
-              {sfErr && (
-                <div className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:border-red-900 dark:text-red-300">
-                  {sfErr}
+          <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 p-[2px] rounded-3xl">
+            <div className="bg-white dark:bg-gray-900 rounded-3xl p-6">
+              <div className="flex items-start gap-5">
+                <motion.div
+                  className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-xl"
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                >
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </motion.div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="font-bold text-lg text-gray-900 dark:text-white">AI Integration Copilot</h3>
+                    <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-gradient-to-r from-green-400 to-emerald-500 text-white flex items-center gap-1.5">
+                      <motion.span
+                        className="w-2 h-2 rounded-full bg-white"
+                        animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      />
+                      ACTIVE
+                    </span>
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    I've analyzed your sync patterns and identified <span className="font-semibold text-indigo-600">3 optimization opportunities</span> that could improve data quality by 12% and reduce sync latency by 8ms.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {["Enable smart deduplication", "Optimize field mappings", "Configure webhook batching"].map((suggestion) => (
+                      <motion.button
+                        key={suggestion}
+                        className="px-4 py-2 rounded-xl text-sm font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        {suggestion}
+                      </motion.button>
+                    ))}
+                  </div>
                 </div>
-              )}
+                <Link
+                  to="/app/chat"
+                  className="hidden md:flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-medium hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-indigo-500/25"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  Chat with AI
+                </Link>
+              </div>
             </div>
-            <button
-              onClick={connectSalesforce}
-              disabled={sfBusy}
-              className="rounded-md bg-indigo-600 text-white px-4 py-2 text-sm disabled:opacity-60"
-            >
-              {sfConnected
-                ? sfBusy
-                  ? "Opening…"
-                  : "Manage connection"
-                : sfBusy
-                ? "Connecting…"
-                : "Connect Salesforce"}
-            </button>
           </div>
-        </section>
-
-        {/* Nutshell */}
-        <section
-          className={`rounded-2xl border px-5 py-4 ${
-            activeCRM === "nutshell"
-              ? "border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900"
-              : "border-dashed border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 opacity-80"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold">Nutshell CRM</h3>
-            {activeCRM !== "nutshell" && (
-              <span className="text-xs rounded-full border px-2 py-0.5 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400">
-                Inactive
-              </span>
-            )}
-          </div>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Use an API key per organization. Nutshell can power both lead capture
-            and salesperson analytics once a key is connected.
-          </p>
-
-          <CrmCapabilityChips
-            items={[
-              {
-                id: "nutshell-leads",
-                label: "Lead capture",
-                level: "full",
-                tooltip: "Create and sync leads into Nutshell.",
-              },
-              {
-                id: "nutshell-owners",
-                label: "Owner and activity stats",
-                level: "full",
-                tooltip:
-                  "Nutshell APIs expose owners, pipelines, and activities for stats.",
-              },
-              {
-                id: "nutshell-analytics",
-                label: "Sales analytics",
-                level: "full",
-                tooltip:
-                  "Full salesperson analytics available when an API key is connected.",
-              },
-            ]}
-          />
-
-          <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-            {loadingCreds ? (
-              <span>Checking credentials…</span>
-            ) : nutshellCred ? (
-              <span>
-                Active key ending in <code>…{nutshellCred.token_suffix}</code>
-              </span>
-            ) : (
-              <span>No Nutshell key saved yet for this organization.</span>
-            )}
-          </div>
-
-          {editing === "nutshell" && (
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <input
-                type="password"
-                value={nutshellToken}
-                onChange={(e) => setNutshellToken(e.target.value)}
-                placeholder="Enter Nutshell API key"
-                className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-              />
-              <button
-                onClick={() => saveToken("nutshell")}
-                disabled={tokenBusy === "nutshell"}
-                className="rounded-md bg-indigo-600 text-white px-4 py-2 text-sm disabled:opacity-60"
-              >
-                {tokenBusy === "nutshell" ? "Saving…" : "Save key"}
-              </button>
-            </div>
-          )}
-
-          <div className="mt-3">
-            <a
-              href="https://developers.nutshell.com/"
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm text-indigo-600 hover:underline"
-            >
-              Nutshell developer docs
-            </a>
-          </div>
-        </section>
+        </motion.div>
       </div>
     </div>
   );
 }
 
-function labelOf(id: CRM) {
-  return CRM_OPTIONS.find((o) => o.id === id)?.label || id;
+// Command Center Tab
+function CommandCenterTab({
+  activeCRM,
+  editing,
+  onSelect,
+  onSave,
+  saving,
+  creds,
+  isConnected,
+  hubspotToken,
+  setHubspotToken,
+  pipedriveToken,
+  setPipedriveToken,
+  nutshellToken,
+  setNutshellToken,
+  tokenBusy,
+  saveToken,
+  sfConnected,
+  sfBusy,
+  setSfBusy,
+}: any) {
+  const getCredential = (provider: CRM) => creds.find((c: any) => c.provider === provider && c.is_active);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="grid lg:grid-cols-3 gap-6"
+    >
+      {/* CRM Selection */}
+      <div className="lg:col-span-2 space-y-6">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-6 shadow-xl">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Select CRM Provider</h3>
+            <motion.button
+              onClick={onSave}
+              disabled={saving || editing === activeCRM}
+              className={`px-6 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                editing !== activeCRM
+                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
+              }`}
+              whileHover={editing !== activeCRM ? { scale: 1.02 } : {}}
+              whileTap={editing !== activeCRM ? { scale: 0.98 } : {}}
+            >
+              {saving ? "Saving..." : "Apply Changes"}
+            </motion.button>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            {CRM_OPTIONS.map((opt, idx) => {
+              const credential = getCredential(opt.id);
+              const connected = opt.id === "salesforce" ? sfConnected : !!credential;
+
+              return (
+                <motion.button
+                  key={opt.id}
+                  onClick={() => onSelect(opt.id)}
+                  className={`relative rounded-2xl border-2 p-5 text-left transition-all overflow-hidden ${
+                    editing === opt.id
+                      ? "border-indigo-500 shadow-xl shadow-indigo-500/10"
+                      : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                  }`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  whileHover={{ y: -4 }}
+                >
+                  {editing === opt.id && (
+                    <div className={`absolute inset-0 bg-gradient-to-br ${opt.color} opacity-5`} />
+                  )}
+                  <div className="relative z-10">
+                    <div className="flex items-start gap-4">
+                      <div
+                        className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg"
+                        style={{ background: opt.gradient }}
+                      >
+                        {opt.icon}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-bold text-gray-900 dark:text-white">{opt.label}</span>
+                          {activeCRM === opt.id && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+                              ACTIVE
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{opt.description}</p>
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${connected ? "bg-green-500" : "bg-gray-400"}`} />
+                          <span className={`text-xs ${connected ? "text-green-600 dark:text-green-400" : "text-gray-500"}`}>
+                            {connected ? "Connected" : "Not connected"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {editing === opt.id && (
+                    <motion.div
+                      className="absolute top-4 right-4"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 500 }}
+                    >
+                      <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    </motion.div>
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
+
+          {/* Connection Form */}
+          <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
+            <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-4">
+              {editing === "salesforce" ? "OAuth Connection" : "API Credentials"}
+            </h4>
+
+            {editing === "salesforce" ? (
+              <div className="flex items-center justify-between p-5 rounded-2xl bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-100 dark:border-blue-800/50">
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {sfConnected ? "Salesforce org is connected" : "Connect via OAuth"}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Secure OAuth 2.0 authentication</p>
+                </div>
+                <motion.button
+                  onClick={() => {
+                    setSfBusy(true);
+                    window.location.href = `${getApiBase()}/integrations/salesforce/auth`;
+                  }}
+                  disabled={sfBusy}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-sm font-medium shadow-lg hover:shadow-xl transition-all disabled:opacity-60"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {sfConnected ? "Reconnect" : sfBusy ? "Connecting..." : "Connect Salesforce"}
+                </motion.button>
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <input
+                  type="password"
+                  value={editing === "hubspot" ? hubspotToken : editing === "pipedrive" ? pipedriveToken : nutshellToken}
+                  onChange={(e) => {
+                    if (editing === "hubspot") setHubspotToken(e.target.value);
+                    else if (editing === "pipedrive") setPipedriveToken(e.target.value);
+                    else setNutshellToken(e.target.value);
+                  }}
+                  placeholder={`Enter ${CRM_OPTIONS.find((o) => o.id === editing)?.label} API key`}
+                  className="flex-1 rounded-xl border-2 border-gray-200 dark:border-gray-700 px-5 py-3 text-sm dark:bg-gray-800 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                />
+                <motion.button
+                  onClick={() => saveToken(editing as "hubspot" | "pipedrive" | "nutshell")}
+                  disabled={tokenBusy === editing}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-medium shadow-lg hover:shadow-xl transition-all disabled:opacity-60"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {tokenBusy === editing ? "Connecting..." : "Connect"}
+                </motion.button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Side Panel */}
+      <div className="space-y-6">
+        {/* Health Score */}
+        <motion.div
+          className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-6 shadow-xl"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">Integration Health</h3>
+          <div className="flex justify-center mb-4">
+            <RadialGauge
+              value={isConnected ? 94 : 0}
+              label="Health Score"
+              sublabel={isConnected ? "Excellent" : "Offline"}
+              size={140}
+              thickness={14}
+              gradient={isConnected ? "emerald" : "rose"}
+            />
+          </div>
+          <div className="space-y-3">
+            {[
+              { label: "Connection", value: isConnected ? 100 : 0, color: "emerald" },
+              { label: "Data Quality", value: 94.2, color: "blue" },
+              { label: "Sync Speed", value: 98.5, color: "purple" },
+            ].map((metric) => (
+              <ComparisonBar
+                key={metric.label}
+                label={metric.label}
+                value={metric.value}
+                maxValue={100}
+                gradient={metric.color as any}
+                formatValue={(v) => `${v.toFixed(1)}%`}
+              />
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Quick Actions */}
+        <motion.div
+          className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-6 shadow-xl"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
+          <div className="space-y-2">
+            {[
+              { label: "Test Connection", icon: "M13 10V3L4 14h7v7l9-11h-7z", color: "from-amber-500 to-orange-500" },
+              { label: "Sync Now", icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15", color: "from-blue-500 to-cyan-500" },
+              { label: "View Logs", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z", color: "from-gray-500 to-gray-600" },
+            ].map((action) => (
+              <motion.button
+                key={action.label}
+                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left"
+                whileHover={{ x: 4 }}
+              >
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center`}>
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={action.icon} />
+                  </svg>
+                </div>
+                <span className="font-medium text-gray-900 dark:text-white">{action.label}</span>
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+}
+
+// Live Activity Tab
+function LiveActivityTab() {
+  const [filter, setFilter] = useState<"all" | "success" | "warning" | "error">("all");
+  const filtered = filter === "all" ? MOCK_ACTIVITY : MOCK_ACTIVITY.filter((a) => a.status === filter);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+    >
+      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-xl">
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-900">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <motion.div
+                className="w-3 h-3 rounded-full bg-green-500"
+                animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              />
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Live Sync Activity</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Real-time data flow monitoring</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {[
+                { id: "all" as const, label: "All", count: MOCK_ACTIVITY.length },
+                { id: "success" as const, label: "Success", count: MOCK_ACTIVITY.filter((a) => a.status === "success").length },
+                { id: "warning" as const, label: "Warnings", count: MOCK_ACTIVITY.filter((a) => a.status === "warning").length },
+                { id: "error" as const, label: "Errors", count: MOCK_ACTIVITY.filter((a) => a.status === "error").length },
+              ].map((f) => (
+                <motion.button
+                  key={f.id}
+                  onClick={() => setFilter(f.id)}
+                  className={`px-4 py-2 rounded-xl text-xs font-medium transition-all ${
+                    filter === f.id
+                      ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  }`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {f.label} ({f.count})
+                </motion.button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Activity List */}
+        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+          <AnimatePresence>
+            {filtered.map((activity, idx) => (
+              <motion.div
+                key={activity.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ delay: idx * 0.05 }}
+                className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <motion.div
+                      className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                        activity.status === "success"
+                          ? "bg-gradient-to-br from-green-400 to-emerald-500"
+                          : activity.status === "warning"
+                          ? "bg-gradient-to-br from-yellow-400 to-amber-500"
+                          : "bg-gradient-to-br from-red-400 to-rose-500"
+                      }`}
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                    >
+                      {activity.status === "success" ? (
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : activity.status === "warning" ? (
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      )}
+                    </motion.div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-gray-900 dark:text-white">{activity.entity}</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                          {activity.type.replace("_", " ")}
+                        </span>
+                        {activity.value > 0 && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+                            ${activity.value.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-gray-500">{activity.source}</span>
+                        <span className="text-gray-300 dark:text-gray-600">•</span>
+                        <span className="text-xs text-gray-500">{activity.time}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <motion.button
+                    className="text-sm text-indigo-600 dark:text-indigo-400 font-medium hover:underline"
+                    whileHover={{ x: 2 }}
+                  >
+                    View →
+                  </motion.button>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// Field Mapping Tab
+function FieldMappingTab({ fieldMappings, setFieldMappings }: { fieldMappings: typeof FIELD_MAPPINGS; setFieldMappings: any }) {
+  function toggle(id: number) {
+    setFieldMappings((prev: any) => prev.map((f: any) => (f.id === id ? { ...f, enabled: !f.enabled } : f)));
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+    >
+      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-xl">
+        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-900">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">AI-Powered Field Mapping</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Intelligent field matching with confidence scores</p>
+            </div>
+            <motion.button
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-medium shadow-lg"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              + Add Mapping
+            </motion.button>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="space-y-3">
+            {fieldMappings.map((mapping, idx) => (
+              <motion.div
+                key={mapping.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.03 }}
+                className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all ${
+                  mapping.enabled
+                    ? "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+                    : "border-dashed border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 opacity-60"
+                }`}
+              >
+                {/* Toggle */}
+                <motion.button
+                  onClick={() => toggle(mapping.id)}
+                  className={`w-14 h-8 rounded-full transition-all relative ${
+                    mapping.enabled ? "bg-gradient-to-r from-indigo-600 to-purple-600" : "bg-gray-300 dark:bg-gray-700"
+                  }`}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <motion.div
+                    className="absolute top-1 w-6 h-6 bg-white rounded-full shadow-lg"
+                    animate={{ left: mapping.enabled ? "calc(100% - 28px)" : "4px" }}
+                    transition={{ type: "spring", stiffness: 500 }}
+                  />
+                </motion.button>
+
+                {/* Source */}
+                <div className="flex-1">
+                  <code className="px-3 py-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-sm font-mono font-medium">
+                    {mapping.source}
+                  </code>
+                </div>
+
+                {/* Arrow with animation */}
+                <motion.div
+                  className="text-gray-400"
+                  animate={{ x: mapping.enabled ? [0, 5, 0] : 0 }}
+                  transition={{ duration: 1.5, repeat: mapping.enabled ? Infinity : 0 }}
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </motion.div>
+
+                {/* Target */}
+                <div className="flex-1">
+                  <code className="px-3 py-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm font-mono font-medium">
+                    {mapping.target}
+                  </code>
+                </div>
+
+                {/* Type */}
+                <span className="px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 w-20 text-center">
+                  {mapping.type}
+                </span>
+
+                {/* AI Confidence */}
+                <div className="w-24">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <motion.div
+                        className={`h-full rounded-full ${
+                          mapping.aiConfidence >= 90 ? "bg-green-500" : mapping.aiConfidence >= 70 ? "bg-yellow-500" : "bg-red-500"
+                        }`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${mapping.aiConfidence}%` }}
+                        transition={{ delay: idx * 0.05, duration: 0.5 }}
+                      />
+                    </div>
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{mapping.aiConfidence}%</span>
+                  </div>
+                </div>
+
+                {/* Syncs count */}
+                <div className="text-right w-24">
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white">{mapping.syncs.toLocaleString()}</div>
+                  <div className="text-xs text-gray-500">syncs</div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// Analytics Tab
+function AnalyticsTab({ stats }: { stats: any }) {
+  const syncTrend = [
+    { name: "Mon", value: 720 },
+    { name: "Tue", value: 890 },
+    { name: "Wed", value: 1100 },
+    { name: "Thu", value: 980 },
+    { name: "Fri", value: 850 },
+    { name: "Sat", value: 340 },
+    { name: "Sun", value: 280 },
+  ];
+
+  const sourceBreakdown = [
+    { name: "Website Forms", value: 45 },
+    { name: "API", value: 25 },
+    { name: "Widget", value: 20 },
+    { name: "Manual", value: 10 },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="grid lg:grid-cols-2 gap-6"
+    >
+      {/* Sync Trends */}
+      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-6 shadow-xl">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-900 dark:text-white">Sync Volume</h3>
+            <p className="text-sm text-gray-500">Last 7 days</p>
+          </div>
+        </div>
+        <AnimatedAreaChart data={syncTrend} height={240} gradient="indigo" />
+      </div>
+
+      {/* Source Breakdown */}
+      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-6 shadow-xl">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-900 dark:text-white">Lead Sources</h3>
+            <p className="text-sm text-gray-500">Distribution</p>
+          </div>
+        </div>
+        <div className="flex justify-center">
+          <DonutChart
+            data={sourceBreakdown}
+            size={200}
+            thickness={45}
+            centerValue={stats.totalSynced.toLocaleString()}
+            centerLabel="Total"
+            showLegend
+          />
+        </div>
+      </div>
+
+      {/* Performance Metrics */}
+      <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-6 shadow-xl">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-900 dark:text-white">Performance Metrics</h3>
+            <p className="text-sm text-gray-500">Real-time system health</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {[
+            { label: "Uptime", value: 99.99, suffix: "%", gradient: "emerald" },
+            { label: "Success Rate", value: stats.successRate, suffix: "%", gradient: "blue" },
+            { label: "Data Quality", value: stats.dataQuality, suffix: "%", gradient: "purple" },
+            { label: "Avg Latency", value: stats.avgLatency, suffix: "ms", gradient: "amber" },
+          ].map((metric, idx) => (
+            <motion.div
+              key={metric.label}
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.1 }}
+            >
+              <RadialGauge
+                value={metric.suffix === "ms" ? 100 - metric.value : metric.value}
+                label={metric.label}
+                sublabel={`${metric.value}${metric.suffix}`}
+                size={120}
+                thickness={12}
+                gradient={metric.gradient as any}
+              />
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
 }

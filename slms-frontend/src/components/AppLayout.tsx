@@ -1,9 +1,14 @@
 // src/components/AppLayout.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import CrmConnectionBanner from "@/components/CrmConnectionBanner";
+import AIFloatingAssistant from "@/components/AIFloatingAssistant";
+import { NetworkStatusBanner } from "@/components/NetworkStatus";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { NotificationBell } from "@/components/NotificationBell";
+import { SkipLink, useKeyboardShortcuts, KeyboardShortcutsDialog, useAnnounce } from "@/components/Accessibility";
 import api from "@/utils/api";
-import logo from "@/assets/site2crm_logo.png";
+import logo from "@/assets/site2crm_logo_horizontal.svg";
 
 // Icon components for sidebar
 const icons = {
@@ -108,6 +113,11 @@ const icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
     </svg>
   ),
+  automation: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    </svg>
+  ),
 };
 
 interface NavItemProps {
@@ -149,11 +159,74 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Keyboard shortcuts configuration
+const APP_SHORTCUTS = [
+  { key: "?", description: "Show keyboard shortcuts" },
+  { key: "/", description: "Focus search" },
+  { key: "d", modifier: "g", description: "Go to Dashboard" },
+  { key: "l", modifier: "g", description: "Go to Leads" },
+  { key: "s", modifier: "g", description: "Go to Salespeople" },
+  { key: "c", modifier: "g", description: "Go to AI Consultant" },
+  { key: "Escape", description: "Close dialogs" },
+];
+
 export default function AppLayout() {
   const navigate = useNavigate();
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const announce = useAnnounce();
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts([
+    {
+      key: "?",
+      description: "Show keyboard shortcuts",
+      action: () => setShortcutsOpen(true),
+    },
+    {
+      key: "/",
+      description: "Focus search",
+      action: () => {
+        searchInputRef.current?.focus();
+        announce("Search focused");
+      },
+    },
+    {
+      key: "d",
+      description: "Go to Dashboard",
+      action: () => {
+        navigate("/app");
+        announce("Navigated to Dashboard");
+      },
+    },
+    {
+      key: "l",
+      description: "Go to Leads",
+      action: () => {
+        navigate("/app/leads");
+        announce("Navigated to Leads");
+      },
+    },
+    {
+      key: "s",
+      description: "Go to Salespeople",
+      action: () => {
+        navigate("/app/salespeople");
+        announce("Navigated to Salespeople");
+      },
+    },
+    {
+      key: "c",
+      description: "Go to AI Consultant",
+      action: () => {
+        navigate("/app/chat");
+        announce("Navigated to AI Consultant");
+      },
+    },
+  ]);
 
   useEffect(() => {
     let mounted = true;
@@ -191,8 +264,17 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
+      {/* Skip Link for keyboard users */}
+      <SkipLink targetId="main-content">Skip to main content</SkipLink>
+
+      {/* Network Status Banner */}
+      <NetworkStatusBanner />
+
       {/* Header */}
-      <header className="sticky top-0 z-50 h-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 flex items-center px-6">
+      <header
+        role="banner"
+        className="sticky top-0 z-50 h-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 flex items-center px-6"
+      >
         {/* Logo */}
         <div className="flex items-center gap-2 mr-8">
           <img src={logo} alt="Site2CRM" className="h-10 w-auto" />
@@ -210,12 +292,14 @@ export default function AppLayout() {
               {icons.search}
             </span>
             <input
+              ref={searchInputRef}
               type="search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
-              placeholder="Search leads, contacts..."
+              placeholder="Search leads, contacts... (press /)"
+              aria-label="Search leads and contacts"
               className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-full text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
             />
           </form>
@@ -223,9 +307,23 @@ export default function AppLayout() {
 
         {/* Right side */}
         <div className="flex items-center gap-3">
+          {/* Keyboard shortcuts hint */}
+          <button
+            onClick={() => setShortcutsOpen(true)}
+            className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            aria-label="Show keyboard shortcuts"
+            title="Keyboard shortcuts"
+          >
+            <kbd className="px-1.5 py-0.5 text-[10px] bg-gray-200 dark:bg-gray-700 rounded">?</kbd>
+            <span>Shortcuts</span>
+          </button>
+
+          <NotificationBell />
+
           <NavLink
             to="/app/account"
             className="flex items-center gap-3 px-3 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            aria-label={`Account settings for ${userEmail || "user"}`}
           >
             <div className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm font-semibold shadow-sm">
               {userInitial}
@@ -237,6 +335,7 @@ export default function AppLayout() {
 
           <button
             onClick={handleLogout}
+            aria-label="Log out of your account"
             className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
           >
             {icons.logout}
@@ -247,8 +346,12 @@ export default function AppLayout() {
 
       <div className="flex flex-1">
         {/* Sidebar */}
-        <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200/50 dark:border-gray-800/50 p-4 overflow-y-auto">
-          <nav className="space-y-6">
+        <aside
+          role="complementary"
+          aria-label="Main navigation sidebar"
+          className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200/50 dark:border-gray-800/50 p-4 overflow-y-auto"
+        >
+          <nav role="navigation" aria-label="Main navigation" className="space-y-6">
             {/* Main */}
             <div>
               <SectionLabel>Main</SectionLabel>
@@ -269,6 +372,7 @@ export default function AppLayout() {
                 <NavItem to="/app/team-kpi" icon={icons.team} label="Team Performance" />
                 <NavItem to="/app/leaderboard" icon={icons.leaderboard} label="Leaderboard" />
                 <NavItem to="/app/recommendations" icon={icons.recommendations} label="Recommendations" />
+                <NavItem to="/app/automation" icon={icons.automation} label="Automation" />
               </div>
             </div>
 
@@ -306,11 +410,29 @@ export default function AppLayout() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main
+          id="main-content"
+          role="main"
+          aria-label="Main content"
+          tabIndex={-1}
+          className="flex-1 p-6 overflow-y-auto focus:outline-none"
+        >
           <CrmConnectionBanner />
-          <Outlet />
+          <PageErrorBoundary>
+            <Outlet />
+          </PageErrorBoundary>
         </main>
       </div>
+
+      {/* AI Floating Assistant */}
+      <AIFloatingAssistant />
+
+      {/* Keyboard Shortcuts Dialog */}
+      <KeyboardShortcutsDialog
+        isOpen={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+        shortcuts={APP_SHORTCUTS}
+      />
     </div>
   );
 }

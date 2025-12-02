@@ -909,3 +909,119 @@ View detailed analytics in your Site2CRM dashboard.
     body_html = _base_html_template(content, f"Salesperson performance report")
 
     return send_email(subject, body_text, list(recipients), body_html)
+
+
+def send_recommendations_digest(
+    recipients: Iterable[str],
+    organization_name: Optional[str],
+    recommendations: list,
+    high_priority_count: int,
+    medium_priority_count: int,
+    generated_at: str,
+) -> bool:
+    """
+    Send AI-generated recommendations digest email.
+
+    recommendations is a list of dicts with:
+        - category: str (sales, marketing, coaching, pipeline)
+        - priority: str (high, medium, low)
+        - title: str
+        - description: str
+        - metric: str (optional)
+        - action: str
+    """
+    org_label = organization_name or "your organization"
+    subject = f"Weekly AI Recommendations - {generated_at}"
+
+    # Build text version
+    recs_text = ""
+    for rec in recommendations:
+        priority_icon = "!!!" if rec.get("priority") == "high" else "!!" if rec.get("priority") == "medium" else "!"
+        recs_text += f"""
+  [{priority_icon}] {rec.get('title', '')}
+    Category: {rec.get('category', '').title()}
+    {rec.get('description', '')}
+    Action: {rec.get('action', '')}
+"""
+
+    body_text = f"""
+AI-Powered Recommendations for {org_label}
+
+Generated: {generated_at}
+
+High Priority: {high_priority_count}
+Medium Priority: {medium_priority_count}
+
+Recommendations:
+{recs_text or '  No recommendations at this time'}
+
+View all recommendations in your Site2CRM dashboard.
+
+- The Site2CRM Team
+"""
+
+    # Priority colors
+    priority_colors = {
+        "high": "#dc2626",
+        "medium": "#d97706",
+        "low": "#2563eb",
+    }
+
+    category_colors = {
+        "sales": "#16a34a",
+        "marketing": "#9333ea",
+        "coaching": "#2563eb",
+        "pipeline": "#ea580c",
+    }
+
+    # Build HTML recommendations
+    recs_html = ""
+    for rec in recommendations:
+        priority = rec.get("priority", "low")
+        category = rec.get("category", "sales")
+        priority_color = priority_colors.get(priority, "#2563eb")
+        category_color = category_colors.get(category, "#71717a")
+
+        recs_html += f'''
+        <div style="border: 1px solid #e4e4e7; border-radius: 8px; padding: 16px; margin-bottom: 12px; border-left: 4px solid {priority_color};">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 14px; font-weight: 600; color: #18181b;">{rec.get('title', '')}</span>
+                <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; background-color: {category_color}20; color: {category_color};">{category.title()}</span>
+            </div>
+            <p style="margin: 0 0 8px; font-size: 13px; color: #52525b;">
+                {rec.get('description', '')}
+            </p>
+            {f'<p style="margin: 0 0 8px; font-size: 12px; color: #71717a;"><strong>Metric:</strong> {rec.get("metric")}</p>' if rec.get('metric') else ''}
+            <p style="margin: 0; font-size: 13px; color: #16a34a; font-weight: 500;">
+                → {rec.get('action', '')}
+            </p>
+        </div>
+        '''
+
+    content = f"""
+<h1 style="margin: 0 0 8px; font-size: 24px; font-weight: 600; color: #18181b;">
+    Weekly AI Recommendations
+</h1>
+<p style="margin: 0 0 24px; font-size: 14px; color: #71717a;">
+    Generated {generated_at} • {len(recommendations)} recommendations
+</p>
+
+<div style="display: flex; gap: 16px; margin-bottom: 24px;">
+    <div style="flex: 1; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-radius: 8px; padding: 16px; text-align: center;">
+        <div style="font-size: 24px; font-weight: 700; color: #dc2626;">{high_priority_count}</div>
+        <div style="font-size: 12px; color: #b91c1c;">High Priority</div>
+    </div>
+    <div style="flex: 1; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-radius: 8px; padding: 16px; text-align: center;">
+        <div style="font-size: 24px; font-weight: 700; color: #d97706;">{medium_priority_count}</div>
+        <div style="font-size: 12px; color: #b45309;">Medium Priority</div>
+    </div>
+</div>
+
+{recs_html or '<p style="text-align: center; color: #71717a;">No recommendations at this time</p>'}
+
+{_button_html("View All Recommendations", "https://site2crm.io/app/recommendations")}
+"""
+
+    body_html = _base_html_template(content, f"{len(recommendations)} AI recommendations for your team")
+
+    return send_email(subject, body_text, list(recipients), body_html)

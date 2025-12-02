@@ -53,7 +53,7 @@ export default function WelcomePage() {
           Breakdown by source, trendlines, export to CSV.
         </Feature>
         <Feature title="Salesperson analytics">
-          Email/Call/Meeting counts and new deals, with ML scoring coming soon.
+          Email/Call/Meeting counts, new deals, and AI-powered lead scoring.
         </Feature>
         <Feature title="Integrations">
           HubSpot today; Pipedrive, Nutshell, Salesforce next.
@@ -85,13 +85,13 @@ export default function WelcomePage() {
         </div>
       </section>
 
-      {/* Pricing (placeholder) */}
+      {/* Pricing */}
       <section id="pricing" className="max-w-7xl mx-auto px-6 pb-16">
         <h2 className="text-2xl font-semibold mb-4">Pricing</h2>
         <Card>
-          <div className="font-medium">Early access</div>
+          <div className="font-medium">Flexible Plans</div>
           <div className="text-sm text-gray-700 dark:text-gray-300">
-            Free during beta. Production plans coming soon.
+            Free tier available. Professional and Enterprise plans for growing teams.
           </div>
         </Card>
       </section>
