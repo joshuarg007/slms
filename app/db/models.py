@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import (
     Boolean,
@@ -7,6 +8,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -14,6 +16,34 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 
 from app.db.session import Base
+
+
+# Lead status constants
+LEAD_STATUS_NEW = "new"
+LEAD_STATUS_CONTACTED = "contacted"
+LEAD_STATUS_QUALIFIED = "qualified"
+LEAD_STATUS_PROPOSAL = "proposal"
+LEAD_STATUS_NEGOTIATION = "negotiation"
+LEAD_STATUS_WON = "won"
+LEAD_STATUS_LOST = "lost"
+
+LEAD_STATUSES = [
+    LEAD_STATUS_NEW,
+    LEAD_STATUS_CONTACTED,
+    LEAD_STATUS_QUALIFIED,
+    LEAD_STATUS_PROPOSAL,
+    LEAD_STATUS_NEGOTIATION,
+    LEAD_STATUS_WON,
+    LEAD_STATUS_LOST,
+]
+
+# Activity type constants
+ACTIVITY_CALL = "call"
+ACTIVITY_EMAIL = "email"
+ACTIVITY_MEETING = "meeting"
+ACTIVITY_NOTE = "note"
+
+ACTIVITY_TYPES = [ACTIVITY_CALL, ACTIVITY_EMAIL, ACTIVITY_MEETING, ACTIVITY_NOTE]
 
 
 class Organization(Base):
@@ -61,6 +91,20 @@ class Lead(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Lead pipeline fields
+    status = Column(String(20), nullable=False, default=LEAD_STATUS_NEW, index=True)
+    deal_value = Column(Numeric(12, 2), nullable=True)  # Potential or actual deal value
+    closed_at = Column(DateTime, nullable=True)  # When deal was won/lost
+
+    # Assigned salesperson
+    assigned_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True,
+    )
+    assigned_user = relationship("User", backref="assigned_leads", foreign_keys=[assigned_user_id])
+
     # Enforce tenancy at the model level too
     organization_id = Column(
         Integer,
@@ -69,6 +113,9 @@ class Lead(Base):
         nullable=False,
     )
     organization = relationship("Organization", back_populates="leads")
+
+    # Activities relationship
+    activities = relationship("LeadActivity", back_populates="lead", cascade="all, delete-orphan")
 
 
 class User(Base):
@@ -285,3 +332,80 @@ class ChatMessage(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     conversation = relationship("ChatConversation", back_populates="messages")
+
+
+class LeadActivity(Base):
+    """Individual activities on leads (calls, emails, meetings)."""
+
+    __tablename__ = "lead_activities"
+
+    id = Column(Integer, primary_key=True, index=True)
+    lead_id = Column(
+        Integer,
+        ForeignKey("leads.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True,
+    )
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+
+    activity_type = Column(String(20), nullable=False, index=True)  # call, email, meeting, note
+    subject = Column(String(255), nullable=True)
+    description = Column(Text, nullable=True)
+    duration_minutes = Column(Integer, nullable=True)  # For calls/meetings
+    outcome = Column(String(50), nullable=True)  # completed, no_answer, scheduled, etc.
+
+    activity_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    lead = relationship("Lead", back_populates="activities")
+    user = relationship("User", backref="lead_activities")
+    organization = relationship("Organization", backref="lead_activities")
+
+
+class Salesperson(Base):
+    """Salesperson profile with sales-specific metadata."""
+
+    __tablename__ = "salespeople"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True,
+        index=True,
+        nullable=False,
+    )
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+
+    # Display name (can differ from user email)
+    display_name = Column(String(100), nullable=False)
+
+    # Sales targets
+    monthly_quota = Column(Numeric(12, 2), nullable=True)  # Revenue target
+    monthly_lead_target = Column(Integer, nullable=True)  # Leads to close
+
+    # Performance tracking
+    hire_date = Column(Date, nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    user = relationship("User", backref="salesperson_profile")
+    organization = relationship("Organization", backref="salespeople")

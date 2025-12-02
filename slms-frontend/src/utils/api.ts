@@ -371,6 +371,118 @@ export async function getAIUsage(): Promise<AIUsage> {
   return fetchJSON<AIUsage>(`${baseUrl}/chat/usage`);
 }
 
+// Analytics types
+export interface SalespersonKPI {
+  user_id: number;
+  display_name: string;
+  email: string;
+  total_leads: number;
+  won_leads: number;
+  lost_leads: number;
+  in_pipeline: number;
+  close_rate: number;
+  total_revenue: number;
+  avg_deal_size: number;
+  quota: number;
+  quota_attainment: number;
+  calls_count: number;
+  emails_count: number;
+  meetings_count: number;
+  total_activities: number;
+  activities_per_lead: number;
+  avg_days_to_close: number;
+}
+
+export interface TeamKPISummary {
+  period_start: string;
+  period_end: string;
+  total_leads: number;
+  total_won: number;
+  total_lost: number;
+  total_pipeline: number;
+  team_close_rate: number;
+  total_revenue: number;
+  avg_deal_size: number;
+  total_calls: number;
+  total_emails: number;
+  total_meetings: number;
+  salespeople: SalespersonKPI[];
+}
+
+export interface LeadSourceMetrics {
+  source: string;
+  total_leads: number;
+  won_leads: number;
+  lost_leads: number;
+  close_rate: number;
+  total_revenue: number;
+  avg_deal_size: number;
+  avg_days_to_close: number;
+}
+
+export interface PipelineMetrics {
+  status: string;
+  count: number;
+  total_value: number;
+  avg_value: number;
+}
+
+export interface ActivityDay {
+  date: string;
+  calls: number;
+  emails: number;
+  meetings: number;
+}
+
+export interface SalesDashboardMetrics {
+  total_leads: number;
+  total_revenue: number;
+  avg_deal_size: number;
+  overall_close_rate: number;
+  leads_this_month: number;
+  leads_last_month: number;
+  leads_change_pct: number;
+  revenue_this_month: number;
+  revenue_last_month: number;
+  revenue_change_pct: number;
+  pipeline: PipelineMetrics[];
+  pipeline_value: number;
+  by_source: LeadSourceMetrics[];
+  activities_by_day: ActivityDay[];
+  top_performers: SalespersonKPI[];
+}
+
+export interface RecommendationItem {
+  category: string;
+  priority: string;
+  title: string;
+  description: string;
+  metric?: string;
+  action: string;
+}
+
+export interface RecommendationsResponse {
+  generated_at: string;
+  recommendations: RecommendationItem[];
+}
+
+// Analytics endpoints
+export async function getTeamKPIs(days = 30): Promise<TeamKPISummary> {
+  return fetchJSON<TeamKPISummary>(`${baseUrl}/analytics/kpis${toQuery({ days })}`);
+}
+
+export async function getSalesDashboard(): Promise<SalesDashboardMetrics> {
+  return fetchJSON<SalesDashboardMetrics>(`${baseUrl}/analytics/dashboard`);
+}
+
+export async function getRecommendations(): Promise<RecommendationsResponse> {
+  return fetchJSON<RecommendationsResponse>(`${baseUrl}/analytics/recommendations`);
+}
+
+export async function getSalespersonKPI(userId: number, days = 30): Promise<SalespersonKPI> {
+  return fetchJSON<SalespersonKPI>(`${baseUrl}/analytics/salesperson/${userId}${toQuery({ days })}`);
+}
+
 // Named plus default export
 export const api = {
   login,
@@ -392,6 +504,11 @@ export const api = {
   getChatConversation,
   deleteChatConversation,
   getAIUsage,
+  // Analytics
+  getTeamKPIs,
+  getSalesDashboard,
+  getRecommendations,
+  getSalespersonKPI,
 };
 
 export default api;

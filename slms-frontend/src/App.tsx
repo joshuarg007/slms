@@ -42,6 +42,9 @@ import FieldsPage from "@/pages/forms/FieldsPage";
 import StylesPage from "@/pages/forms/StylesPage";
 import EmbedPage from "@/pages/forms/EmbedPage";
 import ChatPage from "@/pages/ChatPage";
+import SalesDashboardPage from "@/pages/SalesDashboardPage";
+import TeamKPIPage from "@/pages/TeamKPIPage";
+import RecommendationsPage from "@/pages/RecommendationsPage";
 
 export default function App() {
   return (
@@ -89,6 +92,9 @@ export default function App() {
               <Route path="forms/styles" element={<StylesPage />} />
               <Route path="forms/embed" element={<EmbedPage />} />
               <Route path="chat" element={<ChatPage />} />
+              <Route path="sales-dashboard" element={<SalesDashboardPage />} />
+              <Route path="team-kpi" element={<TeamKPIPage />} />
+              <Route path="recommendations" element={<RecommendationsPage />} />
             </Route>
           </Route>
 
