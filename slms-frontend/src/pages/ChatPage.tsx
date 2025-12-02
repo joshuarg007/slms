@@ -7,6 +7,7 @@ import {
   type AIUsage,
   type Lead,
 } from "@/utils/api";
+import WMEM from "@/utils/wmem";
 
 type ContextType = "general" | "lead_analysis" | "coaching";
 
@@ -23,6 +24,7 @@ export default function ChatPage() {
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [wmem, setWmem] = useState<WMEM>(() => WMEM.load());
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -32,6 +34,12 @@ export default function ChatPage() {
     loadConversations();
     loadUsage();
     loadLeads();
+    // Initialize WMEM if empty
+    if (wmem.isEmpty()) {
+      const newWmem = WMEM.createDefault();
+      setWmem(newWmem);
+      newWmem.save();
+    }
   }, []);
 
   // Scroll to bottom when messages change
@@ -127,11 +135,19 @@ export default function ChatPage() {
     setInput("");
 
     try {
+      // Get last 2 messages for immediate context (WMEM handles the rest)
+      const lastMessages = messages.slice(-2).map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+
       const response = await api.sendChatMessage({
         message: trimmed,
         conversation_id: activeConversation?.id,
         context_type: contextType,
         context_id: contextType === "lead_analysis" ? selectedLeadId ?? undefined : undefined,
+        wmem_context: wmem.toString(),
+        last_messages: lastMessages,
       });
 
       // Add assistant message
@@ -142,6 +158,20 @@ export default function ChatPage() {
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Update WMEM from response (or extract from AI response)
+      if (response.updated_wmem) {
+        const newWmem = new WMEM(response.updated_wmem);
+        setWmem(newWmem);
+        newWmem.save();
+      } else {
+        // Try to extract from AI response content
+        const extracted = WMEM.extractFromResponse(response.response);
+        if (extracted) {
+          setWmem(extracted);
+          extracted.save();
+        }
+      }
 
       // Update conversation ID if new
       if (!activeConversation) {

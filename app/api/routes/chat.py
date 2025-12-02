@@ -32,11 +32,18 @@ def get_db():
 
 # --- Request/Response Models ---
 
+class LastMessage(BaseModel):
+    role: str
+    content: str
+
+
 class SendMessageRequest(BaseModel):
     message: str
     conversation_id: Optional[int] = None
     context_type: str = "general"  # general, lead_analysis, coaching
     context_id: Optional[int] = None  # e.g., lead_id for lead_analysis
+    wmem_context: Optional[str] = None  # WMEM memory block
+    last_messages: Optional[list[LastMessage]] = None  # Last 2 messages only
 
 
 class SendMessageResponse(BaseModel):
@@ -44,6 +51,7 @@ class SendMessageResponse(BaseModel):
     message_id: int
     response: str
     tokens_used: int
+    updated_wmem: Optional[str] = None  # Updated WMEM to save client-side
 
 
 class ConversationSummary(BaseModel):
@@ -193,15 +201,22 @@ async def send_message(
                 lead_data=lead_data,
             )
 
-    # Get conversation history
-    history_messages = db.query(models.ChatMessage).filter(
-        models.ChatMessage.conversation_id == conversation.id
-    ).order_by(models.ChatMessage.created_at).all()
-
-    conversation_history = [
-        {"role": msg.role, "content": msg.content}
-        for msg in history_messages
-    ]
+    # Use WMEM + last_messages if provided (cost-efficient mode)
+    # Otherwise fall back to full DB history
+    if req.wmem_context or req.last_messages:
+        conversation_history = [
+            {"role": msg.role, "content": msg.content}
+            for msg in (req.last_messages or [])
+        ]
+    else:
+        # Fallback: Get conversation history from DB
+        history_messages = db.query(models.ChatMessage).filter(
+            models.ChatMessage.conversation_id == conversation.id
+        ).order_by(models.ChatMessage.created_at).all()
+        conversation_history = [
+            {"role": msg.role, "content": msg.content}
+            for msg in history_messages
+        ]
 
     # Call AI service
     try:
@@ -210,6 +225,7 @@ async def send_message(
             conversation_history=conversation_history,
             context_type=req.context_type,
             context_data=context_data,
+            wmem_context=req.wmem_context,
         )
     except AIConsultantError as e:
         # Decrement usage on error
@@ -243,11 +259,15 @@ async def send_message(
     db.commit()
     db.refresh(assistant_message)
 
+    # Extract updated WMEM from response
+    updated_wmem = ai_consultant.extract_wmem(response_text)
+
     return SendMessageResponse(
         conversation_id=conversation.id,
         message_id=assistant_message.id,
         response=response_text,
         tokens_used=input_tokens + output_tokens,
+        updated_wmem=updated_wmem,
     )
 
 

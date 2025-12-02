@@ -35,6 +35,32 @@ Guidelines:
 
 You have access to the user's lead data and CRM statistics when they provide context. Use this data to give personalized recommendations."""
 
+WMEM_INSTRUCTIONS = """
+You maintain conversation context using WMEM (Web Memory) format. After EVERY response:
+1. Read the provided <wmem> block to understand conversation history
+2. Respond naturally to the user
+3. Return an updated <wmem> block at the END of your response
+
+WMEM Format:
+```
+WMEM/1
+@ctx:{domain}
+@ent:{entities_discussed}
+@mem:{key_insights_given}
+@pen:{pending_topic}
+---
+{brief notes}
+```
+
+Fields:
+- @ctx: Keep as "sales_crm"
+- @ent: Comma-separated entities mentioned (companies, people, deals) - max 20
+- @mem: Semicolon-separated memory keys of insights given - max 30
+- @pen: Current unresolved topic or "none"
+- After ---: Brief natural language notes (max 200 chars)
+
+IMPORTANT: Always end your response with the updated <wmem>...</wmem> block."""
+
 CONTEXT_PROMPTS = {
     "general": "",
     "lead_analysis": """The user wants to analyze lead data. Focus on:
@@ -182,6 +208,7 @@ class AIConsultant:
         conversation_history: list[dict],
         context_type: str = "general",
         context_data: Optional[str] = None,
+        wmem_context: Optional[str] = None,
     ) -> tuple[str, int, int]:
         """
         Send a message and get AI response.
@@ -191,6 +218,7 @@ class AIConsultant:
             conversation_history: List of previous messages [{"role": "user"|"assistant", "content": "..."}]
             context_type: Type of context (general, lead_analysis, coaching)
             context_data: Pre-formatted context string
+            wmem_context: WMEM memory block for persistent context
 
         Returns:
             Tuple of (response_text, input_tokens, output_tokens)
@@ -199,8 +227,10 @@ class AIConsultant:
 
         # Build system prompt with context
         system = SYSTEM_PROMPT
+        if wmem_context:
+            system = f"{SYSTEM_PROMPT}\n\n{WMEM_INSTRUCTIONS}"
         if context_data:
-            system = f"{SYSTEM_PROMPT}\n\n{context_data}"
+            system = f"{system}\n\n{context_data}"
 
         # Build messages array
         messages = []
@@ -210,10 +240,14 @@ class AIConsultant:
                 "content": msg["content"],
             })
 
-        # Add current message
+        # Add current message with WMEM context if provided
+        user_content = message
+        if wmem_context:
+            user_content = f"<wmem>\n{wmem_context}\n</wmem>\n\n{message}"
+
         messages.append({
             "role": "user",
-            "content": message,
+            "content": user_content,
         })
 
         # Call Anthropic API
@@ -239,6 +273,14 @@ class AIConsultant:
         if len(title) > max_length:
             title = title[:max_length - 3] + "..."
         return title
+
+    def extract_wmem(self, response: str) -> Optional[str]:
+        """Extract WMEM block from AI response."""
+        import re
+        match = re.search(r'<wmem>([\s\S]*?)</wmem>', response)
+        if match:
+            return match.group(1).strip()
+        return None
 
 
 # Singleton instance

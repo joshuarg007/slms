@@ -324,6 +324,8 @@ export interface SendMessageRequest {
   conversation_id?: number;
   context_type?: string;
   context_id?: number;
+  wmem_context?: string;        // WMEM memory block
+  last_messages?: { role: string; content: string }[];  // Last 2 messages only
 }
 
 export interface SendMessageResponse {
@@ -331,6 +333,7 @@ export interface SendMessageResponse {
   message_id: number;
   response: string;
   tokens_used: number;
+  updated_wmem?: string;        // Updated WMEM to save
 }
 
 export interface AIUsage {
