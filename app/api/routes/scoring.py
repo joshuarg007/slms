@@ -213,7 +213,7 @@ def get_hot_leads(
 
     results = []
     for score in scores:
-        lead = db.query(models.Lead).get(score.lead_id)
+        lead = db.get(models.Lead, score.lead_id)
         if lead:
             # Update lead score
             lead.score = score.total_score
@@ -237,7 +237,7 @@ def get_at_risk_leads(
 
     results = []
     for score in scores:
-        lead = db.query(models.Lead).get(score.lead_id)
+        lead = db.get(models.Lead, score.lead_id)
         if lead:
             lead.score = score.total_score
             lead.win_probability = int(score.win_probability)
@@ -282,7 +282,7 @@ def get_scoring_insights(
     # Top sources by avg score
     source_scores = {}
     for score in scores:
-        lead = db.query(models.Lead).get(score.lead_id)
+        lead = db.get(models.Lead, score.lead_id)
         if lead and lead.source:
             if lead.source not in source_scores:
                 source_scores[lead.source] = []
@@ -315,7 +315,7 @@ def refresh_all_scores(
 
     updated = 0
     for score in scores:
-        lead = db.query(models.Lead).get(score.lead_id)
+        lead = db.get(models.Lead, score.lead_id)
         if lead:
             lead.score = score.total_score
             lead.score_engagement = score.engagement_score

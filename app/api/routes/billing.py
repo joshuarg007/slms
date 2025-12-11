@@ -78,7 +78,7 @@ def create_checkout_session(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-    org = db.query(models.Organization).get(user.organization_id)
+    org = db.get(models.Organization, user.organization_id)
     if not org:
         raise HTTPException(404, "Organization not found")
 
@@ -120,7 +120,7 @@ def create_portal_session(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-    org = db.query(models.Organization).get(user.organization_id)
+    org = db.get(models.Organization, user.organization_id)
     if not org or not org.stripe_customer_id:
         raise HTTPException(400, "No Stripe customer for this org")
     ps = stripe.billing_portal.Session.create(
@@ -136,7 +136,7 @@ def get_subscription_status(
     user: models.User = Depends(get_current_user),
 ):
     """Get current subscription status and usage."""
-    org = db.query(models.Organization).get(user.organization_id)
+    org = db.get(models.Organization, user.organization_id)
     if not org:
         raise HTTPException(404, "Organization not found")
 
@@ -194,7 +194,7 @@ def start_trial(
     user: models.User = Depends(get_current_user),
 ):
     """Start a 14-day free trial."""
-    org = db.query(models.Organization).get(user.organization_id)
+    org = db.get(models.Organization, user.organization_id)
     if not org:
         raise HTTPException(404, "Organization not found")
 
@@ -221,7 +221,7 @@ def create_setup_intent(
     user: models.User = Depends(get_current_user),
 ):
     """Create a SetupIntent for updating payment method."""
-    org = db.query(models.Organization).get(user.organization_id)
+    org = db.get(models.Organization, user.organization_id)
     if not org:
         raise HTTPException(404, "Organization not found")
 
@@ -245,7 +245,7 @@ def update_payment_method(
     user: models.User = Depends(get_current_user),
 ):
     """Set the most recent payment method as default for subscription."""
-    org = db.query(models.Organization).get(user.organization_id)
+    org = db.get(models.Organization, user.organization_id)
     if not org or not org.stripe_customer_id:
         raise HTTPException(400, "No Stripe customer found")
 
@@ -286,7 +286,7 @@ def get_payment_method(
     user: models.User = Depends(get_current_user),
 ):
     """Get the current default payment method."""
-    org = db.query(models.Organization).get(user.organization_id)
+    org = db.get(models.Organization, user.organization_id)
     if not org or not org.stripe_customer_id:
         return {"payment_method": None}
 
@@ -319,7 +319,7 @@ def get_invoices(
     user: models.User = Depends(get_current_user),
 ):
     """Get list of invoices for the organization."""
-    org = db.query(models.Organization).get(user.organization_id)
+    org = db.get(models.Organization, user.organization_id)
     if not org or not org.stripe_customer_id:
         return {"invoices": []}
 
@@ -355,7 +355,7 @@ def cancel_subscription(
     user: models.User = Depends(get_current_user),
 ):
     """Cancel the current subscription at period end."""
-    org = db.query(models.Organization).get(user.organization_id)
+    org = db.get(models.Organization, user.organization_id)
     if not org:
         raise HTTPException(404, "Organization not found")
 
@@ -385,7 +385,7 @@ def cancel_subscription_immediate(
     user: models.User = Depends(get_current_user),
 ):
     """Cancel the current subscription immediately."""
-    org = db.query(models.Organization).get(user.organization_id)
+    org = db.get(models.Organization, user.organization_id)
     if not org:
         raise HTTPException(404, "Organization not found")
 
@@ -425,7 +425,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             org_id = data.get("client_reference_id")
             sub_id = data.get("subscription")
             if org_id and sub_id:
-                org = db.query(models.Organization).get(int(org_id))
+                org = db.get(models.Organization, int(org_id))
                 if org:
                     # Get subscription details for plan info
                     sub = stripe.Subscription.retrieve(sub_id)
@@ -451,7 +451,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                     models.Organization.stripe_customer_id == cust_id
                 ).first()
             else:
-                org = db.query(models.Organization).get(int(org_id))
+                org = db.get(models.Organization, int(org_id))
 
             if org and sub_id:
                 plan, cycle = get_plan_from_price(price_id) if price_id else ("pro", "monthly")

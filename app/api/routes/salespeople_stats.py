@@ -27,7 +27,7 @@ async def unified_salespeople_stats(
     current_user: models.User = Depends(get_current_user),
 ) -> SalespersonStatsResponse:
 
-    org = db.query(models.Organization).get(current_user.organization_id)
+    org = db.get(models.Organization, current_user.organization_id)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 

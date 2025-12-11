@@ -64,7 +64,7 @@ def sf_auth_start(
     _require_sf_env()
 
     # Make sure the user has an org
-    org = db.query(models.Organization).get(user.organization_id)
+    org = db.get(models.Organization, user.organization_id)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
@@ -115,7 +115,7 @@ async def sf_auth_callback(
         org_id = 0
 
     # Resolve org based on current user when state is missing/invalid
-    org = db.query(models.Organization).get(org_id or user.organization_id)
+    org = db.get(models.Organization, org_id or user.organization_id)
     if not org:
         return RedirectResponse(_error_redirect("unknown_org"), status_code=307)
 

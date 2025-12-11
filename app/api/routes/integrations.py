@@ -142,7 +142,7 @@ def get_active_crm(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    org = db.query(models.Organization).get(current_user.organization_id)
+    org = db.get(models.Organization, current_user.organization_id)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
     provider = (org.active_crm or "hubspot")  # type: ignore[assignment]
@@ -155,7 +155,7 @@ def set_active_crm(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    org = db.query(models.Organization).get(current_user.organization_id)
+    org = db.get(models.Organization, current_user.organization_id)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
     org.active_crm = payload.provider  # type: ignore[assignment]

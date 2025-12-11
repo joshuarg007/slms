@@ -154,7 +154,7 @@ async def send_message(
     user: models.User = Depends(get_current_user),
 ):
     """Send a message to the AI consultant and get a response."""
-    org = db.query(models.Organization).get(user.organization_id)
+    org = db.get(models.Organization, user.organization_id)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
@@ -370,7 +370,7 @@ def get_ai_usage(
     user: models.User = Depends(get_current_user),
 ):
     """Get AI usage statistics for the organization."""
-    org = db.query(models.Organization).get(user.organization_id)
+    org = db.get(models.Organization, user.organization_id)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 

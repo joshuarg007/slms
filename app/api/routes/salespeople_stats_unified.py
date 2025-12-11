@@ -46,7 +46,7 @@ def unified_salespeople_stats(
     user: models.User = Depends(get_current_user),
 ) -> SalespersonStatsResponse:
     # Determine active CRM for this org
-    org = db.query(models.Organization).get(user.organization_id)
+    org = db.get(models.Organization, user.organization_id)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
