@@ -1,5 +1,23 @@
 # SLMS (Site2CRM) - Claude Code Guidelines
 
+> **FOR CLAUDE: Read the SESSION STATE section before doing anything.**
+
+---
+
+## SESSION STATE (Update before ending each session)
+**Last Updated:** 2025-12-08
+
+### Where We Left Off:
+- [Update this each session]
+
+### Immediate Next Steps:
+- [Update this each session]
+
+### Current Blockers:
+- None documented
+
+---
+
 ## MASTER RULES (Apply to ALL sessions)
 
 1. **AI Analytics for SaaS ONLY** - Site2CRM is an AI-powered analytics platform exclusively for SaaS companies. All features, messaging, and development must target SaaS businesses specifically. No generic "small business" or multi-vertical positioning.

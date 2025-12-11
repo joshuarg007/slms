@@ -15,7 +15,7 @@ def require_active_subscription(
     Dependency that ensures the caller's organization has an active (or trialing) subscription.
     Returns the org for convenience; raises HTTP 402 otherwise.
     """
-    org = db.query(models.Organization).get(current_user.organization_id)
+    org = db.get(models.Organization, current_user.organization_id)
     if not org or not org_has_active_subscription(org):
         # 402 = Payment Required (lets the SPA show an upgrade flow)
         raise HTTPException(status_code=402, detail="Upgrade required")

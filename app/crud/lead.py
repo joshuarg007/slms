@@ -27,7 +27,7 @@ def check_lead_limit(db: Session, organization_id: int) -> Tuple[bool, int, int]
     Returns (allowed, current_count, limit).
     Also resets the monthly counter if needed.
     """
-    org = db.query(models.Organization).get(organization_id)
+    org = db.get(models.Organization, organization_id)
     if not org:
         return False, 0, 0
 
@@ -51,7 +51,7 @@ def check_lead_limit(db: Session, organization_id: int) -> Tuple[bool, int, int]
 
 def increment_lead_count(db: Session, organization_id: int) -> None:
     """Increment the lead counter for an organization."""
-    org = db.query(models.Organization).get(organization_id)
+    org = db.get(models.Organization, organization_id)
     if org:
         org.leads_this_month += 1
         db.commit()
