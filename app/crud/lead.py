@@ -1,6 +1,7 @@
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict, Any
 from sqlalchemy.orm import Session
+from sqlalchemy import func, extract
 
 from app.db import models
 from app.schemas.lead import LeadCreate, LeadUpdate
@@ -106,3 +107,57 @@ def delete_lead(db: Session, lead_id: int) -> bool:
     db.delete(obj)
     db.commit()
     return True
+
+
+def get_lead_metrics(db: Session) -> Dict[str, Any]:
+    """
+    Get dashboard metrics: leads by month, by source, and by status.
+    Works with both PostgreSQL and SQLite.
+    """
+    dialect = db.bind.dialect.name if db.bind else "postgresql"
+
+    # Leads by month (last 12 months) - dialect-specific date formatting
+    if dialect == "sqlite":
+        month_expr = func.strftime('%Y-%m', models.Lead.created_at)
+    else:
+        month_expr = func.to_char(models.Lead.created_at, 'YYYY-MM')
+
+    leads_by_month = (
+        db.query(
+            month_expr.label('month'),
+            func.count(models.Lead.id).label('count')
+        )
+        .filter(models.Lead.created_at.isnot(None))
+        .group_by(month_expr)
+        .order_by(month_expr.desc())
+        .limit(12)
+        .all()
+    )
+
+    # Leads by source
+    lead_sources = (
+        db.query(
+            func.coalesce(models.Lead.source, 'unknown').label('source'),
+            func.count(models.Lead.id).label('count')
+        )
+        .group_by(func.coalesce(models.Lead.source, 'unknown'))
+        .order_by(func.count(models.Lead.id).desc())
+        .all()
+    )
+
+    # Leads by status
+    status_counts = (
+        db.query(
+            func.coalesce(models.Lead.status, 'new').label('status'),
+            func.count(models.Lead.id).label('count')
+        )
+        .group_by(func.coalesce(models.Lead.status, 'new'))
+        .order_by(func.count(models.Lead.id).desc())
+        .all()
+    )
+
+    return {
+        "leads_by_month": [{"month": m, "count": c} for m, c in leads_by_month],
+        "lead_sources": [{"source": s, "count": c} for s, c in lead_sources],
+        "status_counts": [{"status": s, "count": c} for s, c in status_counts],
+    }
