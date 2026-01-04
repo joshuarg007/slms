@@ -35,7 +35,7 @@ interface FormConfig {
 }
 
 // Find the script tag and extract config
-function getScriptConfig(): { orgKey: string; containerId: string; apiBase: string } | null {
+function getScriptConfig(): { orgKey: string; containerId: string; apiBase: string; source: string } | null {
   const scripts = document.querySelectorAll("script[data-org-key]");
   const script = scripts[scripts.length - 1] as HTMLScriptElement | undefined;
 
@@ -46,6 +46,8 @@ function getScriptConfig(): { orgKey: string; containerId: string; apiBase: stri
 
   const orgKey = script.getAttribute("data-org-key");
   const containerId = script.getAttribute("data-container") || "slms-form";
+  // Source tracking: identify which website the lead came from
+  const source = script.getAttribute("data-source") || window.location.hostname;
 
   // Determine API base from script src or default
   let apiBase = "";
@@ -64,7 +66,7 @@ function getScriptConfig(): { orgKey: string; containerId: string; apiBase: stri
     return null;
   }
 
-  return { orgKey, containerId, apiBase };
+  return { orgKey, containerId, apiBase, source };
 }
 
 // Fetch form config from API
@@ -81,7 +83,8 @@ async function fetchFormConfig(apiBase: string, orgKey: string): Promise<FormCon
 async function submitLead(
   apiBase: string,
   orgKey: string,
-  data: Record<string, string>
+  data: Record<string, string>,
+  source: string
 ): Promise<{ success: boolean; message?: string }> {
   const url = `${apiBase}/api/public/leads`;
   try {
@@ -91,7 +94,7 @@ async function submitLead(
         "Content-Type": "application/json",
         "X-Org-Key": orgKey,
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, source }),
     });
 
     if (!res.ok) {
@@ -106,9 +109,9 @@ async function submitLead(
 }
 
 // Main widget component
-function Widget({ config, apiBase, orgKey }: { config: FormConfig; apiBase: string; orgKey: string }) {
+function Widget({ config, apiBase, orgKey, source }: { config: FormConfig; apiBase: string; orgKey: string; source: string }) {
   const handleSubmit = async (data: Record<string, string>) => {
-    return submitLead(apiBase, orgKey, data);
+    return submitLead(apiBase, orgKey, data, source);
   };
 
   const commonProps = {
@@ -172,7 +175,7 @@ async function init() {
   const scriptConfig = getScriptConfig();
   if (!scriptConfig) return;
 
-  const { orgKey, containerId, apiBase } = scriptConfig;
+  const { orgKey, containerId, apiBase, source } = scriptConfig;
   const container = document.getElementById(containerId);
 
   if (!container) {
@@ -187,7 +190,7 @@ async function init() {
 
   try {
     const config = await fetchFormConfig(apiBase, orgKey);
-    root.render(<Widget config={config} apiBase={apiBase} orgKey={orgKey} />);
+    root.render(<Widget config={config} apiBase={apiBase} orgKey={orgKey} source={source} />);
   } catch (err) {
     console.error("SLMS Widget error:", err);
     root.render(<ErrorDisplay message="Failed to load form. Please try again later." />);

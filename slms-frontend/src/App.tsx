@@ -62,7 +62,7 @@ const Notifications = lazy(() => import("@/pages/integrations/Notifications"));
 const FieldsPage = lazy(() => import("@/pages/forms/FieldsPage"));
 const StylesPage = lazy(() => import("@/pages/forms/StylesPage"));
 const EmbedPage = lazy(() => import("@/pages/forms/EmbedPage"));
-const ChatPage = lazy(() => import("@/pages/ChatPage"));
+// const ChatPage = lazy(() => import("@/pages/ChatPage")); // AI features disabled
 const SalesDashboardPage = lazy(() => import("@/pages/SalesDashboardPage"));
 const TeamKPIPage = lazy(() => import("@/pages/TeamKPIPage"));
 const RecommendationsPage = lazy(() => import("@/pages/RecommendationsPage"));
@@ -120,7 +120,7 @@ export default function App() {
               <Route path="forms/fields" element={<FieldsPage />} />
               <Route path="forms/styles" element={<StylesPage />} />
               <Route path="forms/embed" element={<EmbedPage />} />
-              <Route path="chat" element={<ChatPage />} />
+              {/* <Route path="chat" element={<ChatPage />} /> AI features disabled */}
               <Route path="sales-dashboard" element={<SalesDashboardPage />} />
               <Route path="team-kpi" element={<TeamKPIPage />} />
               <Route path="recommendations" element={<RecommendationsPage />} />

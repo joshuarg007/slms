@@ -88,6 +88,203 @@ async def create_contact(
 
 
 # ---------------------------------------------------------------
+# COMPANY CREATION
+# ---------------------------------------------------------------
+async def create_company(
+    name: str,
+    domain: str = "",
+    organization_id: Optional[int] = None,
+) -> Dict[str, Any]:
+    """
+    Create a company in HubSpot.
+
+    Args:
+        name: Company name (required)
+        domain: Company website domain (optional, used for deduplication)
+        organization_id: Org ID for token lookup
+
+    Returns:
+        HubSpot company object with 'id' field
+    """
+    token: Optional[str] = None
+    if organization_id is not None:
+        token = _get_org_token(organization_id)
+
+    url = f"{HUBSPOT_BASE_URL}/crm/v3/objects/companies"
+    properties = {"name": name}
+    if domain:
+        properties["domain"] = domain
+
+    payload = {"properties": properties}
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.post(url, json=payload, headers=_headers(token))
+        resp.raise_for_status()
+        return resp.json()
+
+
+# ---------------------------------------------------------------
+# SEARCH COMPANY BY NAME (for deduplication)
+# ---------------------------------------------------------------
+async def search_company_by_name(
+    name: str,
+    organization_id: Optional[int] = None,
+) -> Optional[Dict[str, Any]]:
+    """
+    Search for an existing company by name.
+
+    Returns the first matching company or None if not found.
+    """
+    token: Optional[str] = None
+    if organization_id is not None:
+        token = _get_org_token(organization_id)
+
+    url = f"{HUBSPOT_BASE_URL}/crm/v3/objects/companies/search"
+    payload = {
+        "filterGroups": [
+            {
+                "filters": [
+                    {
+                        "propertyName": "name",
+                        "operator": "EQ",
+                        "value": name,
+                    }
+                ]
+            }
+        ],
+        "properties": ["name", "domain"],
+        "limit": 1,
+    }
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.post(url, json=payload, headers=_headers(token))
+        if resp.status_code >= 400:
+            return None
+        data = resp.json()
+        results = data.get("results", [])
+        return results[0] if results else None
+
+
+# ---------------------------------------------------------------
+# ASSOCIATE CONTACT TO COMPANY
+# ---------------------------------------------------------------
+async def associate_contact_to_company(
+    contact_id: str,
+    company_id: str,
+    organization_id: Optional[int] = None,
+) -> bool:
+    """
+    Associate a contact with a company in HubSpot.
+
+    Uses the v4 associations API with the standard "contact_to_company" type.
+
+    Returns:
+        True if successful, False otherwise
+    """
+    token: Optional[str] = None
+    if organization_id is not None:
+        token = _get_org_token(organization_id)
+
+    url = f"{HUBSPOT_BASE_URL}/crm/v4/objects/contacts/{contact_id}/associations/companies/{company_id}"
+
+    # Association type for contact -> company (primary)
+    payload = [
+        {
+            "associationCategory": "HUBSPOT_DEFINED",
+            "associationTypeId": 1,  # Contact to Company (primary)
+        }
+    ]
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.put(url, json=payload, headers=_headers(token))
+        return resp.status_code < 400
+
+
+# ---------------------------------------------------------------
+# FULL LEAD CREATION (Contact + Company + Association)
+# ---------------------------------------------------------------
+async def create_lead_full(
+    email: str,
+    first_name: str = "",
+    last_name: str = "",
+    phone: str = "",
+    company_name: str = "",
+    organization_id: Optional[int] = None,
+) -> Dict[str, Any]:
+    """
+    Create a complete lead in HubSpot with proper entity relationships.
+
+    Flow:
+    1. Create the contact (person)
+    2. If company_name provided: find or create the company
+    3. Associate the contact with the company
+
+    Args:
+        email: Contact email (required)
+        first_name: Contact first name
+        last_name: Contact last name
+        phone: Contact phone
+        company_name: Company name (if provided, will create/find and associate)
+        organization_id: Org ID for token lookup
+
+    Returns:
+        Dict with 'contact', 'company' (if created), and 'associated' status
+    """
+    result: Dict[str, Any] = {
+        "contact": None,
+        "company": None,
+        "associated": False,
+    }
+
+    # Step 1: Create the contact
+    contact = await create_contact(
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
+        phone=phone,
+        organization_id=organization_id,
+    )
+    result["contact"] = contact
+    contact_id = contact.get("id")
+
+    if not contact_id:
+        return result
+
+    # Step 2: If company name provided, find or create company
+    if company_name and company_name.strip():
+        company_name = company_name.strip()
+
+        # Try to find existing company first
+        existing_company = await search_company_by_name(
+            name=company_name,
+            organization_id=organization_id,
+        )
+
+        if existing_company:
+            company = existing_company
+        else:
+            # Create new company
+            company = await create_company(
+                name=company_name,
+                organization_id=organization_id,
+            )
+
+        result["company"] = company
+        company_id = company.get("id")
+
+        # Step 3: Associate contact with company
+        if company_id:
+            associated = await associate_contact_to_company(
+                contact_id=contact_id,
+                company_id=company_id,
+                organization_id=organization_id,
+            )
+            result["associated"] = associated
+
+    return result
+
+
+# ---------------------------------------------------------------
 # GET OWNERS (SOFT-WARNING LOGIC)
 # ---------------------------------------------------------------
 async def get_owners(

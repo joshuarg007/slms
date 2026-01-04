@@ -2,7 +2,7 @@ from typing import Optional
 from datetime import datetime, timedelta
 import secrets
 
-from fastapi import APIRouter, Depends, HTTPException, status, Body, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, Body, BackgroundTasks, Request
 from sqlalchemy.orm import Session
 from app.api.routes.auth import get_current_user
 
@@ -10,6 +10,7 @@ from app.db.session import SessionLocal
 from app.db import models
 from app.schemas.user import UserCreate
 from app.core.security import get_password_hash
+from app.core.rate_limit import check_rate_limit
 from app.services.email import send_email_verification
 from uuid import uuid4
 from sqlalchemy.exc import IntegrityError
@@ -35,10 +36,14 @@ def generate_verification_token() -> str:
 
 @router.post("/signup", status_code=201)
 def signup(
+    request: Request,
     background_tasks: BackgroundTasks,
     user: UserCreate = Body(...),
     db: Session = Depends(get_db),
 ):
+    # Rate limit: 5 signups per hour per IP
+    check_rate_limit(request, "signup")
+
     existing_user = db.query(models.User).filter(models.User.email == user.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="User already exists")

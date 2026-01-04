@@ -67,9 +67,16 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "X-Org-Key",
+        "X-Requested-With",
+        "Accept",
+        "Origin",
+    ],
+    expose_headers=["Content-Type", "X-Request-Id"],
 )
 
 
@@ -103,5 +110,39 @@ app.include_router(automation_routes.router, prefix="/api", tags=["Automation"])
 
 # DB
 models.Base.metadata.create_all(bind=engine)
+
+
+# -----------------------------------
+# Health Check Endpoints
+# -----------------------------------
+from datetime import datetime
+from sqlalchemy import text
+
+@app.get("/health", tags=["Health"])
+def health_check():
+    """Basic health check endpoint for load balancers."""
+    return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
+
+
+@app.get("/health/ready", tags=["Health"])
+def readiness_check():
+    """
+    Readiness check that verifies database connectivity.
+    Returns 503 if database is unreachable.
+    """
+    from app.db.session import SessionLocal
+    try:
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.close()
+        return {"status": "ok", "database": "connected", "timestamp": datetime.utcnow().isoformat()}
+    except Exception as e:
+        from fastapi import Response
+        return Response(
+            content='{"status": "error", "database": "disconnected"}',
+            status_code=503,
+            media_type="application/json"
+        )
+
 
 # ci: trigger deploy

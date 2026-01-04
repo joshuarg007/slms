@@ -11,7 +11,7 @@ from app.crud import lead as lead_crud
 from app.api.routes.auth import get_current_user  # reuse auth dependency
 
 # CRM integrations
-from app.integrations.hubspot import create_contact as hubspot_create_contact
+from app.integrations.hubspot import create_lead_full as hubspot_create_lead_full
 from app.integrations import nutshell
 from app.integrations.pipedrive import create_lead as pipedrive_create_lead
 from app.integrations.salesforce import create_lead as salesforce_create_lead
@@ -42,14 +42,16 @@ async def _sync_to_hubspot_with_notification(
     first_name: str,
     last_name: str,
     phone: str,
+    company: str = "",
 ):
-    """Sync lead to HubSpot, sending error notification on failure if enabled."""
+    """Sync lead to HubSpot with full entity creation (contact + company + association)."""
     try:
-        await hubspot_create_contact(
+        await hubspot_create_lead_full(
             email=email,
             first_name=first_name,
             last_name=last_name,
             phone=phone,
+            company_name=company,
             organization_id=org_id,
         )
     except Exception as exc:
@@ -264,7 +266,7 @@ def public_create_lead(
 
         org_name = getattr(org, "name", None)
 
-        # HubSpot: create a contact (uses org scoped token if present)
+        # HubSpot: create contact + company + association
         if provider == "hubspot":
             background_tasks.add_task(
                 _sync_to_hubspot_with_notification,
@@ -275,6 +277,7 @@ def public_create_lead(
                 first_name=first_name,
                 last_name=last_name,
                 phone=phone,
+                company=company,
             )
 
         # Pipedrive: person plus lead

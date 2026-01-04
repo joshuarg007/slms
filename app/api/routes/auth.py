@@ -1,6 +1,6 @@
-﻿from typing import Optional
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
@@ -9,6 +9,7 @@ from app.db.session import SessionLocal
 from app.db import models
 from app.schemas.token import Token
 from app.core import security
+from app.core.rate_limit import check_rate_limit
 
 router = APIRouter()
 
@@ -53,10 +54,14 @@ def get_current_user(
 
 @router.post("/token", response_model=Token)
 def login(
+    request: Request,
     response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
+    # Rate limit: 10 attempts per 5 minutes per IP
+    check_rate_limit(request, "login")
+
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")

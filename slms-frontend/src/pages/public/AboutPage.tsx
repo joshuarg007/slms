@@ -11,8 +11,8 @@ const VALUES = [
     description: "Every system we build is crafted with meticulous attention to detail, reliability, and performance.",
   },
   {
-    title: "AI-First Thinking",
-    description: "Intelligence is woven into every product we create, from lead scoring to predictive analytics.",
+    title: "Data-Driven Insights",
+    description: "Analytics are woven into every product we create, from lead scoring to conversion tracking.",
   },
   {
     title: "Transparent Attribution",
@@ -37,13 +37,13 @@ const AXIONDEEP_PRODUCTS = [
   },
   {
     name: "Forma",
-    description: "Visual page builder with AI-powered component generation. Drag-and-drop interface with 100+ pre-built components.",
+    description: "Visual page builder with smart component generation. Drag-and-drop interface with 100+ pre-built components.",
     status: "In Development",
     link: null,
   },
   {
     name: "Quantum Gallery",
-    description: "AI-orchestrated 3D scene framework for interactive visualization and procedural animations.",
+    description: "Dynamic 3D scene framework for interactive visualization and procedural animations.",
     status: "Research",
     link: null,
   },
@@ -66,7 +66,7 @@ export default function AboutPage() {
             About Site2CRM
           </h1>
           <p className="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Intelligent lead capture and enrichment, built with precision engineering and AI-first thinking.
+            Intelligent lead capture and enrichment, built with precision engineering and data-driven insights.
           </p>
         </div>
       </section>
@@ -96,7 +96,7 @@ export default function AboutPage() {
             </p>
             <p className="mt-4">
               Today, Site2CRM powers lead capture for thousands of businesses around the world,
-              with AI-powered scoring, real-time CRM sync, and complete visibility into every lead's journey.
+              with smart lead scoring, real-time CRM sync, and complete visibility into every lead's journey.
             </p>
           </div>
         </div>
@@ -177,7 +177,7 @@ export default function AboutPage() {
               More from Axion Deep
             </h2>
             <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
-              Explore our other projects pushing the boundaries of AI and interactive computing.
+              Explore our other projects pushing the boundaries of interactive computing.
             </p>
           </div>
 

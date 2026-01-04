@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import CrmConnectionBanner from "@/components/CrmConnectionBanner";
-import AIFloatingAssistant from "@/components/AIFloatingAssistant";
+// import AIFloatingAssistant from "@/components/AIFloatingAssistant"; // AI features disabled
 import { NetworkStatusBanner } from "@/components/NetworkStatus";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -166,7 +166,6 @@ const APP_SHORTCUTS = [
   { key: "d", modifier: "g", description: "Go to Dashboard" },
   { key: "l", modifier: "g", description: "Go to Leads" },
   { key: "s", modifier: "g", description: "Go to Salespeople" },
-  { key: "c", modifier: "g", description: "Go to AI Consultant" },
   { key: "Escape", description: "Close dialogs" },
 ];
 
@@ -216,14 +215,6 @@ export default function AppLayout() {
       action: () => {
         navigate("/app/salespeople");
         announce("Navigated to Salespeople");
-      },
-    },
-    {
-      key: "c",
-      description: "Go to AI Consultant",
-      action: () => {
-        navigate("/app/chat");
-        announce("Navigated to AI Consultant");
       },
     },
   ]);
@@ -359,7 +350,7 @@ export default function AppLayout() {
                 <NavItem to="/app" icon={icons.dashboard} label="Dashboard" end />
                 <NavItem to="/app/leads" icon={icons.leads} label="Leads" />
                 <NavItem to="/app/salespeople" icon={icons.salespeople} label="Salespeople" />
-                <NavItem to="/app/chat" icon={icons.chat} label="AI Consultant" />
+                {/* AI Consultant disabled - <NavItem to="/app/chat" icon={icons.chat} label="AI Consultant" /> */}
               </div>
             </div>
 
@@ -424,8 +415,8 @@ export default function AppLayout() {
         </main>
       </div>
 
-      {/* AI Floating Assistant */}
-      <AIFloatingAssistant />
+      {/* AI Floating Assistant - disabled */}
+      {/* <AIFloatingAssistant /> */}
 
       {/* Keyboard Shortcuts Dialog */}
       <KeyboardShortcutsDialog
