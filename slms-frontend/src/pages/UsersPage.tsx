@@ -82,6 +82,15 @@ const roleDescriptions: Record<Role, string> = {
   READ_ONLY: "View-only access",
 };
 
+// Safe lookup helpers that default to USER styling for unknown roles
+function getRoleColors(role: string) {
+  return roleColors[role as Role] || roleColors.USER;
+}
+
+function getRoleDescription(role: string) {
+  return roleDescriptions[role as Role] || "Team member";
+}
+
 export default function UsersPage() {
   const { user } = useAuth();
 
@@ -453,11 +462,11 @@ export default function UsersPage() {
                           )}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                          {roleDescriptions[u.role]} &bull; Joined {u.created_at ? new Date(u.created_at).toLocaleDateString() : "Unknown"}
+                          {getRoleDescription(u.role)} &bull; Joined {u.created_at ? new Date(u.created_at).toLocaleDateString() : "Unknown"}
                         </div>
                       </div>
                     </div>
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${roleColors[u.role].bg} ${roleColors[u.role].text} ${roleColors[u.role].border}`}>
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${getRoleColors(u.role).bg} ${getRoleColors(u.role).text} ${getRoleColors(u.role).border}`}>
                       {u.role}
                     </span>
                   </div>

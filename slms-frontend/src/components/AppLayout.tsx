@@ -1,6 +1,6 @@
 // src/components/AppLayout.tsx
 import { useEffect, useState, useRef } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import CrmConnectionBanner from "@/components/CrmConnectionBanner";
 // import AIFloatingAssistant from "@/components/AIFloatingAssistant"; // AI features disabled
 import { NetworkStatusBanner } from "@/components/NetworkStatus";
@@ -171,6 +171,7 @@ const APP_SHORTCUTS = [
 
 export default function AppLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
@@ -409,7 +410,7 @@ export default function AppLayout() {
           className="flex-1 p-6 overflow-y-auto focus:outline-none"
         >
           <CrmConnectionBanner />
-          <PageErrorBoundary>
+          <PageErrorBoundary resetKey={location.pathname}>
             <Outlet />
           </PageErrorBoundary>
         </main>

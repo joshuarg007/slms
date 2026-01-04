@@ -7,6 +7,7 @@ interface Props {
   children: ReactNode;
   fallback?: ReactNode;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  resetKey?: string; // Change this to reset the error boundary
 }
 
 interface State {
@@ -27,6 +28,13 @@ export class PageErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("PageErrorBoundary caught:", error, errorInfo);
     this.props.onError?.(error, errorInfo);
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    // Reset error state when resetKey changes (e.g., route change)
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ hasError: false, error: null });
+    }
   }
 
   handleRetry = () => {
