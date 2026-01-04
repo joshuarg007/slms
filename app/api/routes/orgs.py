@@ -177,6 +177,35 @@ def resend_verification_email(
 
     return {"message": "Verification email sent"}
 
+@router.get("/orgs/current")
+def get_current_organization(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get the current user's organization."""
+    org = db.query(models.Organization).filter(
+        models.Organization.id == current_user.organization_id
+    ).first()
+
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    return {
+        "id": org.id,
+        "name": org.name,
+        "domain": org.domain,
+        "plan": org.plan,
+        "billing_cycle": org.billing_cycle,
+        "subscription_status": org.subscription_status,
+        "current_period_end": org.current_period_end.isoformat() if org.current_period_end else None,
+        "trial_ends_at": org.trial_ends_at.isoformat() if org.trial_ends_at else None,
+        "leads_this_month": org.leads_this_month,
+        "ai_messages_this_month": org.ai_messages_this_month,
+        "active_crm": org.active_crm,
+        "created_at": org.created_at.isoformat() if org.created_at else None,
+    }
+
+
 @router.post("/orgs/key/rotate", response_model=dict)
 def rotate_org_key(
     db: Session = Depends(get_db),
