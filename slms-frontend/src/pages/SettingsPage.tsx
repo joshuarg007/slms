@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { applyTheme, getSavedTheme, type Theme } from "@/utils/theme";
 import { getApiBase, refresh } from "@/utils/api";
-import { AIRecommendationCard } from "@/components/AIBadge";
 import CSVImportModal from "@/components/CSVImportModal";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -273,14 +272,6 @@ export default function SettingsPage() {
           Customize your workspace and manage organization settings
         </p>
       </header>
-
-      {/* AI Settings Recommendation */}
-      <AIRecommendationCard
-        title="Optimize Your Configuration"
-        description="AI analysis suggests enabling weekly digest emails and auto-assignment could improve your team's response rate by 34% based on similar organizations."
-        impact="+34% Response"
-        actionLabel="Apply Recommendations"
-      />
 
       {/* Appearance */}
       <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg overflow-hidden">
