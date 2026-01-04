@@ -1,4 +1,5 @@
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, Header, Body
 from sqlalchemy.orm import Session
@@ -11,7 +12,10 @@ from app.crud import lead as lead_crud
 from app.api.routes.auth import get_current_user  # reuse auth dependency
 
 # CRM integrations
-from app.integrations.hubspot import create_lead_full as hubspot_create_lead_full
+from app.integrations.hubspot import (
+    create_lead_full as hubspot_create_lead_full,
+    fetch_all_contacts as hubspot_fetch_all_contacts,
+)
 from app.integrations import nutshell
 from app.integrations.pipedrive import create_lead as pipedrive_create_lead
 from app.integrations.salesforce import create_lead as salesforce_create_lead
@@ -354,7 +358,35 @@ def public_create_lead(
 
 
 # ---- Internal leads list ----
-def _lead_to_dict(l):
+def _lead_to_dict(l, crm_source: Optional[str] = None, is_crm_only: bool = False):
+    """Convert lead model or dict to response dict with source tracking."""
+    if isinstance(l, dict):
+        # CRM-only lead (from HubSpot, etc.)
+        name = f"{l.get('first_name', '')} {l.get('last_name', '')}".strip() or l.get('email', '')
+        created_at = l.get('created_at')
+        if created_at and isinstance(created_at, str):
+            # Keep as ISO string
+            pass
+        elif created_at:
+            created_at = created_at.isoformat() if hasattr(created_at, 'isoformat') else str(created_at)
+
+        return {
+            "id": l.get("hubspot_id") or l.get("id"),
+            "name": name,
+            "first_name": l.get("first_name"),
+            "last_name": l.get("last_name"),
+            "email": l.get("email"),
+            "phone": l.get("phone"),
+            "company": l.get("company"),
+            "source": crm_source or "hubspot",
+            "notes": None,
+            "organization_id": None,
+            "created_at": created_at,
+            "crm_source": crm_source,
+            "is_crm_only": True,
+        }
+
+    # Local database lead
     return {
         "id": getattr(l, "id", None),
         "name": getattr(l, "name", None),
@@ -367,11 +399,62 @@ def _lead_to_dict(l):
         "notes": getattr(l, "notes", None),
         "organization_id": getattr(l, "organization_id", None),
         "created_at": getattr(l, "created_at", None).isoformat() if getattr(l, "created_at", None) else None,
+        "crm_source": crm_source,
+        "is_crm_only": False,
     }
 
 
+def _dedupe_leads(
+    local_leads: List[models.Lead],
+    crm_leads: List[Dict[str, Any]],
+    crm_name: str,
+) -> tuple[List[Dict[str, Any]], List[Dict[str, str]]]:
+    """
+    Merge local and CRM leads with deduplication by email.
+
+    Returns:
+        - merged_items: List of lead dicts with source tracking
+        - duplicates: List of duplicate recommendations (emails found in both)
+
+    Rules:
+        - Local leads are primary (never delete from CRM)
+        - CRM-only leads are added with crm_source flag
+        - Duplicates are flagged for recommendation
+    """
+    merged: List[Dict[str, Any]] = []
+    duplicates: List[Dict[str, str]] = []
+    seen_emails: set = set()
+
+    # Process local leads first (they take priority)
+    for lead in local_leads:
+        email = (getattr(lead, "email", "") or "").lower().strip()
+        if email:
+            seen_emails.add(email)
+        merged.append(_lead_to_dict(lead, crm_source="local", is_crm_only=False))
+
+    # Process CRM leads - add only if not already in local
+    for crm_lead in crm_leads:
+        email = (crm_lead.get("email", "") or "").lower().strip()
+        if not email:
+            continue
+
+        if email in seen_emails:
+            # Duplicate found - recommend dedupe in HubSpot
+            duplicates.append({
+                "email": email,
+                "crm": crm_name,
+                "recommendation": f"Lead exists in both local and {crm_name}. Consider deduping in {crm_name} (we never delete from CRM, only add).",
+            })
+        else:
+            # New lead from CRM only
+            seen_emails.add(email)
+            merged.append(_lead_to_dict(crm_lead, crm_source=crm_name, is_crm_only=True))
+
+    return merged, duplicates
+
+
 @router.get("/leads")
-def get_leads(
+async def get_leads(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
     q: Optional[str] = Query(None),
@@ -379,45 +462,89 @@ def get_leads(
     dir: str = Query("desc", pattern="^(asc|desc)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=200),
+    include_crm: bool = Query(True, description="Include leads from connected CRM"),
 ):
+    """
+    Get leads with optional CRM sync.
+
+    When include_crm=True (default):
+    - Fetches leads from local database
+    - Fetches leads from connected CRM (HubSpot, etc.)
+    - Merges and dedupes by email (local takes priority)
+    - Flags duplicates with recommendations
+
+    Source column values:
+    - "local": Lead captured via Site2CRM
+    - "hubspot": Lead from HubSpot only
+    - Original source value if set (e.g., "axiondeep.com")
+    """
     organization_id = current_user.organization_id
     if organization_id is None:
         raise HTTPException(status_code=403, detail="No organization assigned")
 
-    items: List[models.Lead] = lead_crud.get_leads(db, organization_id=organization_id)
+    # Get local leads
+    local_leads: List[models.Lead] = lead_crud.get_leads(db, organization_id=organization_id)
 
+    # Get organization's active CRM
+    org = db.query(models.Organization).filter(models.Organization.id == organization_id).first()
+    active_crm = org.active_crm if org else "hubspot"
+
+    crm_leads: List[Dict[str, Any]] = []
+    duplicates: List[Dict[str, str]] = []
+    crm_error: Optional[str] = None
+
+    # Fetch from CRM if enabled
+    if include_crm and active_crm == "hubspot":
+        try:
+            crm_leads = await hubspot_fetch_all_contacts(
+                organization_id=organization_id,
+                max_contacts=1000,
+            )
+        except Exception as e:
+            crm_error = f"Could not fetch from HubSpot: {str(e)}"
+            logger.warning(crm_error)
+
+    # Merge and dedupe
+    if crm_leads:
+        items, duplicates = _dedupe_leads(local_leads, crm_leads, active_crm)
+    else:
+        items = [_lead_to_dict(l, crm_source="local", is_crm_only=False) for l in local_leads]
+
+    # Search filter
     if q:
         q_lower = q.lower()
 
-        def _hit(l: models.Lead) -> bool:
+        def _hit(item: Dict[str, Any]) -> bool:
             return any(
-                (getattr(l, f) or "").lower().find(q_lower) >= 0
+                (str(item.get(f) or "")).lower().find(q_lower) >= 0
                 for f in ("email", "name", "first_name", "last_name", "phone", "company", "source", "notes")
             )
 
         items = [i for i in items if _hit(i)]
 
+    # Sort
     reverse = dir.lower() == "desc"
 
-    def _key(l: models.Lead):
-        v = getattr(l, sort, None)
-        return (v is None, v)
+    def _key(item: Dict[str, Any]):
+        v = item.get(sort)
+        return (v is None, v or "")
 
     try:
         items.sort(key=_key, reverse=reverse)
     except Exception:
         items.sort(
-            key=lambda l: (getattr(l, "created_at", None) is None, getattr(l, "created_at", None)),
+            key=lambda i: (i.get("created_at") is None, i.get("created_at") or ""),
             reverse=True,
         )
 
+    # Paginate
     total = len(items)
     start = (page - 1) * page_size
     end = start + page_size
     page_items = items[start:end]
 
     return {
-        "items": [_lead_to_dict(i) for i in page_items],
+        "items": page_items,
         "total": total,
         "page": page,
         "page_size": page_size,
@@ -427,6 +554,9 @@ def get_leads(
         "dir": dir,
         "q": q or "",
         "organization_id": organization_id,
+        "crm_synced": active_crm if include_crm and crm_leads else None,
+        "crm_error": crm_error,
+        "duplicates": duplicates if duplicates else None,
     }
 
 

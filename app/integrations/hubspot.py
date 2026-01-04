@@ -285,6 +285,159 @@ async def create_lead_full(
 
 
 # ---------------------------------------------------------------
+# FETCH ALL CONTACTS (for lead sync)
+# ---------------------------------------------------------------
+async def fetch_contacts(
+    organization_id: Optional[int] = None,
+    limit: int = 100,
+    after: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Fetch contacts from HubSpot with pagination.
+
+    Args:
+        organization_id: Org ID for token lookup
+        limit: Number of contacts per page (max 100)
+        after: Pagination cursor for next page
+
+    Returns:
+        Dict with 'contacts' list and 'paging' info (next cursor if more results)
+    """
+    token: Optional[str] = None
+    if organization_id is not None:
+        token = _get_org_token(organization_id)
+
+    url = f"{HUBSPOT_BASE_URL}/crm/v3/objects/contacts"
+    params = {
+        "limit": str(min(limit, 100)),
+        "properties": "email,firstname,lastname,phone,company,createdate,lastmodifieddate,hs_lead_status",
+    }
+    if after:
+        params["after"] = after
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            resp = await client.get(url, headers=_headers(token), params=params)
+        except Exception as e:
+            return {"contacts": [], "error": str(e)}
+
+        if resp.status_code == 401:
+            return {"contacts": [], "error": "HubSpot authentication failed"}
+
+        if resp.status_code >= 400:
+            return {"contacts": [], "error": f"HubSpot API error ({resp.status_code})"}
+
+        data = resp.json()
+        contacts = []
+
+        for c in data.get("results", []):
+            props = c.get("properties", {})
+            contacts.append({
+                "hubspot_id": c.get("id"),
+                "email": props.get("email", ""),
+                "first_name": props.get("firstname", ""),
+                "last_name": props.get("lastname", ""),
+                "phone": props.get("phone", ""),
+                "company": props.get("company", ""),
+                "created_at": props.get("createdate"),
+                "updated_at": props.get("lastmodifieddate"),
+                "status": props.get("hs_lead_status", ""),
+            })
+
+        # Get pagination cursor
+        paging = data.get("paging", {})
+        next_cursor = paging.get("next", {}).get("after")
+
+        return {
+            "contacts": contacts,
+            "next_cursor": next_cursor,
+            "has_more": next_cursor is not None,
+        }
+
+
+async def fetch_all_contacts(
+    organization_id: Optional[int] = None,
+    max_contacts: int = 1000,
+) -> List[Dict[str, Any]]:
+    """
+    Fetch all contacts from HubSpot (up to max_contacts).
+
+    Handles pagination automatically.
+
+    Args:
+        organization_id: Org ID for token lookup
+        max_contacts: Maximum contacts to fetch (default 1000)
+
+    Returns:
+        List of contact dicts
+    """
+    all_contacts: List[Dict[str, Any]] = []
+    cursor: Optional[str] = None
+
+    while len(all_contacts) < max_contacts:
+        result = await fetch_contacts(
+            organization_id=organization_id,
+            limit=100,
+            after=cursor,
+        )
+
+        if "error" in result:
+            break
+
+        contacts = result.get("contacts", [])
+        all_contacts.extend(contacts)
+
+        if not result.get("has_more"):
+            break
+
+        cursor = result.get("next_cursor")
+
+    return all_contacts[:max_contacts]
+
+
+# ---------------------------------------------------------------
+# SEARCH CONTACT BY EMAIL (for deduplication check)
+# ---------------------------------------------------------------
+async def search_contact_by_email(
+    email: str,
+    organization_id: Optional[int] = None,
+) -> Optional[Dict[str, Any]]:
+    """
+    Search for an existing contact by email.
+
+    Returns the matching contact or None if not found.
+    """
+    token: Optional[str] = None
+    if organization_id is not None:
+        token = _get_org_token(organization_id)
+
+    url = f"{HUBSPOT_BASE_URL}/crm/v3/objects/contacts/search"
+    payload = {
+        "filterGroups": [
+            {
+                "filters": [
+                    {
+                        "propertyName": "email",
+                        "operator": "EQ",
+                        "value": email,
+                    }
+                ]
+            }
+        ],
+        "properties": ["email", "firstname", "lastname", "phone", "company"],
+        "limit": 1,
+    }
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.post(url, json=payload, headers=_headers(token))
+        if resp.status_code >= 400:
+            return None
+        data = resp.json()
+        results = data.get("results", [])
+        return results[0] if results else None
+
+
+# ---------------------------------------------------------------
 # GET OWNERS (SOFT-WARNING LOGIC)
 # ---------------------------------------------------------------
 async def get_owners(

@@ -7,7 +7,8 @@ import AIBadge, { AIScoreRing } from "@/components/AIBadge";
 // Fake AI scoring based on lead characteristics
 function getAIScore(lead: Lead): { score: number; badge: "hot" | "warm" | "cold" | "opportunity" | "risk" | null } {
   // Use lead ID as pseudo-random seed for consistent display
-  const seed = lead.id % 10;
+  const idNum = typeof lead.id === 'number' ? lead.id : parseInt(String(lead.id).replace(/\D/g, '').slice(-4) || '0', 10);
+  const seed = idNum % 10;
   const hasCompany = !!lead.company;
   const hasPhone = !!lead.phone;
   const sourceBonus = ["google", "linkedin", "referral"].some(s => lead.source?.toLowerCase().includes(s)) ? 15 : 0;
@@ -26,7 +27,7 @@ function getAIScore(lead: Lead): { score: number; badge: "hot" | "warm" | "cold"
 }
 
 type Lead = {
-  id: number;
+  id: number | string;
   name?: string | null;
   first_name?: string | null;
   last_name?: string | null;
@@ -36,6 +37,14 @@ type Lead = {
   source?: string | null;
   notes?: string | null;
   created_at?: string | null;
+  crm_source?: string | null;  // "local", "hubspot", etc.
+  is_crm_only?: boolean;       // true if only exists in CRM
+};
+
+type Duplicate = {
+  email: string;
+  crm: string;
+  recommendation: string;
 };
 
 type ApiResult = {
@@ -48,6 +57,9 @@ type ApiResult = {
   sort: string;
   dir: "asc" | "desc";
   q: string;
+  crm_synced?: string | null;    // Which CRM was synced
+  crm_error?: string | null;     // Error fetching from CRM
+  duplicates?: Duplicate[] | null;
 };
 
 const DEFAULT_SORT = "created_at" as const;
@@ -210,6 +222,45 @@ const LeadsPage: React.FC = () => {
         ctaText="View Priority Leads"
       />
 
+      {/* CRM Sync Status */}
+      {data?.crm_synced && (
+        <div className="flex items-center gap-3 rounded-xl border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/20 px-4 py-3 text-sm text-green-700 dark:text-green-300">
+          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Synced with {data.crm_synced.charAt(0).toUpperCase() + data.crm_synced.slice(1)}
+        </div>
+      )}
+
+      {/* CRM Error Warning */}
+      {data?.crm_error && (
+        <div className="flex items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          {data.crm_error}
+        </div>
+      )}
+
+      {/* Duplicates Warning */}
+      {data?.duplicates && data.duplicates.length > 0 && (
+        <div className="rounded-xl border border-blue-200 dark:border-blue-800/50 bg-blue-50 dark:bg-blue-900/20 px-4 py-3">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 flex-shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                {data.duplicates.length} duplicate{data.duplicates.length > 1 ? 's' : ''} found
+              </p>
+              <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+                These leads exist in both Site2CRM and your CRM. Consider deduping in your CRM (we never delete from CRM, only add).
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Error */}
       {err && (
         <div className="flex items-center gap-3 rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-300">
@@ -301,13 +352,37 @@ const LeadsPage: React.FC = () => {
                     <td className="hidden sm:table-cell px-3 sm:px-5 py-3 sm:py-4 text-gray-600 dark:text-gray-300">{formatPhone(l.phone)}</td>
                     <td className="hidden md:table-cell px-3 sm:px-5 py-3 sm:py-4 text-gray-600 dark:text-gray-300">{l.company || "—"}</td>
                     <td className="px-3 sm:px-5 py-3 sm:py-4">
-                      {l.source ? (
-                        <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
-                          {l.source}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
+                      <div className="flex flex-col gap-1">
+                        {/* Original source (e.g., website, campaign) */}
+                        {l.source && l.source !== l.crm_source && (
+                          <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
+                            {l.source}
+                          </span>
+                        )}
+                        {/* CRM source badge */}
+                        {l.crm_source && (
+                          <span className={`inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            l.is_crm_only
+                              ? "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300"
+                              : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                          }`}>
+                            {l.is_crm_only ? (
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                              </svg>
+                            ) : (
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                            {l.crm_source === "local" ? "Site2CRM" : l.crm_source}
+                          </span>
+                        )}
+                        {/* Fallback if no source */}
+                        {!l.source && !l.crm_source && (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </div>
                     </td>
                     <td className="hidden lg:table-cell px-3 sm:px-5 py-3 sm:py-4 text-gray-500 dark:text-gray-400 text-xs">
                       {l.created_at ? formatDate(l.created_at) : "—"}
