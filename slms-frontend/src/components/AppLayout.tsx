@@ -8,7 +8,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { NotificationBell } from "@/components/NotificationBell";
 import { SkipLink, useKeyboardShortcuts, KeyboardShortcutsDialog, useAnnounce } from "@/components/Accessibility";
 import api from "@/utils/api";
-import logo from "@/assets/site2crm_logo_horizontal.svg";
+import Logo from "@/components/Logo";
 
 // Icon components for sidebar
 const icons = {
@@ -276,8 +276,8 @@ export default function AppLayout() {
         className="sticky top-0 z-50 h-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 flex items-center px-6"
       >
         {/* Logo */}
-        <div className="flex items-center gap-2 mr-8">
-          <img src={logo} alt="Site2CRM" className="h-10 w-auto" />
+        <div className="flex items-center mr-8">
+          <Logo linkTo="/app" size="sm" />
         </div>
 
         {/* Search - centered */}

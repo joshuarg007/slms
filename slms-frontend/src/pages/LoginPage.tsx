@@ -1,7 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthProvider";
-import logo from "@/assets/site2crm_logo_horizontal.svg";
+import Logo from "@/components/Logo";
 
 const API = import.meta.env.VITE_API_URL || "";
 
@@ -87,9 +87,7 @@ export default function LoginPage() {
 
         <div className="relative z-10 flex flex-col justify-between p-12 text-white">
           <div>
-            <Link to="/" className="inline-block">
-              <img src={logo} alt="Site2CRM" className="h-12 brightness-0 invert" />
-            </Link>
+            <Logo linkTo="/" size="lg" inverted />
           </div>
 
           <div className="max-w-md">
@@ -128,9 +126,9 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-950">
         {/* Top nav */}
         <div className="flex items-center justify-between p-6">
-          <Link to="/" className="lg:hidden">
-            <img src={logo} alt="Site2CRM" className="h-10" />
-          </Link>
+          <div className="lg:hidden">
+            <Logo linkTo="/" forceDark />
+          </div>
           <Link
             to="/"
             className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-2"

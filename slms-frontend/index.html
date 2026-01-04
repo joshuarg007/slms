@@ -52,5 +52,46 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!--Start of Tawk.to Script-->
+    <style>
+    /* Tawk.to Site2CRM Theme Override */
+    .tawk-min-container .tawk-button,
+    .tawk-min-container .tawk-button:hover {
+      background-color: #4f46e5 !important;
+    }
+    .tawk-min-container .tawk-button.tawk-button-circle {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+    }
+    </style>
+    <script type="text/javascript">
+    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+
+    // Customize widget appearance
+    Tawk_API.customStyle = {
+      visibility: {
+        desktop: { position: 'br', xOffset: 20, yOffset: 20 },
+        mobile: { position: 'br', xOffset: 10, yOffset: 10 }
+      },
+      zIndex: 1000
+    };
+
+    (function(){
+    var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+    s1.async=true;
+    s1.src='https://embed.tawk.to/6959d5fdb8624c19854d7aac/1je3enpbv';
+    s1.charset='UTF-8';
+    s1.setAttribute('crossorigin','*');
+    s0.parentNode.insertBefore(s1,s0);
+    })();
+
+    // Hide on dashboard pages
+    Tawk_API.onLoad = function(){
+      if(window.location.pathname.startsWith('/app')) {
+        Tawk_API.hideWidget();
+      }
+    };
+    </script>
+    <!--End of Tawk.to Script-->
   </body>
 </html>

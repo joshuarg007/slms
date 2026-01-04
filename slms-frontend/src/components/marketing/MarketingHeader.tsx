@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import logo from "@/assets/site2crm_logo_horizontal.svg";
+import Logo from "@/components/Logo";
 
 const NAV_LINKS = [
   { to: "/", label: "Home" },
@@ -53,9 +53,7 @@ export default function MarketingHeader() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <img src={logo} alt="Site2CRM" className="h-8" />
-          </Link>
+          <Logo linkTo="/" forceDark />
 
           {/* Desktop Nav */}
           <nav role="navigation" aria-label="Main navigation" className="hidden md:flex items-center gap-1">

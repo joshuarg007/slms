@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { getApiBase } from "@/utils/api";
-import logo from "@/assets/site2crm_logo_horizontal.svg";
+import Logo from "@/components/Logo";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function ResetPasswordPage() {
@@ -126,9 +126,7 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
       {/* Top nav */}
       <div className="flex items-center justify-between p-6">
-        <Link to="/">
-          <img src={logo} alt="Site2CRM" className="h-10" />
-        </Link>
+        <Logo linkTo="/" forceDark />
       </div>
 
       {/* Form */}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { getApiBase } from "@/utils/api";
-import logo from "@/assets/site2crm_logo_horizontal.svg";
+import Logo from "@/components/Logo";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function ForgotPasswordPage() {
@@ -80,9 +80,7 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
       {/* Top nav */}
       <div className="flex items-center justify-between p-6">
-        <Link to="/">
-          <img src={logo} alt="Site2CRM" className="h-10" />
-        </Link>
+        <Logo linkTo="/" forceDark />
         <Link
           to="/login"
           className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-2"

@@ -20,22 +20,9 @@ const CONTACT_OPTIONS = [
       </svg>
     ),
     title: "Live Chat",
-    description: "Chat with our team in real-time during business hours.",
-    contact: "Available 9am-6pm EST",
-    link: "#",
-  },
-];
-
-const OFFICES = [
-  {
-    city: "San Francisco",
-    address: "100 Market Street, Suite 300",
-    country: "United States",
-  },
-  {
-    city: "London",
-    address: "1 Finsbury Avenue",
-    country: "United Kingdom",
+    description: "Chat with our AI assistant for instant answers.",
+    contact: "Available 24/7",
+    link: "#chat",
   },
 ];
 
@@ -86,80 +73,11 @@ export default function ContactPage() {
 
       {/* Contact Form Section */}
       <section className="py-20 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-12 items-start">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Send Us a Message
-              </h2>
-              <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
-                Fill out the form and our team will get back to you within 24 hours.
-              </p>
-
-              <div className="mt-8 space-y-6">
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                    Sales Inquiries
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    Interested in Site2CRM for your business? Our sales team can help you find
-                    the right plan and answer any questions about features, pricing, or integrations.
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                    Technical Support
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    Having trouble with your forms or integrations? Our support team is here to
-                    help you troubleshoot and get back on track.
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                    Partnerships
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    Interested in partnering with Site2CRM? We're always looking for agencies,
-                    consultants, and technology partners.
-                  </p>
-                </div>
-              </div>
-
-              {/* Offices */}
-              <div className="mt-12">
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
-                  Our Offices
-                </h3>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  {OFFICES.map((office) => (
-                    <div
-                      key={office.city}
-                      className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-                    >
-                      <h4 className="font-medium text-gray-900 dark:text-white">
-                        {office.city}
-                      </h4>
-                      <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                        {office.address}
-                        <br />
-                        {office.country}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <ContactForm
-                title="Contact Us"
-                subtitle="Tell us how we can help and we'll be in touch shortly."
-              />
-            </div>
-          </div>
+        <div className="max-w-2xl mx-auto px-6">
+          <ContactForm
+            title="Send Us a Message"
+            subtitle="Can't find what you're looking for? Fill out the form and our team will get back to you within 24 hours."
+          />
         </div>
       </section>
     </div>

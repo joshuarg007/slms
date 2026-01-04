@@ -1,5 +1,6 @@
 // src/pages/WelcomePage.tsx
 import { Link } from "react-router-dom";
+import Logo from "@/components/Logo";
 
 export default function WelcomePage() {
   return (
@@ -8,9 +9,7 @@ export default function WelcomePage() {
       <header className="border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-6 py-10">
           <div className="flex items-center justify-between">
-            <Link to="/welcome" className="text-xl font-semibold">
-              SLMS
-            </Link>
+            <Logo linkTo="/welcome" forceDark />
             <nav className="flex items-center gap-6 text-sm">
               <a className="hover:underline" href="#features">Features</a>
               <a className="hover:underline" href="#integrations">Integrations</a>
@@ -99,7 +98,7 @@ export default function WelcomePage() {
       {/* Footer */}
       <footer className="border-t border-gray-200 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-6 py-6 text-sm text-gray-600 dark:text-gray-400">
-          © {new Date().getFullYear()} SLMS
+          © {new Date().getFullYear()} Site2CRM
         </div>
       </footer>
     </div>

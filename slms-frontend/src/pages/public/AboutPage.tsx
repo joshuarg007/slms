@@ -71,41 +71,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Axion Deep Section */}
-      <section className="py-20 bg-gradient-to-br from-gray-900 via-indigo-950 to-gray-900 text-white">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-2">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-400">
-                Axion Deep
-              </span>
-            </h2>
-            <p className="text-xl text-gray-300 italic">From Thought to Precision</p>
-          </div>
-          <div className="prose prose-lg prose-invert max-w-none">
-            <p className="text-gray-300 leading-relaxed">
-              Site2CRM is developed by <strong className="text-white">Axion Deep</strong>, a research
-              and engineering studio advancing the frontiers of intelligent systems, quantum-inspired
-              computation, and data sciences.
-            </p>
-            <p className="text-gray-300 leading-relaxed mt-4">
-              Our focus is inquiry and discovery: exploring, prototyping, and validating new architectures
-              that bridge scientific depth with engineering rigor. We build products that transform
-              complex challenges into elegant, AI-powered solutions.
-            </p>
-          </div>
-          <div className="mt-8 flex items-center justify-center gap-6 text-xs tracking-widest text-gray-500">
-            <span>AI</span>
-            <span className="w-1 h-1 rounded-full bg-gray-600" />
-            <span>DATA SYSTEMS</span>
-            <span className="w-1 h-1 rounded-full bg-gray-600" />
-            <span>INTEGRATION</span>
-            <span className="w-1 h-1 rounded-full bg-gray-600" />
-            <span>SECURITY</span>
-          </div>
-        </div>
-      </section>
-
       {/* Story */}
       <section className="py-20 bg-white dark:bg-gray-950">
         <div className="max-w-4xl mx-auto px-6">
@@ -178,8 +143,34 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* More from Axion Deep */}
+      {/* CTA */}
       <section className="py-20 bg-white dark:bg-gray-950">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Join Us on Our Mission
+          </h2>
+          <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
+            Whether you're a customer, partner, or future team member, we'd love to hear from you.
+          </p>
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              to="/signup"
+              className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/25 transition-all"
+            >
+              Get Started Free
+            </Link>
+            <Link
+              to="/contact"
+              className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold rounded-xl border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              Contact Us
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* More from Axion Deep */}
+      <section className="py-20 bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -227,32 +218,6 @@ export default function AboutPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </a>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-20 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Join Us on Our Mission
-          </h2>
-          <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
-            Whether you're a customer, partner, or future team member, we'd love to hear from you.
-          </p>
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to="/signup"
-              className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/25 transition-all"
-            >
-              Get Started Free
-            </Link>
-            <Link
-              to="/contact"
-              className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold rounded-xl border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-            >
-              Contact Us
-            </Link>
           </div>
         </div>
       </section>

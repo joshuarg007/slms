@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import Logo from "@/components/Logo";
 
 const FOOTER_LINKS = {
   Product: [
@@ -28,20 +29,9 @@ export default function MarketingFooter() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <Link to="/" className="flex items-center gap-2.5 mb-4 group">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:shadow-indigo-500/40 transition-shadow">
-                <svg className="w-5 h-5" viewBox="0 0 28 24" fill="none">
-                  <circle cx="4" cy="6" r="3" fill="white" opacity="0.9"/>
-                  <circle cx="4" cy="18" r="3" fill="white" opacity="0.7"/>
-                  <path d="M8 6 Q14 6 16 12 Q18 18 24 18" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.9"/>
-                  <path d="M8 18 Q14 18 16 12 Q18 6 24 6" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.7"/>
-                  <circle cx="24" cy="12" r="3.5" fill="white"/>
-                </svg>
-              </div>
-              <span className="font-semibold text-gray-900 dark:text-white">
-                Site<span className="bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 bg-clip-text text-transparent font-bold">2</span>CRM
-              </span>
-            </Link>
+            <div className="mb-4">
+              <Logo linkTo="/" size="sm" forceDark />
+            </div>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Turn website visitors into CRM leads. No code required.
             </p>
