@@ -133,6 +133,31 @@ def create_checkout_session(
     except stripe.error.StripeError:
         pass  # If Stripe check fails, continue with normal flow
 
+    # SAFEGUARD 2c: Query Stripe for existing active subscriptions (handles webhook delay)
+    # Our DB might be stale if webhook is slow - Stripe is authoritative
+    try:
+        existing_subs = stripe.Subscription.list(
+            customer=customer_id,
+            status="all",  # Get all to check various states
+            limit=5,
+        )
+        active_statuses = {"active", "past_due", "trialing", "incomplete"}
+        for sub in existing_subs.data:
+            if sub.status in active_statuses:
+                # Check plan from subscription metadata or price
+                sub_meta = sub.get("metadata", {}) or {}
+                sub_plan = sub_meta.get("plan")
+                if sub_plan == req.plan:
+                    raise HTTPException(
+                        400,
+                        f"Stripe shows you already have an active {req.plan} subscription. "
+                        "If this is unexpected, please contact support."
+                    )
+    except stripe.error.StripeError:
+        pass  # If Stripe check fails, continue (other safeguards still apply)
+    except HTTPException:
+        raise  # Re-raise our own HTTPException
+
     # Get the right price ID
     price_key = f"{req.plan}_{req.billing_cycle}"
     price_id = PRICE_IDS.get(price_key)
