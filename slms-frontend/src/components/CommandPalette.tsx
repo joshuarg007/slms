@@ -98,15 +98,56 @@ function getRecentSearches(): RecentSearch[] {
   }
 }
 
+// Check if query looks like gibberish/spam
+function isGibberish(query: string): boolean {
+  const q = query.trim().toLowerCase();
+
+  // Too short or too long
+  if (q.length < 2 || q.length > 50) return true;
+
+  // All same character repeated (e.g., "aaaa", "1111")
+  if (/^(.)\1+$/.test(q)) return true;
+
+  // Keyboard smash patterns (consecutive keys)
+  const keyboardPatterns = [
+    /^[asdfghjkl]+$/i,    // home row
+    /^[qwertyuiop]+$/i,   // top row
+    /^[zxcvbnm]+$/i,      // bottom row
+    /^[123456789]+$/,     // number row
+  ];
+  if (q.length >= 4 && keyboardPatterns.some(p => p.test(q))) return true;
+
+  // Too many consonants in a row (unlikely in real words)
+  if (/[bcdfghjklmnpqrstvwxyz]{5,}/i.test(q)) return true;
+
+  // Random character mix with no vowels (for queries > 4 chars)
+  if (q.length > 4 && !/[aeiou]/i.test(q)) return true;
+
+  // Contains only special characters
+  if (/^[^a-z0-9]+$/i.test(q)) return true;
+
+  return false;
+}
+
 function saveRecentSearch(query: string) {
   try {
+    // Don't save gibberish
+    if (isGibberish(query)) return;
+
     const recent = getRecentSearches().filter(r => r.query !== query);
     recent.unshift({ query, timestamp: Date.now() });
-    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recent.slice(0, 5)));
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recent.slice(0, 10)));
   } catch {
     // ignore
   }
 }
+
+// Default quick actions when no search history
+const DEFAULT_SUGGESTIONS: { id: string; title: string; path: string; icon: React.ReactNode }[] = [
+  { id: "quick-dashboard", title: "Go to Dashboard", path: "/app", icon: icons.dashboard },
+  { id: "quick-leads", title: "View Leads", path: "/app/leads", icon: icons.lead },
+  { id: "quick-settings", title: "Open Settings", path: "/app/settings", icon: icons.settings },
+];
 
 function clearRecentSearches() {
   try {
@@ -131,15 +172,25 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Load recent searches on mount
+  // Load recent searches on mount and handle global ESC
   useEffect(() => {
     if (isOpen) {
       setRecentSearches(getRecentSearches());
       setQuery("");
       setSelectedIndex(0);
       setTimeout(() => inputRef.current?.focus(), 50);
+
+      // Global ESC handler
+      const handleGlobalKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          onClose();
+        }
+      };
+      document.addEventListener("keydown", handleGlobalKeyDown);
+      return () => document.removeEventListener("keydown", handleGlobalKeyDown);
     }
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   // Debounced search for leads
   useEffect(() => {
@@ -168,8 +219,9 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
     const q = query.toLowerCase().trim();
     const items: SearchResult[] = [];
 
-    // If no query, show recent searches
+    // If no query, show recent searches + default suggestions
     if (!q) {
+      // Recent searches first
       recentSearches.forEach(recent => {
         items.push({
           id: `recent-${recent.query}`,
@@ -183,7 +235,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
         });
       });
 
-      // Add quick actions if there are recent searches
+      // Clear history option if there are recent searches
       if (recentSearches.length > 0) {
         items.push({
           id: "action-clear-recent",
@@ -196,6 +248,21 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
           },
         });
       }
+
+      // Always show default quick actions
+      DEFAULT_SUGGESTIONS.forEach(suggestion => {
+        items.push({
+          id: suggestion.id,
+          type: "page",
+          title: suggestion.title,
+          subtitle: "Quick action",
+          icon: suggestion.icon,
+          action: () => {
+            navigate(suggestion.path);
+            onClose();
+          },
+        });
+      });
 
       return items;
     }
@@ -294,14 +361,12 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
   if (!isOpen) return null;
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-[9999] flex items-start justify-center pt-[15vh]"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[15vh]">
+      {/* Backdrop - click to close */}
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
 
       {/* Modal */}
       <div className="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
@@ -325,9 +390,15 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
           )}
-          <kbd className="hidden sm:flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-400 bg-gray-100 dark:bg-gray-800 rounded">
-            ESC
-          </kbd>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            aria-label="Close search"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         {/* Results */}
@@ -403,13 +474,6 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
             </div>
           )}
 
-          {/* Empty state */}
-          {results.length === 0 && !query.trim() && recentSearches.length === 0 && (
-            <div className="px-5 py-8 text-center text-gray-500">
-              <p className="mb-2">Start typing to search</p>
-              <p className="text-sm">Search for pages, leads, or salespeople</p>
-            </div>
-          )}
         </div>
 
         {/* Footer */}
