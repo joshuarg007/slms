@@ -9,7 +9,6 @@ import {
   GamificationOverview,
   Badge,
 } from "../utils/api";
-import AIInsightWidget from "../components/AIInsightWidget";
 import {
   RadialGauge,
   ProgressRing,
@@ -480,16 +479,6 @@ export default function LeaderboardPage() {
         </div>
       )}
 
-      {/* AI Coaching Tip */}
-      <div className={`transition-all duration-500 delay-150 ${mounted ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
-        <AIInsightWidget
-          variant="banner"
-          insights={[
-            { icon: "trending", text: "You're just 3 deals away from the 'Deal Closer' badge! Focus on your proposal-stage leads to level up." }
-          ]}
-          ctaText="Get Personalized Tips"
-        />
-      </div>
 
       {/* Main Content Grid */}
       <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 transition-all duration-500 delay-150 ${mounted ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>

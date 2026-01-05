@@ -53,7 +53,7 @@ interface Invoice {
 const PLANS = [
   {
     id: "starter",
-    name: "Starter",
+    name: "Site2CRM",
     monthlyPrice: 29,
     annualPrice: 290,
     features: [
@@ -65,7 +65,7 @@ const PLANS = [
   },
   {
     id: "pro",
-    name: "Professional",
+    name: "Site2CRM PRO",
     monthlyPrice: 79,
     annualPrice: 790,
     popular: true,

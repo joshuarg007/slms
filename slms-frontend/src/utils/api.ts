@@ -738,6 +738,21 @@ export async function getAutomationStats(): Promise<AutomationStats> {
   return fetchJSON<AutomationStats>(`${baseUrl}/automation/stats`);
 }
 
+// Support request
+export interface SupportRequest {
+  issue_type: string;
+  issue_label: string;
+  details: string;
+  contact_email?: string;
+}
+
+export async function submitSupportRequest(request: SupportRequest): Promise<{ message: string }> {
+  return fetchJSON<{ message: string }>(`${baseUrl}/support/request`, {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+}
+
 // Named plus default export
 export const api = {
   login,
@@ -784,6 +799,8 @@ export const api = {
   getAutomationSettings,
   updateAutomationSettings,
   getAutomationStats,
+  // Support
+  submitSupportRequest,
 };
 
 export default api;

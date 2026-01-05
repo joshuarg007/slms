@@ -12,7 +12,6 @@ import {
   AutomationSettings,
   AutomationStats,
 } from "../utils/api";
-import AIInsightWidget from "../components/AIInsightWidget";
 
 function Toggle({
   enabled,
@@ -251,18 +250,6 @@ export default function AutomationPage() {
         </p>
       </div>
 
-      {/* AI Optimization Suggestion */}
-      <div className={`transition-all duration-500 delay-75 ${mounted ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
-        <AIInsightWidget
-          title="Automation Insights"
-          insights={[
-            { icon: "bulb", text: "Switching to 'Best Fit' strategy could improve conversion by 18% based on your historical data." },
-            { icon: "alert", text: "12 leads are overdue for assignment. Enable auto-assign to reduce response time." },
-            { icon: "trending", text: "Your current assignment rate is 89%. Industry benchmark is 95%." },
-          ]}
-          ctaText="Optimize with AI"
-        />
-      </div>
 
       {/* Stats Overview */}
       {stats && (

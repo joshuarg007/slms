@@ -2,30 +2,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { api } from "@/utils/api";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
-import AIInsightWidget from "@/components/AIInsightWidget";
-import AIBadge, { AIScoreRing } from "@/components/AIBadge";
-
-// Fake AI scoring based on lead characteristics
-function getAIScore(lead: Lead): { score: number; badge: "hot" | "warm" | "cold" | "opportunity" | "risk" | null } {
-  // Use lead ID as pseudo-random seed for consistent display
-  const idNum = typeof lead.id === 'number' ? lead.id : parseInt(String(lead.id).replace(/\D/g, '').slice(-4) || '0', 10);
-  const seed = idNum % 10;
-  const hasCompany = !!lead.company;
-  const hasPhone = !!lead.phone;
-  const sourceBonus = ["google", "linkedin", "referral"].some(s => lead.source?.toLowerCase().includes(s)) ? 15 : 0;
-
-  let score = 40 + (seed * 5) + (hasCompany ? 10 : 0) + (hasPhone ? 10 : 0) + sourceBonus;
-  score = Math.min(98, Math.max(25, score));
-
-  let badge: "hot" | "warm" | "cold" | "opportunity" | "risk" | null = null;
-  if (score >= 85) badge = "hot";
-  else if (score >= 70) badge = "opportunity";
-  else if (score >= 55) badge = "warm";
-  else if (score < 35) badge = "risk";
-  else if (seed % 4 === 0) badge = "cold";
-
-  return { score, badge };
-}
 
 type Lead = {
   id: number | string;
@@ -215,14 +191,6 @@ const LeadsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* AI Insight */}
-      <AIInsightWidget
-        variant="inline"
-        insights={[
-          { icon: "target", text: "3 high-value leads haven't been contacted in 5+ days. Prioritize follow-up to improve conversion." }
-        ]}
-        ctaText="View Priority Leads"
-      />
 
       {/* CRM Sync Status */}
       {data?.crm_synced && (
@@ -328,27 +296,15 @@ const LeadsPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                items.map((l) => {
-                  const ai = getAIScore(l);
-                  return (
+                items.map((l) => (
                   <tr
                     key={l.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                   >
                     <td className="px-3 sm:px-5 py-3 sm:py-4">
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <AIScoreRing score={ai.score} size="sm" />
-                        <div className="min-w-0">
-                          <span className="font-medium text-gray-900 dark:text-white truncate block">
-                            {fullName(l) || <span className="text-gray-400">—</span>}
-                          </span>
-                          {ai.badge && (
-                            <div className="mt-0.5">
-                              <AIBadge type={ai.badge} size="sm" />
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                      <span className="font-medium text-gray-900 dark:text-white truncate block">
+                        {fullName(l) || <span className="text-gray-400">—</span>}
+                      </span>
                     </td>
                     <td className="px-3 sm:px-5 py-3 sm:py-4 text-gray-600 dark:text-gray-300 truncate max-w-[120px] sm:max-w-none">{l.email || "—"}</td>
                     <td className="hidden sm:table-cell px-3 sm:px-5 py-3 sm:py-4 text-gray-600 dark:text-gray-300">{formatPhone(l.phone)}</td>
@@ -393,8 +349,7 @@ const LeadsPage: React.FC = () => {
                       {l.notes || "—"}
                     </td>
                   </tr>
-                  );
-                })
+                ))
               )}
             </tbody>
           </table>

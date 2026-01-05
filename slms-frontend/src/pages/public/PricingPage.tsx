@@ -3,10 +3,10 @@ import { useSEO, schemas } from "@/hooks/useSEO";
 
 const PLANS = [
   {
-    name: "Starter",
+    name: "Site2CRM",
     price: "$29",
     period: "/month",
-    description: "Perfect for small businesses just getting started with lead capture.",
+    description: "Everything you need to stop manual CRM entry.",
     features: [
       "1 embedded form",
       "Up to 100 leads/month",
@@ -19,10 +19,10 @@ const PLANS = [
     highlighted: false,
   },
   {
-    name: "Professional",
+    name: "Site2CRM PRO",
     price: "$79",
     period: "/month",
-    description: "For growing teams that need more power and flexibility.",
+    description: "For teams that need unlimited power and flexibility.",
     features: [
       "Unlimited forms",
       "Up to 1,000 leads/month",
@@ -37,12 +37,12 @@ const PLANS = [
     highlighted: true,
   },
   {
-    name: "Enterprise",
+    name: "Site2CRM Enterprise",
     price: "Custom",
     period: "",
     description: "For large organizations with advanced security and compliance needs.",
     features: [
-      "Everything in Professional",
+      "Everything in PRO",
       "Unlimited leads",
       "SSO / SAML",
       "Dedicated account manager",
@@ -194,7 +194,7 @@ export default function PricingPage() {
                 </ul>
 
                 <Link
-                  to={plan.name === "Enterprise" ? "/contact" : "/signup"}
+                  to={plan.name === "Site2CRM Enterprise" ? "/contact" : "/signup"}
                   className={`mt-8 block w-full py-3 text-center font-semibold rounded-xl transition-all ${
                     plan.highlighted
                       ? "bg-white text-indigo-600 hover:bg-indigo-50"

@@ -7,7 +7,6 @@ import DateRangePicker, {
   formatDateForApi,
 } from "../components/DateRangePicker";
 import ExportCsvButton from "../components/ExportCsvButton";
-import AIInsightWidget from "../components/AIInsightWidget";
 import {
   AnimatedBarChart,
   RadialGauge,
@@ -539,18 +538,6 @@ export default function TeamKPIPage() {
         </div>
       </div>
 
-      {/* AI Insights */}
-      <div className={`transition-all duration-500 delay-100 ${mounted ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
-        <AIInsightWidget
-          title="Team Performance Insights"
-          insights={[
-            { icon: "trending", text: "Team close rate is up 5% this month. Top contributor: Mike Johnson with 42% close rate." },
-            { icon: "alert", text: "2 reps are below 50% quota. Consider additional coaching or lead redistribution." },
-            { icon: "star", text: "Best performing source is Google Ads with 38% conversion rate." },
-          ]}
-          ctaText="Get Detailed Analysis"
-        />
-      </div>
 
       <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 transition-all duration-500 delay-150 ${mounted ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
         {mergedSalespeople.map((sp, idx) => (

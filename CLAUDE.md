@@ -1,58 +1,132 @@
-# SLMS (Site2CRM) - Claude Code Guidelines
+# Site2CRM - Claude Code Guidelines
 
 > **FOR CLAUDE: Read the SESSION STATE section before doing anything.**
 
 ---
 
-## SESSION STATE (Update before ending each session)
-**Last Updated:** 2025-12-08
+## SESSION STATE
+**Last Updated:** 2026-01-04
 
 ### Where We Left Off:
-- [Update this each session]
+- v2.0.0 released and tagged
+- Stripe billing configured and tested (live keys)
+- Pen test passed - all security tests passed
+- www.site2crm.io redirect configured via CloudFront Function
+- Full signup → billing flow tested and working
 
 ### Immediate Next Steps:
-- [Update this each session]
+- Update frontend messaging with real origin story
+- Verify RDS automated backups enabled
+- Configure Salesforce OAuth credentials (post-launch)
 
 ### Current Blockers:
-- None documented
+- None
 
 ---
 
-## MASTER RULES (Apply to ALL sessions)
+## MASTER RULES
 
-1. **AI Analytics for SaaS ONLY** - Site2CRM is an AI-powered analytics platform exclusively for SaaS companies. All features, messaging, and development must target SaaS businesses specifically. No generic "small business" or multi-vertical positioning.
+1. **Time-Saving Lead Capture** - Site2CRM saves sales teams hours of manual CRM data entry. Born from cold calling frustration - 7 minutes per lead × 30 leads = 3.5 hours/day wasted. Now it's instant.
 
-## User Preferences
+2. **One step at a time** - Don't overwhelm with multiple parallel tasks.
 
-- **One step/question at a time** - Prevent confusion by not overwhelming with multiple parallel tasks or questions. Take things incrementally.
+---
 
 ## Project Overview
 
-SLMS is an **AI-powered analytics platform for SaaS companies**, branded as **Site2CRM**.
+**Site2CRM** - Lead capture forms that sync directly to your CRM in real-time.
 
-**Target Market**: SaaS companies seeking intelligent lead analytics, predictive scoring, and AI-driven insights for their sales pipeline.
+**Origin Story**: Built from frustration while cold calling. Manually entering each lead into CRM took 7 minutes. With 30+ leads/day, that's 3.5 hours wasted on data entry instead of closing deals.
 
-**Core Value Proposition**: AI analytics that help SaaS companies understand, score, and convert leads with data-driven intelligence.
+**Target Market**: Sales teams, cold callers, anyone manually entering leads into CRMs.
+
+**Core Value Proposition**: Stop wasting hours on manual CRM entry. Capture leads instantly.
+
+---
 
 ## Tech Stack
 
-- **Backend**: FastAPI (Python), SQLAlchemy, SQLite/PostgreSQL
-- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS
-- **Infrastructure**: AWS EC2, S3, CloudFront, SES
+| Layer | Technology |
+|-------|------------|
+| Backend | FastAPI (Python 3.12), SQLAlchemy, PostgreSQL (RDS) |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS |
+| Infrastructure | AWS EC2, S3, CloudFront, SES, RDS |
+| Billing | Stripe |
+| CRM Integrations | HubSpot, Salesforce, Pipedrive, Nutshell |
+
+---
 
 ## Key Directories
 
-- `app/` - FastAPI backend
-- `slms-frontend/` - React frontend
-- `widget/` - Embeddable form widget
-- `alembic/` - Database migrations
+```
+site2crm/
+├── app/              # FastAPI backend
+├── slms-frontend/    # React frontend
+├── widget/           # Embeddable form widget
+├── alembic/          # Database migrations
+└── .github/workflows # CI/CD
+```
 
-## Current Feature Branch
+---
 
-`feature/ai-lead-consultant` - AI chat feature using WMEM (Web Memory) format for persistent context.
+## Production URLs
 
-## Environment
+| Service | URL |
+|---------|-----|
+| Frontend | https://site2crm.io |
+| API | https://api.site2crm.io |
+| API Docs | https://api.site2crm.io/docs |
 
-- Backend runs on port 8000
-- Frontend runs on port 5173
-- `.env` file contains API keys (gitignored)
+---
+
+## Environments
+
+| Env | Backend | Frontend | Database |
+|-----|---------|----------|----------|
+| Local | localhost:8000 | localhost:5173 | SQLite |
+| Production | EC2 (34.230.32.54) | CloudFront | PostgreSQL (RDS) |
+
+---
+
+## Deployment
+
+- **Backend**: Push to `main` → GitHub Actions → SSM deploy to EC2
+- **Frontend**: Push to `main` → GitHub Actions → S3 + CloudFront invalidation
+
+---
+
+## Important Files
+
+| File | Purpose |
+|------|---------|
+| `/home/ubuntu/site2crm/.env` | Production environment (on EC2) |
+| `/opt/site2crm/.env` | Secondary env (not used by service) |
+| `app/core/config.py` | Settings loaded from env |
+| `app/api/routes/billing.py` | Stripe integration |
+
+---
+
+## Credentials (Production)
+
+**SSH**: `ssh -i site2crm-key.pem ubuntu@34.230.32.54`
+
+**Database**: PostgreSQL on RDS
+- Host: `site2crm-db.cgrkyeeii4fr.us-east-1.rds.amazonaws.com`
+- User: `Site2CRM`
+- DB: `site2crm`
+
+---
+
+## Billing Plans
+
+| Plan | Monthly | Annual | Price IDs |
+|------|---------|--------|-----------|
+| Starter | $29 | $290 | price_1Sm2MgDONWOyN0HvUXfvluYZ (mo), price_1Sm2MgDONWOyN0Hv2KlY3vqs (yr) |
+| Pro | $79 | $790 | price_1Sm2OQDONWOyN0HvC6Wgi0NN (mo), price_1Sm2OQDONWOyN0HvK1JwQasi (yr) |
+
+---
+
+## Copyright
+
+**Axion Deep Labs Inc.** (c) 2025
+Contact: labs@axiondeep.com

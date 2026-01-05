@@ -150,7 +150,7 @@ const ADDITIONAL_FEATURES = [
       </svg>
     ),
     title: "White Label",
-    description: "Remove Site2CRM branding on Professional and Enterprise plans.",
+    description: "Remove Site2CRM branding on PRO and Enterprise plans.",
   },
   {
     icon: (

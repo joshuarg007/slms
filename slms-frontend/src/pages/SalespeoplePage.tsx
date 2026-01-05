@@ -4,7 +4,6 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import StatsCards, { Row } from "@/components/StatsCards";
 import SalesScoreboard from "@/components/SalesScoreboard";
 import { getApiBase } from "@/utils/api";
-import AIInsightWidget from "@/components/AIInsightWidget";
 import { useGamification } from "@/contexts/GamificationContext";
 import { DemoTeamToggle } from "@/components/DemoSalespersonCard";
 import { RotatingWisdom } from "@/components/WisdomTooltip";
@@ -255,13 +254,6 @@ export default function SalespeoplePage() {
       {/* Content */}
       {!loading && !error && mergedRows.length > 0 && (
         <>
-          <AIInsightWidget
-            variant="inline"
-            insights={[
-              { icon: "trending", text: "Sarah Chen has the highest close rate at 34%. Consider having her mentor newer reps." }
-            ]}
-            ctaText="Get Team Insights"
-          />
           {viewMode === "scoreboard" ? (
             <SalesScoreboard data={mergedRows} days={days} />
           ) : (

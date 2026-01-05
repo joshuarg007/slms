@@ -2,11 +2,11 @@
 import { useEffect, useState, useRef } from "react";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import CrmConnectionBanner from "@/components/CrmConnectionBanner";
-// import AIFloatingAssistant from "@/components/AIFloatingAssistant"; // AI features disabled
 import { NetworkStatusBanner } from "@/components/NetworkStatus";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { NotificationBell } from "@/components/NotificationBell";
 import { SkipLink, useKeyboardShortcuts, KeyboardShortcutsDialog, useAnnounce } from "@/components/Accessibility";
+import SupportModal from "@/components/SupportModal";
 import api from "@/utils/api";
 import Logo from "@/components/Logo";
 
@@ -176,6 +176,7 @@ export default function AppLayout() {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const announce = useAnnounce();
 
@@ -310,6 +311,19 @@ export default function AppLayout() {
             <span>Shortcuts</span>
           </button>
 
+          {/* Support */}
+          <button
+            onClick={() => setSupportOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+            aria-label="Get support"
+            title="Get Support"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <span className="hidden md:block">Support</span>
+          </button>
+
           <NotificationBell />
 
           <NavLink
@@ -425,6 +439,9 @@ export default function AppLayout() {
         onClose={() => setShortcutsOpen(false)}
         shortcuts={APP_SHORTCUTS}
       />
+
+      {/* Support Modal */}
+      <SupportModal isOpen={supportOpen} onClose={() => setSupportOpen(false)} />
     </div>
   );
 }

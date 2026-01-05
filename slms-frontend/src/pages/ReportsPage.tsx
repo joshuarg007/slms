@@ -4,7 +4,6 @@ import { getDashboardMetrics } from "@/utils/api";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { getApiBase } from "@/utils/api";
 import StatsCards, { Row as SalesRow } from "@/components/StatsCards";
-import AIInsightWidget from "@/components/AIInsightWidget";
 import ExportCsvButton from "@/components/ExportCsvButton";
 import { AnimatedBarChart, CHART_COLORS } from "@/components/charts";
 
@@ -228,14 +227,6 @@ export default function ReportsPage() {
       {/* Leads Tab */}
       {activeTab === "leads" && (
         <div className="space-y-6">
-          {/* AI Analysis */}
-          <AIInsightWidget
-            variant="inline"
-            insights={[
-              { icon: "trending", text: "Lead volume trending 23% above historical average. Organic search contributing most to growth." }
-            ]}
-            ctaText="View Detailed Analysis"
-          />
 
           {/* Error */}
           {leadsError && (

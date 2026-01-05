@@ -191,7 +191,7 @@ export default function RecommendationsPage() {
 
   return (
     <div className={`space-y-6 transition-all duration-500 ${mounted ? "opacity-100" : "opacity-0"}`}>
-      {/* AI Engine Status Banner */}
+      {/* Recommendation Engine Banner */}
       <div className={`bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 rounded-2xl p-6 text-white shadow-xl transition-all duration-500 ${mounted ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -202,27 +202,15 @@ export default function RecommendationsPage() {
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-lg font-bold">Neural Recommendation Engine</h2>
+                <h2 className="text-lg font-bold">Smart Recommendations</h2>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-400/30 text-green-100">
                   ACTIVE
                 </span>
               </div>
               <p className="text-sm text-white/80">
-                Multi-variate pattern recognition across 47 behavioral signals, temporal analysis, and predictive revenue modeling
+                Data-driven insights based on your sales patterns and lead behavior
               </p>
             </div>
-          </div>
-          <div className="hidden md:flex items-center gap-4">
-            <div className="text-right">
-              <div className="text-2xl font-bold">94.2%</div>
-              <div className="text-xs text-white/70">Model Confidence</div>
-            </div>
-            <Link
-              to="/app/chat"
-              className="px-5 py-2.5 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-medium transition-colors"
-            >
-              Ask AI
-            </Link>
           </div>
         </div>
       </div>
@@ -231,7 +219,7 @@ export default function RecommendationsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Recommendations</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            AI-powered insights based on your sales data
+            Data-driven insights based on your sales metrics
           </p>
         </div>
         <button

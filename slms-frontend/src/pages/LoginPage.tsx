@@ -92,32 +92,30 @@ export default function LoginPage() {
 
           <div className="max-w-md">
             <h1 className="text-4xl font-bold leading-tight">
-              Turn website visitors into CRM leads automatically
+              Stop wasting hours on manual CRM entry
             </h1>
             <p className="mt-4 text-lg text-indigo-100">
-              Join thousands of businesses using Site2CRM to capture more leads and close more deals.
+              7 minutes per lead. 30 leads a day. That's 3.5 hours wasted. Site2CRM syncs leads to your CRM instantly.
             </p>
 
-            <div className="mt-8 flex items-center gap-4">
-              <div className="flex -space-x-2">
-                {["S", "M", "E", "D"].map((letter, i) => (
-                  <div
-                    key={i}
-                    className="w-10 h-10 rounded-full bg-white/20 backdrop-blur border-2 border-white/30 flex items-center justify-center text-sm font-semibold"
-                  >
-                    {letter}
-                  </div>
-                ))}
+            <div className="mt-8 grid grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-3xl font-bold">3.5 hrs</div>
+                <div className="text-sm text-indigo-200">saved daily</div>
               </div>
-              <div className="text-sm">
-                <div className="font-semibold">5,000+ businesses</div>
-                <div className="text-indigo-200">trust Site2CRM</div>
+              <div className="text-center">
+                <div className="text-3xl font-bold">17+ hrs</div>
+                <div className="text-sm text-indigo-200">saved weekly</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold">$0</div>
+                <div className="text-sm text-indigo-200">to start</div>
               </div>
             </div>
           </div>
 
           <div className="text-sm text-indigo-200">
-            &copy; {new Date().getFullYear()} Site2CRM. All rights reserved.
+            &copy; 2025 Axion Deep Labs Inc. All rights reserved.
           </div>
         </div>
       </div>

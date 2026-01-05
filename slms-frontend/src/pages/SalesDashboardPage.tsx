@@ -13,7 +13,6 @@ import DateRangePicker, {
   formatDateForApi,
 } from "../components/DateRangePicker";
 import ExportCsvButton from "../components/ExportCsvButton";
-import AIInsightWidget from "../components/AIInsightWidget";
 import {
   AnimatedAreaChart,
   AnimatedBarChart,
@@ -680,16 +679,6 @@ export default function SalesDashboardPage() {
         </p>
       </div>
 
-      {/* AI Insights */}
-      <div className={`transition-all duration-500 delay-150 ${mounted ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
-        <AIInsightWidget
-          variant="banner"
-          insights={[
-            { icon: "bulb", text: "Pipeline velocity has increased 12% this month. Your 'Qualified' to 'Won' conversion is outperforming industry benchmarks." }
-          ]}
-          ctaText="Get AI Analysis"
-        />
-      </div>
 
       {/* Visual Charts Row */}
       <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-500 delay-200 ${mounted ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>

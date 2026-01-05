@@ -10,7 +10,6 @@ import {
   LeadScoreResponse,
   ScoredLeadsResponse,
 } from "../utils/api";
-import AIInsightWidget from "../components/AIInsightWidget";
 
 function ScoreGauge({ score, size = "lg" }: { score: number; size?: "sm" | "lg" }) {
   const getColor = (s: number) => {
@@ -285,7 +284,7 @@ export default function LeadScoringPage() {
       <div className={`flex items-center justify-between transition-all duration-500 ${mounted ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Lead Scoring</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">AI-powered lead prioritization</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Data-driven lead prioritization</p>
         </div>
         <button
           onClick={handleRefresh}
@@ -332,16 +331,6 @@ export default function LeadScoringPage() {
         </div>
       )}
 
-      {/* AI Insight */}
-      <div className={`transition-all duration-500 delay-100 ${mounted ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
-        <AIInsightWidget
-          variant="inline"
-          insights={[
-            { icon: "star", text: "Your hot leads from 'Google Ads' have a 45% higher win rate. Consider increasing spend on this channel." }
-          ]}
-          ctaText="Get AI Recommendations"
-        />
-      </div>
 
       {/* Distribution & Top Sources */}
       {insights && (

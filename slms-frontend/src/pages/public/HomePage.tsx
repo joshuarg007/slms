@@ -92,9 +92,9 @@ const STEPS = [
 
 export default function HomePage() {
   useSEO({
-    title: "Lead Capture Forms & CRM Integration for SaaS",
+    title: "Stop Wasting Hours on Manual CRM Entry | Site2CRM",
     description:
-      "Capture leads with beautiful, conversion-optimized forms and sync them to HubSpot, Salesforce, Pipedrive instantly. No code required. Start free trial.",
+      "7 min per lead × 30 leads = 3.5 hours wasted daily. Site2CRM syncs leads to HubSpot, Salesforce, Pipedrive instantly. Start your free trial.",
     path: "/",
     jsonLd: schemas.organization,
   });
@@ -106,20 +106,20 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white tracking-tight">
-              Website forms that sync leads to your CRM{" "}
+              Stop wasting hours on{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
-                in real time
+                manual CRM entry
               </span>
             </h1>
             <p className="mt-6 text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              No middleware. No manual entry. Leads appear in HubSpot, Salesforce, Pipedrive, or Nutshell the moment they submit.
+              7 minutes per lead. 30 leads a day. That's 3.5 hours wasted on data entry. Site2CRM syncs leads to your CRM instantly—so you can focus on closing deals.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 to="/signup"
                 className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl hover:shadow-indigo-500/30"
               >
-                Get Started Free
+                Start Free Trial
               </Link>
               <Link
                 to="/features"
@@ -127,6 +127,23 @@ export default function HomePage() {
               >
                 See How It Works
               </Link>
+            </div>
+            {/* Time savings highlight */}
+            <div className="mt-12 inline-flex items-center gap-6 px-6 py-3 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-indigo-600">3.5 hrs</div>
+                <div className="text-xs text-gray-500">saved daily</div>
+              </div>
+              <div className="w-px h-8 bg-gray-200 dark:bg-gray-700" />
+              <div className="text-center">
+                <div className="text-2xl font-bold text-indigo-600">17+ hrs</div>
+                <div className="text-xs text-gray-500">saved weekly</div>
+              </div>
+              <div className="w-px h-8 bg-gray-200 dark:bg-gray-700" />
+              <div className="text-center">
+                <div className="text-2xl font-bold text-indigo-600">$0</div>
+                <div className="text-xs text-gray-500">to start</div>
+              </div>
             </div>
           </div>
         </div>
@@ -289,10 +306,10 @@ export default function HomePage() {
       <section className="py-20 bg-gradient-to-r from-indigo-600 to-purple-600">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white">
-            Ready to Capture More Leads?
+            Ready to Get Your Time Back?
           </h2>
           <p className="mt-4 text-lg text-indigo-100">
-            Join thousands of businesses using Site2CRM to grow their pipeline.
+            Start your 14-day free trial. No credit card required.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link

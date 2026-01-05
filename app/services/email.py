@@ -1025,3 +1025,69 @@ View all recommendations in your Site2CRM dashboard.
     body_html = _base_html_template(content, f"{len(recommendations)} AI recommendations for your team")
 
     return send_email(subject, body_text, list(recipients), body_html)
+
+
+def send_support_request_notification(
+    recipients: Iterable[str],
+    issue_type: str,
+    issue_label: str,
+    details: str,
+    user_email: str,
+    user_name: Optional[str] = None,
+    organization_name: Optional[str] = None,
+) -> bool:
+    """
+    Send notification about a customer support request to the support team.
+    """
+    subject = f"Support Request: {issue_label}"
+    org_text = f" ({organization_name})" if organization_name else ""
+
+    body_text = f"""
+New Support Request
+
+Customer: {user_email}{org_text}
+{f'Name: {user_name}' if user_name else ''}
+
+Issue Type: {issue_label} ({issue_type})
+
+Details:
+{details or "No additional details provided"}
+
+Please respond to this request within 24 hours.
+
+- Site2CRM Support System
+"""
+
+    content = f"""
+<h1 style="margin: 0 0 16px; font-size: 24px; font-weight: 600; color: #18181b;">
+    New Support Request
+</h1>
+<div style="margin: 24px 0; padding: 20px; background-color: #f4f4f5; border-radius: 12px;">
+    <table role="presentation" cellspacing="0" cellpadding="0" style="width: 100%; font-size: 15px;">
+        <tr>
+            <td style="padding: 8px 0; color: #71717a; width: 140px;">Customer:</td>
+            <td style="padding: 8px 0; color: #18181b; font-weight: 500;">
+                <a href="mailto:{user_email}" style="color: #6366f1;">{user_email}</a>{org_text}
+            </td>
+        </tr>
+        {f'<tr><td style="padding: 8px 0; color: #71717a;">Name:</td><td style="padding: 8px 0; color: #18181b; font-weight: 500;">{user_name}</td></tr>' if user_name else ''}
+        <tr>
+            <td style="padding: 8px 0; color: #71717a;">Issue Type:</td>
+            <td style="padding: 8px 0; color: #18181b; font-weight: 500;">{issue_label}</td>
+        </tr>
+    </table>
+</div>
+<h2 style="margin: 24px 0 12px; font-size: 18px; font-weight: 600; color: #18181b;">
+    Details
+</h2>
+<div style="padding: 16px; background-color: #f4f4f5; border-radius: 8px; font-size: 15px; color: #3f3f46; line-height: 1.6; white-space: pre-wrap;">
+    {details or "<em>No additional details provided</em>"}
+</div>
+<p style="margin: 24px 0 0; font-size: 14px; color: #71717a; line-height: 1.6;">
+    Please respond to this request within 24 hours.
+</p>
+"""
+
+    body_html = _base_html_template(content, f"Support request from {user_email}: {issue_label}")
+
+    return send_email(subject, body_text, recipients, body_html)
