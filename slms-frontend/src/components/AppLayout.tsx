@@ -159,9 +159,9 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Keyboard shortcuts configuration
+// Keyboard shortcuts configuration for display
 const APP_SHORTCUTS = [
-  { key: "?", description: "Show keyboard shortcuts" },
+  { key: "?", description: "Show keyboard shortcuts", modifier: "Shift" },
   { key: "/", description: "Focus search" },
   { key: "d", modifier: "g", description: "Go to Dashboard" },
   { key: "l", modifier: "g", description: "Go to Leads" },
@@ -184,6 +184,7 @@ export default function AppLayout() {
   useKeyboardShortcuts([
     {
       key: "?",
+      shift: true,
       description: "Show keyboard shortcuts",
       action: () => setShortcutsOpen(true),
     },
