@@ -1,14 +1,15 @@
 // src/context/AuthProvider.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
-import api from "@/utils/api";
+import api, { CurrentUser } from "@/utils/api";
 
-type User = { email: string } | null;
+type User = CurrentUser | null;
 
 type AuthContextValue = {
   user: User;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -45,21 +46,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Refresh user data from server
+  const refreshUser = async () => {
+    try {
+      const u = await api.me();
+      setUser(u);
+    } catch {
+      // Keep current user if refresh fails
+    }
+  };
+
   // ✅ Set user immediately after login so ProtectedRoute can proceed
   const login = async (email: string, password: string) => {
     // 1) exchange creds for token (also sets localStorage in api.login)
     await api.login(email, password);
 
-    // 2) immediately mark as signed in so routes stop redirecting
-    setUser({ email });
-
-    // 3) hydrate with /me in the background (don’t block navigation)
-    api
-      .me()
-      .then((u) => setUser(u))
-      .catch(() => {
-        // if /me fails, keep minimal user (you still have a token)
-      });
+    // 2) fetch full user data including org
+    const u = await api.me();
+    setUser(u);
   };
 
   // Clear both cookies/token and in-memory user
@@ -74,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const value: AuthContextValue = { user, loading, login, logout };
+  const value: AuthContextValue = { user, loading, login, logout, refreshUser };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

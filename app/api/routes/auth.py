@@ -113,5 +113,22 @@ def logout(response: Response):
     return {"ok": True}
 
 @router.get("/me")
-def me(current_user: models.User = Depends(get_current_user)):
-    return {"email": current_user.email}
+def me(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Fetch organization for onboarding status
+    org = db.query(models.Organization).filter(
+        models.Organization.id == current_user.organization_id
+    ).first()
+
+    return {
+        "email": current_user.email,
+        "role": current_user.role,
+        "is_approved": current_user.is_approved,
+        "email_verified": current_user.email_verified,
+        "organization": {
+            "id": org.id if org else None,
+            "name": org.name if org else None,
+            "onboarding_completed": org.onboarding_completed if org else False,
+            "plan": org.plan if org else "free",
+            "trial_ends_at": org.trial_ends_at.isoformat() if org and org.trial_ends_at else None,
+        } if org else None,
+    }

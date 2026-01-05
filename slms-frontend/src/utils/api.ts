@@ -184,8 +184,24 @@ export function clearToken() {
   setToken(null);
 }
 
+export type UserOrganization = {
+  id: number | null;
+  name: string | null;
+  onboarding_completed: boolean;
+  plan: string;
+  trial_ends_at: string | null;
+};
+
+export type CurrentUser = {
+  email: string;
+  role: string;
+  is_approved: boolean;
+  email_verified: boolean;
+  organization: UserOrganization | null;
+};
+
 export async function me() {
-  return fetchJSON<{ email: string }>(`${baseUrl}/me`);
+  return fetchJSON<CurrentUser>(`${baseUrl}/me`);
 }
 
 // Public leads

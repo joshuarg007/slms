@@ -70,6 +70,7 @@ const RecommendationsPage = lazy(() => import("@/pages/RecommendationsPage"));
 const LeadScoringPage = lazy(() => import("@/pages/LeadScoringPage"));
 const LeaderboardPage = lazy(() => import("@/pages/LeaderboardPage"));
 const AutomationPage = lazy(() => import("@/pages/AutomationPage"));
+const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
 
 export default function App() {
   return (
@@ -106,6 +107,9 @@ export default function App() {
 
           {/* Protected App Routes */}
           <Route path="/app" element={<ProtectedRoute />}>
+            {/* Onboarding page - outside AppLayout */}
+            <Route path="onboarding" element={<OnboardingPage />} />
+
             <Route element={<TutorialProvider><TutorialKeyboardHandler /><AppLayout /></TutorialProvider>}>
               <Route index element={<DashboardPage />} />
               <Route path="leads" element={<LeadsPage />} />

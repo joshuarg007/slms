@@ -65,6 +65,9 @@ class Organization(Base):
     subscription_status = Column(String, nullable=False, default="inactive")  # inactive, trialing, active, past_due, canceled
     current_period_end = Column(DateTime, nullable=True)
     trial_ends_at = Column(DateTime, nullable=True)
+    trial_started_at = Column(DateTime, nullable=True)
+    onboarding_completed = Column(Boolean, nullable=False, default=False)
+    team_size = Column(String(20), nullable=True)  # "just_me", "2-5", "6-20", "20+"
     leads_this_month = Column(Integer, nullable=False, default=0)
     leads_month_reset = Column(DateTime, nullable=True)  # When to reset the counter
 
@@ -140,6 +143,9 @@ class User(Base):
 
     # Default user for organization (for integrations, notifications, etc.)
     is_default = Column(Boolean, nullable=False, default=False)
+
+    # Approval status - first user (OWNER) auto-approved, others need owner approval
+    is_approved = Column(Boolean, nullable=False, default=False)
 
     # Email verification
     email_verified = Column(Boolean, nullable=False, default=False)

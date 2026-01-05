@@ -40,11 +40,12 @@ def _get_org_token(organization_id: int) -> Optional[str]:
 # ---------------------------------------------------------------
 def _headers(token_override: Optional[str] = None) -> Dict[str, str]:
     """
-    Returns API headers using an override token if provided, else settings.hubspot_api_key.
+    Returns API headers using an override token if provided.
+    No fallback to global key - each org must have their own integration.
     """
-    token = token_override or settings.hubspot_api_key
+    token = token_override
     if not token:
-        raise RuntimeError("HubSpot Pro required: no valid token found.")
+        raise RuntimeError("No HubSpot integration configured for this organization.")
     return {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",

@@ -20,6 +20,22 @@ router = APIRouter()
 # Verification token expiry (24 hours)
 VERIFICATION_TOKEN_EXPIRY_HOURS = 24
 
+# Public email domains - each user gets their own org
+PUBLIC_EMAIL_DOMAINS = {
+    "gmail.com", "googlemail.com",
+    "yahoo.com", "yahoo.co.uk", "ymail.com",
+    "hotmail.com", "hotmail.co.uk", "outlook.com", "live.com", "msn.com",
+    "icloud.com", "me.com", "mac.com",
+    "aol.com",
+    "protonmail.com", "proton.me",
+    "zoho.com",
+    "mail.com",
+    "gmx.com", "gmx.net",
+    "yandex.com", "yandex.ru",
+    "tutanota.com",
+    "fastmail.com",
+}
+
 # Local DB dependency
 def get_db():
     db = SessionLocal()
@@ -52,16 +68,40 @@ def signup(
         raise HTTPException(status_code=400, detail="Invalid email address")
     domain = user.email.split("@")[-1].lower()
 
-    org = db.query(models.Organization).filter(models.Organization.domain == domain).first()
-    if not org:
-        org = models.Organization(name=domain, domain=domain, api_key=uuid4().hex)
+    # Public email domains (gmail, yahoo, etc.) always get their own org
+    is_public_domain = domain in PUBLIC_EMAIL_DOMAINS
+
+    if is_public_domain:
+        # Each public email user gets their own organization
+        org = models.Organization(
+            name=user.email.split("@")[0],  # Use email prefix as name
+            domain=f"{uuid4().hex[:8]}.personal",  # Unique pseudo-domain
+            api_key=uuid4().hex
+        )
         db.add(org)
-        try:
-            db.commit()
-        except IntegrityError:
-            db.rollback()
-            org = db.query(models.Organization).filter(models.Organization.domain == domain).first()
+        db.commit()
         db.refresh(org)
+        is_first_user = True
+    else:
+        # Business domain - check if org exists
+        org = db.query(models.Organization).filter(models.Organization.domain == domain).first()
+        is_new_org = org is None
+        if not org:
+            org = models.Organization(name=domain, domain=domain, api_key=uuid4().hex)
+            db.add(org)
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+                org = db.query(models.Organization).filter(models.Organization.domain == domain).first()
+                is_new_org = False
+            db.refresh(org)
+
+        # Check if this is the first user in the org (becomes OWNER)
+        existing_users_count = db.query(models.User).filter(
+            models.User.organization_id == org.id
+        ).count()
+        is_first_user = existing_users_count == 0
 
     # Generate verification token
     verification_token = generate_verification_token()
@@ -74,6 +114,8 @@ def signup(
         email_verified=False,
         email_verification_token=verification_token,
         email_verification_sent_at=datetime.utcnow(),
+        role="OWNER" if is_first_user else "USER",
+        is_approved=is_first_user,  # First user auto-approved, others need owner approval
     )
     db.add(new_user)
     db.commit()
@@ -87,11 +129,18 @@ def signup(
         verification_url=verification_url,
     )
 
+    # Different message for pending approval
+    if is_first_user:
+        message = "User created. Please check your email to verify your account."
+    else:
+        message = "User created. Please check your email to verify your account. An admin will need to approve your access."
+
     return {
-        "message": "User created. Please check your email to verify your account.",
+        "message": message,
         "email": new_user.email,
         "organization_id": org.id,
         "email_verification_required": True,
+        "approval_required": not is_first_user,
     }
 
 
@@ -124,6 +173,17 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     # Verify the email
     user.email_verified = True
     user.email_verification_token = None  # Clear token after use
+
+    # Start 14-day trial for the organization
+    org = db.query(models.Organization).filter(
+        models.Organization.id == user.organization_id
+    ).first()
+    if org and not org.trial_started_at:
+        org.trial_started_at = datetime.utcnow()
+        org.trial_ends_at = datetime.utcnow() + timedelta(days=14)
+        org.plan = "trial"
+        org.subscription_status = "trialing"
+
     db.commit()
 
     return {"message": "Email verified successfully", "email": user.email}
@@ -203,7 +263,124 @@ def get_current_organization(
         "ai_messages_this_month": org.ai_messages_this_month,
         "active_crm": org.active_crm,
         "created_at": org.created_at.isoformat() if org.created_at else None,
+        "onboarding_completed": org.onboarding_completed,
+        "team_size": org.team_size,
     }
+
+
+@router.post("/onboarding/complete")
+def complete_onboarding(
+    company_name: str = Body(...),
+    crm: str = Body(...),
+    team_size: str = Body(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Complete onboarding for the current user's organization."""
+    org = db.query(models.Organization).filter(
+        models.Organization.id == current_user.organization_id
+    ).first()
+
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    # Validate CRM choice
+    valid_crms = ["hubspot", "salesforce", "pipedrive", "nutshell", "none"]
+    if crm.lower() not in valid_crms:
+        raise HTTPException(status_code=400, detail=f"Invalid CRM. Must be one of: {', '.join(valid_crms)}")
+
+    # Validate team size
+    valid_sizes = ["just_me", "2-5", "6-20", "20+"]
+    if team_size not in valid_sizes:
+        raise HTTPException(status_code=400, detail=f"Invalid team size. Must be one of: {', '.join(valid_sizes)}")
+
+    org.name = company_name
+    org.active_crm = crm.lower() if crm.lower() != "none" else "hubspot"
+    org.team_size = team_size
+    org.onboarding_completed = True
+    db.commit()
+
+    return {"status": "ok", "message": "Onboarding completed successfully"}
+
+
+@router.get("/users/pending")
+def get_pending_users(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get pending users awaiting approval (OWNER/ADMIN only)."""
+    if current_user.role not in ("OWNER", "ADMIN"):
+        raise HTTPException(status_code=403, detail="Only owners and admins can view pending users")
+
+    pending = db.query(models.User).filter(
+        models.User.organization_id == current_user.organization_id,
+        models.User.is_approved == False,
+    ).all()
+
+    return [
+        {
+            "id": u.id,
+            "email": u.email,
+            "email_verified": u.email_verified,
+            "created_at": u.created_at.isoformat() if u.created_at else None,
+        }
+        for u in pending
+    ]
+
+
+@router.post("/users/{user_id}/approve")
+def approve_user(
+    user_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Approve a pending user (OWNER/ADMIN only)."""
+    if current_user.role not in ("OWNER", "ADMIN"):
+        raise HTTPException(status_code=403, detail="Only owners and admins can approve users")
+
+    user = db.query(models.User).filter(
+        models.User.id == user_id,
+        models.User.organization_id == current_user.organization_id,
+    ).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if user.is_approved:
+        return {"message": "User already approved", "email": user.email}
+
+    user.is_approved = True
+    db.commit()
+
+    return {"message": "User approved successfully", "email": user.email}
+
+
+@router.post("/users/{user_id}/reject")
+def reject_user(
+    user_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Reject and delete a pending user (OWNER/ADMIN only)."""
+    if current_user.role not in ("OWNER", "ADMIN"):
+        raise HTTPException(status_code=403, detail="Only owners and admins can reject users")
+
+    user = db.query(models.User).filter(
+        models.User.id == user_id,
+        models.User.organization_id == current_user.organization_id,
+    ).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if user.is_approved:
+        raise HTTPException(status_code=400, detail="Cannot reject an already approved user")
+
+    email = user.email
+    db.delete(user)
+    db.commit()
+
+    return {"message": "User rejected and removed", "email": email}
 
 
 @router.post("/orgs/key/rotate", response_model=dict)
