@@ -192,42 +192,59 @@ export default function StylesPage() {
         </div>
       )}
 
-      {/* Styling Options */}
+      {/* Branding & Text */}
       <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4">
-        <h2 className="text-lg font-medium mb-4">Appearance</h2>
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Primary Color</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={styling.primaryColor}
-                onChange={(e) => setStyling({ ...styling, primaryColor: e.target.value })}
-                className="w-10 h-10 rounded border border-gray-300 cursor-pointer"
-              />
+        <h2 className="text-lg font-medium mb-4">Branding & Text</h2>
+        <div className="space-y-4">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Header Text</label>
               <input
                 type="text"
-                value={styling.primaryColor}
-                onChange={(e) => setStyling({ ...styling, primaryColor: e.target.value })}
-                className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                value={branding.headerText}
+                onChange={(e) => setBranding({ ...branding, headerText: e.target.value })}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Subheader Text</label>
+              <input
+                type="text"
+                value={branding.subheaderText}
+                onChange={(e) => setBranding({ ...branding, subheaderText: e.target.value })}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
               />
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Border Radius</label>
-            <select
-              value={styling.borderRadius}
-              onChange={(e) => setStyling({ ...styling, borderRadius: e.target.value })}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-            >
-              <option value="0px">None (0px)</option>
-              <option value="4px">Small (4px)</option>
-              <option value="8px">Medium (8px)</option>
-              <option value="10px">Default (10px)</option>
-              <option value="16px">Large (16px)</option>
-              <option value="24px">Extra Large (24px)</option>
-            </select>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Submit Button Text</label>
+              <input
+                type="text"
+                value={branding.submitButtonText}
+                onChange={(e) => setBranding({ ...branding, submitButtonText: e.target.value })}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Success Message</label>
+              <input
+                type="text"
+                value={branding.successMessage}
+                onChange={(e) => setBranding({ ...branding, successMessage: e.target.value })}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+              />
+            </div>
           </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={branding.showPoweredBy}
+              onChange={(e) => setBranding({ ...branding, showPoweredBy: e.target.checked })}
+              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            Show "Powered by Site2CRM" badge
+          </label>
         </div>
       </section>
 
@@ -296,59 +313,65 @@ export default function StylesPage() {
         </div>
       </section>
 
-      {/* Branding Options */}
+      {/* Appearance */}
       <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4">
-        <h2 className="text-lg font-medium mb-4">Branding & Text</h2>
-        <div className="space-y-4">
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Header Text</label>
+        <h2 className="text-lg font-medium mb-4">Appearance</h2>
+        <div className="grid sm:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Primary Color</label>
+            <div className="flex items-center gap-2">
               <input
-                type="text"
-                value={branding.headerText}
-                onChange={(e) => setBranding({ ...branding, headerText: e.target.value })}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                type="color"
+                value={styling.primaryColor}
+                onChange={(e) => {
+                  setStyling({ ...styling, primaryColor: e.target.value });
+                  setSelectedPreset(null);
+                }}
+                className="h-10 w-14 cursor-pointer rounded border border-gray-300 dark:border-gray-700"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Subheader Text</label>
               <input
                 type="text"
-                value={branding.subheaderText}
-                onChange={(e) => setBranding({ ...branding, subheaderText: e.target.value })}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-              />
-            </div>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Submit Button Text</label>
-              <input
-                type="text"
-                value={branding.submitButtonText}
-                onChange={(e) => setBranding({ ...branding, submitButtonText: e.target.value })}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Success Message</label>
-              <input
-                type="text"
-                value={branding.successMessage}
-                onChange={(e) => setBranding({ ...branding, successMessage: e.target.value })}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                value={styling.primaryColor}
+                onChange={(e) => {
+                  setStyling({ ...styling, primaryColor: e.target.value });
+                  setSelectedPreset(null);
+                }}
+                className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
               />
             </div>
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={branding.showPoweredBy}
-              onChange={(e) => setBranding({ ...branding, showPoweredBy: e.target.checked })}
-              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-            />
-            Show "Powered by Site2CRM" badge
-          </label>
+          <div>
+            <label className="block text-sm font-medium mb-1">Border Radius</label>
+            <select
+              value={styling.borderRadius}
+              onChange={(e) => {
+                setStyling({ ...styling, borderRadius: e.target.value });
+                setSelectedPreset(null);
+              }}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+            >
+              <option value="0px">None (0px)</option>
+              <option value="4px">Small (4px)</option>
+              <option value="8px">Medium (8px)</option>
+              <option value="12px">Large (12px)</option>
+              <option value="16px">Extra Large (16px)</option>
+              <option value="20px">Rounded (20px)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Font Family</label>
+            <select
+              value={styling.fontFamily}
+              onChange={(e) => setStyling({ ...styling, fontFamily: e.target.value })}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+            >
+              <option value="system-ui">System Default</option>
+              <option value="Inter, sans-serif">Inter</option>
+              <option value="'Roboto', sans-serif">Roboto</option>
+              <option value="'Open Sans', sans-serif">Open Sans</option>
+              <option value="Georgia, serif">Georgia (Serif)</option>
+            </select>
+          </div>
         </div>
       </section>
 

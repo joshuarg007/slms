@@ -1,5 +1,6 @@
 // src/components/DateRangePicker.tsx
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 export interface DateRange {
   startDate: Date;
@@ -74,11 +75,28 @@ export default function DateRangePicker({ value, onChange, className }: Props) {
   const [open, setOpen] = useState(false);
   const [customStart, setCustomStart] = useState(formatDateForApi(value.startDate));
   const [customEnd, setCustomEnd] = useState(formatDateForApi(value.endDate));
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Update dropdown position when opened
+  useEffect(() => {
+    if (open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 8,
+        left: rect.right - 288 + window.scrollX, // 288 = w-72 (18rem)
+      });
+    }
+  }, [open]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(target) &&
+        buttonRef.current && !buttonRef.current.contains(target)
+      ) {
         setOpen(false);
       }
     }
@@ -103,8 +121,9 @@ export default function DateRangePicker({ value, onChange, className }: Props) {
   }
 
   return (
-    <div className={`relative ${className || ""}`} ref={dropdownRef}>
+    <div className={`relative ${className || ""}`}>
       <button
+        ref={buttonRef}
         onClick={() => setOpen(!open)}
         className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-colors"
       >
@@ -132,8 +151,16 @@ export default function DateRangePicker({ value, onChange, className }: Props) {
         </svg>
       </button>
 
-      {open && (
-        <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-[9999]">
+      {open && createPortal(
+        <div
+          ref={dropdownRef}
+          style={{
+            position: 'absolute',
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+          }}
+          className="w-72 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-[9999]"
+        >
           <div className="p-2 border-b border-gray-100 dark:border-gray-800">
             <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase px-2 py-1">
               Quick Select
@@ -184,7 +211,8 @@ export default function DateRangePicker({ value, onChange, className }: Props) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
