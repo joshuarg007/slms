@@ -1,6 +1,6 @@
 # Site2CRM
 
-> **AI-Powered Lead Analytics for SaaS Companies**
+> **Stop wasting hours on manual CRM entry. Capture leads instantly.**
 
 [![Production](https://img.shields.io/badge/production-live-brightgreen)](https://site2crm.io)
 [![API](https://img.shields.io/badge/API-FastAPI-009688)](https://api.site2crm.io/docs)
@@ -11,14 +11,25 @@
 
 ## What is Site2CRM?
 
-Site2CRM transforms website visitors into qualified leads with AI-powered analytics. Built specifically for SaaS companies, it captures, scores, and syncs leads directly to your CRM.
+**Born from frustration.** While cold calling, I was spending 7 minutes manually entering each lead into my CRM. With 30+ leads a day, that's **3.5 hours wasted** on data entry—time that should be spent closing deals.
+
+So I built Site2CRM.
+
+Now leads flow directly from web forms into your CRM in real-time. No copy-pasting. No tab-switching. No typos. What used to take 7 minutes takes 0.
+
+**The math:**
+| Leads/Day | Manual Entry | With Site2CRM | Time Saved |
+|-----------|--------------|---------------|------------|
+| 30 | 3.5 hours | 0 | **3.5 hrs/day** |
+| 50 | 5.8 hours | 0 | **29 hrs/week** |
+| Team of 5 | 17.5 hours | 0 | **875 hrs/month** |
 
 **Core Features:**
-- Embeddable lead capture widgets
-- AI-powered lead scoring & insights
+- Embeddable lead capture forms
 - Real-time CRM sync (HubSpot, Salesforce, Pipedrive, Nutshell)
-- Multi-tenant architecture with organization isolation
-- 14-day free trial with Stripe billing
+- AI-powered lead scoring & insights
+- Multi-tenant architecture for teams
+- 14-day free trial
 
 ---
 
