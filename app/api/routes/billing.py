@@ -107,14 +107,31 @@ def create_checkout_session(
             "Please resolve or cancel it before subscribing again."
         )
 
-    # SAFEGUARD 2: Check for recent checkout session (within 2 minutes)
-    # This prevents rapid double-clicks from creating multiple checkouts
+    # SAFEGUARD 2a: Check in-memory cache (fast path)
     cache_key = f"{org.id}:{req.plan}:{req.billing_cycle}"
     if cache_key in _recent_checkouts:
         cached_url, cached_time = _recent_checkouts[cache_key]
         if datetime.utcnow() - cached_time < timedelta(minutes=2):
-            # Return existing checkout URL instead of creating new one
             return {"url": cached_url}
+
+    customer_id = _get_or_create_customer(db, org, user.email)
+
+    # SAFEGUARD 2b: Query Stripe for existing open checkout sessions (survives restarts)
+    # This is the authoritative check - in-memory cache is just an optimization
+    try:
+        existing_sessions = stripe.checkout.Session.list(
+            customer=customer_id,
+            status="open",
+            limit=5,
+        )
+        for session in existing_sessions.data:
+            # Check if session is for same plan/cycle (stored in metadata)
+            meta = session.get("subscription_data", {}).get("metadata", {}) or {}
+            if meta.get("plan") == req.plan and meta.get("billing_cycle") == req.billing_cycle:
+                # Return existing open session
+                return {"url": session.url}
+    except stripe.error.StripeError:
+        pass  # If Stripe check fails, continue with normal flow
 
     # Get the right price ID
     price_key = f"{req.plan}_{req.billing_cycle}"
@@ -122,8 +139,6 @@ def create_checkout_session(
 
     if not price_id:
         raise HTTPException(400, f"Invalid plan/cycle: {req.plan}/{req.billing_cycle}")
-
-    customer_id = _get_or_create_customer(db, org, user.email)
 
     # Cancel existing subscription if switching plans (different plan, not same plan)
     if org.stripe_subscription_id and org.subscription_status in blocking_statuses and org.plan != req.plan:
