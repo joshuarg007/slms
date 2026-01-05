@@ -1,5 +1,5 @@
 // src/components/AppLayout.tsx
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import CrmConnectionBanner from "@/components/CrmConnectionBanner";
 import { NetworkStatusBanner } from "@/components/NetworkStatus";
@@ -7,6 +7,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { NotificationBell } from "@/components/NotificationBell";
 import { SkipLink, useKeyboardShortcuts, KeyboardShortcutsDialog, useAnnounce } from "@/components/Accessibility";
 import SupportModal from "@/components/SupportModal";
+import CommandPalette from "@/components/CommandPalette";
 import api from "@/utils/api";
 import Logo from "@/components/Logo";
 
@@ -173,11 +174,9 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [searchFocused, setSearchFocused] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const announce = useAnnounce();
 
   // Keyboard shortcuts
@@ -190,10 +189,19 @@ export default function AppLayout() {
     },
     {
       key: "/",
-      description: "Focus search",
+      description: "Open search",
       action: () => {
-        searchInputRef.current?.focus();
-        announce("Search focused");
+        setCommandPaletteOpen(true);
+        announce("Search opened");
+      },
+    },
+    {
+      key: "k",
+      ctrl: true,
+      description: "Open search",
+      action: () => {
+        setCommandPaletteOpen(true);
+        announce("Search opened");
       },
     },
     {
@@ -247,13 +255,6 @@ export default function AppLayout() {
     }
   }
 
-  function handleSearchSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const q = searchTerm.trim();
-    if (!q) return;
-    navigate(`/app/leads?q=${encodeURIComponent(q)}`);
-  }
-
   const userInitial = userEmail ? userEmail.charAt(0).toUpperCase() : "?";
 
   return (
@@ -276,27 +277,19 @@ export default function AppLayout() {
 
         {/* Search - centered */}
         <div className="flex-1 flex justify-center">
-          <form
-            onSubmit={handleSearchSubmit}
-            className={`relative flex items-center transition-all duration-300 ${
-              searchFocused ? "w-96" : "w-72"
-            }`}
+          <button
+            onClick={() => setCommandPaletteOpen(true)}
+            className="relative flex items-center gap-3 w-80 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full text-sm text-gray-500 dark:text-gray-400 transition-colors"
+            aria-label="Open search"
           >
-            <span className="absolute left-3 text-gray-400">
+            <span className="text-gray-400">
               {icons.search}
             </span>
-            <input
-              ref={searchInputRef}
-              type="search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-              placeholder="Search leads, contacts... (press /)"
-              aria-label="Search leads and contacts"
-              className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-full text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
-            />
-          </form>
+            <span className="flex-1 text-left">Search pages, leads...</span>
+            <kbd className="hidden sm:flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-gray-400 bg-white dark:bg-gray-700 rounded shadow-sm">
+              <span className="text-[10px]">⌘</span>K
+            </kbd>
+          </button>
         </div>
 
         {/* Right side */}
@@ -443,6 +436,9 @@ export default function AppLayout() {
 
       {/* Support Modal */}
       <SupportModal isOpen={supportOpen} onClose={() => setSupportOpen(false)} />
+
+      {/* Command Palette */}
+      <CommandPalette isOpen={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} />
     </div>
   );
 }
