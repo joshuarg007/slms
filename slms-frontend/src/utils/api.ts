@@ -2,6 +2,37 @@
 // Minimal API helper with org aware endpoints, Bearer auth persistence,
 // and automatic refresh on 401 retry.
 
+/**
+ * Extract a user-friendly error message from API response text.
+ * Handles JSON responses with "detail" field, raw text, and fallbacks.
+ */
+function parseErrorMessage(text: string, fallback: string): string {
+  if (!text || !text.trim()) return fallback;
+
+  // Try to parse as JSON and extract "detail"
+  try {
+    const json = JSON.parse(text);
+    if (json.detail) {
+      // Handle array of validation errors
+      if (Array.isArray(json.detail)) {
+        return json.detail.map((e: any) => e.msg || e.message || String(e)).join(", ");
+      }
+      return String(json.detail);
+    }
+    if (json.message) return String(json.message);
+    if (json.error) return String(json.error);
+  } catch {
+    // Not JSON, use as-is if it looks like a message
+  }
+
+  // If it's a short text (not HTML/JSON blob), use it
+  if (text.length < 200 && !text.startsWith("<") && !text.startsWith("{")) {
+    return text;
+  }
+
+  return fallback;
+}
+
 export type SortDir = "asc" | "desc";
 export type Provider = "hubspot" | "pipedrive" | "salesforce" | "nutshell";
 export type AuthType = "pat" | "api_key" | "oauth";
@@ -149,7 +180,8 @@ async function fetchJSON<T>(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status} ${res.statusText} – ${text}`);
+    const message = parseErrorMessage(text, "Something went wrong. Please try again.");
+    throw new Error(message);
   }
 
   const ct = res.headers.get("content-type") || "";
@@ -168,7 +200,8 @@ export async function login(username: string, password: string) {
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`Login failed: ${res.status} ${res.statusText} – ${text}`);
+    const message = parseErrorMessage(text, "Invalid email or password. Please try again.");
+    throw new Error(message);
   }
   const data = (await res.json()) as { access_token: string; token_type: string };
   setToken(data.access_token);

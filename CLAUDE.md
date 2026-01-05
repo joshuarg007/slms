@@ -108,7 +108,24 @@ site2crm/
 
 ## Credentials (Production)
 
-**SSH**: `ssh -i site2crm-key.pem ubuntu@34.230.32.54`
+**SSH Key Location**: `/home/joshua/AllProjects/slms/site2crm-key.pem`
+
+**SSH Command**:
+```bash
+ssh -i /home/joshua/AllProjects/slms/site2crm-key.pem ubuntu@34.230.32.54
+```
+
+**Server Paths**:
+- App directory: `/opt/site2crm`
+- Virtual env: `/opt/site2crm/.venv`
+- Service: `sudo systemctl restart site2crm`
+
+**Deploy Commands**:
+```bash
+# SSH and deploy
+ssh -i /home/joshua/AllProjects/slms/site2crm-key.pem ubuntu@34.230.32.54 \
+  "cd /opt/site2crm && sudo git pull && sudo .venv/bin/python -m alembic upgrade head && sudo systemctl restart site2crm"
+```
 
 **Database**: PostgreSQL on RDS
 - Host: `site2crm-db.cgrkyeeii4fr.us-east-1.rds.amazonaws.com`
