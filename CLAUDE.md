@@ -30,6 +30,13 @@
 
 2. **One step at a time** - Don't overwhelm with multiple parallel tasks.
 
+3. **⚠️ NEVER PUSH DIRECTLY TO MAIN/PRODUCTION ⚠️**
+   - User runs local servers themselves (do NOT run `npm run dev` or `uvicorn`)
+   - All development happens on `develop` branch
+   - Only merge to `main` after thorough local testing by user
+   - Production deploys only from `main` after user approval
+   - **Branches**: `develop` → `main` → `production`
+
 ---
 
 ## Project Overview
