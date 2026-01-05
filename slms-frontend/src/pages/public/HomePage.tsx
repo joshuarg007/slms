@@ -106,13 +106,13 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white tracking-tight">
-              Turn Website Visitors into{" "}
+              Website forms that sync leads to your CRM{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
-                CRM Leads
+                in real time
               </span>
             </h1>
             <p className="mt-6 text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              Capture leads with beautiful, conversion-optimized forms and sync them to your CRM in seconds. No code required.
+              No middleware. No manual entry. Leads appear in HubSpot, Salesforce, Pipedrive, or Nutshell the moment they submit.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
