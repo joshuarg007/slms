@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useSEO, schemas } from "@/hooks/useSEO";
 
 type FAQItem = {
   question: string;
@@ -184,8 +184,21 @@ function FAQAccordion({ item }: { item: FAQItem }) {
 }
 
 export default function HelpPage() {
-  useDocumentTitle("Help Center");
   const [activeCategory, setActiveCategory] = useState(0);
+
+  // Generate FAQ schema from all categories
+  const faqJsonLd = useMemo(() => {
+    const allFaqs = FAQ_CATEGORIES.flatMap((cat) => cat.items);
+    return schemas.faqPage(allFaqs);
+  }, []);
+
+  useSEO({
+    title: "Help Center - FAQs & Support",
+    description:
+      "Get answers to common questions about Site2CRM. Learn about getting started, features, CRM integrations, billing, and security. Contact support if you need help.",
+    path: "/help",
+    jsonLd: faqJsonLd,
+  });
 
   return (
     <div>

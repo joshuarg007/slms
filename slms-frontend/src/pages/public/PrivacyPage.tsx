@@ -1,8 +1,13 @@
 import { Link } from "react-router-dom";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useSEO } from "@/hooks/useSEO";
 
 export default function PrivacyPage() {
-  useDocumentTitle("Privacy Policy");
+  useSEO({
+    title: "Privacy Policy",
+    description:
+      "Site2CRM Privacy Policy. Learn how we collect, use, and protect your data. GDPR compliant. We never sell your information.",
+    path: "/privacy",
+  });
 
   return (
     <div className="py-20 bg-white dark:bg-gray-950">

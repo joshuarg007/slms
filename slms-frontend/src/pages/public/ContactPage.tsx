@@ -1,8 +1,13 @@
 import ContactForm from "@/components/marketing/ContactForm";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useSEO } from "@/hooks/useSEO";
 
 export default function ContactPage() {
-  useDocumentTitle("Contact Us");
+  useSEO({
+    title: "Contact Us - Get in Touch",
+    description:
+      "Have questions about Site2CRM? Want a demo? Contact our team. We respond within 24 hours. Email: labs@axiondeep.com",
+    path: "/contact",
+  });
 
   return (
     <div>

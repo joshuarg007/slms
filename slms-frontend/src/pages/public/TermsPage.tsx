@@ -1,8 +1,13 @@
 import { Link } from "react-router-dom";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useSEO } from "@/hooks/useSEO";
 
 export default function TermsPage() {
-  useDocumentTitle("Terms of Service");
+  useSEO({
+    title: "Terms of Service",
+    description:
+      "Site2CRM Terms of Service. Read our terms and conditions for using the Site2CRM lead capture and CRM integration platform.",
+    path: "/terms",
+  });
 
   return (
     <div className="py-20 bg-white dark:bg-gray-950">

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import ContactForm from "@/components/marketing/ContactForm";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useSEO, schemas } from "@/hooks/useSEO";
 
 // AI-powered features - DISABLED (kept for future use)
 // const AI_FEATURES = [...];
@@ -91,7 +91,13 @@ const STEPS = [
 ];
 
 export default function HomePage() {
-  useDocumentTitle("Turn Website Visitors into CRM Leads");
+  useSEO({
+    title: "Lead Capture Forms & CRM Integration for SaaS",
+    description:
+      "Capture leads with beautiful, conversion-optimized forms and sync them to HubSpot, Salesforce, Pipedrive instantly. No code required. Start free trial.",
+    path: "/",
+    jsonLd: schemas.organization,
+  });
 
   return (
     <div>

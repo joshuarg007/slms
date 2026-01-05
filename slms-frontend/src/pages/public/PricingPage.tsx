@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useSEO, schemas } from "@/hooks/useSEO";
 
 const PLANS = [
   {
@@ -90,7 +90,13 @@ const FAQS = [
 ];
 
 export default function PricingPage() {
-  useDocumentTitle("Pricing");
+  useSEO({
+    title: "Pricing - Plans Starting at $29/month",
+    description:
+      "Simple, transparent pricing for Site2CRM. Starter plan at $29/mo, Professional at $79/mo. 14-day free trial, no credit card required. Cancel anytime.",
+    path: "/pricing",
+    jsonLd: schemas.product({ starter: "29", pro: "79" }),
+  });
 
   return (
     <div>

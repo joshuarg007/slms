@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useSEO } from "@/hooks/useSEO";
 
 const VALUES = [
   {
@@ -50,7 +50,12 @@ const AXIONDEEP_PRODUCTS = [
 ];
 
 export default function AboutPage() {
-  useDocumentTitle("About Us");
+  useSEO({
+    title: "About Us - Built by Axion Deep Labs",
+    description:
+      "Site2CRM is built by Axion Deep Labs, a research organization focused on AI, data systems, and computational science. Learn about our mission and values.",
+    path: "/about",
+  });
 
   return (
     <div>

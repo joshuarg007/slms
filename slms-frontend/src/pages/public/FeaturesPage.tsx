@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useSEO } from "@/hooks/useSEO";
 
 // Feature media assets
 import features1Video from "@/assets/features1.webm";
@@ -164,7 +164,12 @@ const ADDITIONAL_FEATURES = [
 ];
 
 export default function FeaturesPage() {
-  useDocumentTitle("Features");
+  useSEO({
+    title: "Features - Multi-Step Forms, CRM Sync & Analytics",
+    description:
+      "Explore Site2CRM features: beautiful multi-step forms, instant CRM sync to HubSpot/Salesforce/Pipedrive, real-time analytics, custom fields, and team collaboration.",
+    path: "/features",
+  });
 
   return (
     <div>
