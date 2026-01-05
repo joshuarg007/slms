@@ -35,6 +35,18 @@ Development priorities are sequenced for maximum business value and scalability.
 
 ## 6. DevOps & Scaling
 - [ ] Full Dockerization (frontend + backend)
-- [ ] GitHub Actions CI/CD (tests, migrations, deploy to AWS)
+- [x] GitHub Actions CI/CD (tests, migrations, deploy to AWS)
 - [ ] AWS infra expansion (S3 docs, CloudWatch dashboards, Cognito optional auth)
 - [ ] Multi-region database replicas for scaling
+
+## 7. Observability & Monitoring
+- [ ] Sentry error tracking (frontend + backend)
+- [ ] Google Analytics 4 / Plausible
+- [ ] Status page (UptimeRobot / Betterstack)
+- [ ] APM (Application Performance Monitoring)
+
+## 8. Marketing & Growth
+- [ ] Social media presence (Twitter/X, LinkedIn)
+- [ ] Help center / FAQ page
+- [ ] API documentation (OpenAPI/Swagger)
+- [ ] Blog / content marketing

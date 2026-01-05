@@ -47,6 +47,7 @@ jobs:
         working-directory: ${{ steps.detect.outputs.dir }}
         env:
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
         run: npm run build
 
       - name: Configure AWS credentials (frontend)

@@ -1,4 +1,9 @@
 // src/main.tsx
+import { initSentry } from "@/lib/sentry";
+
+// Initialize Sentry before anything else
+initSentry();
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
