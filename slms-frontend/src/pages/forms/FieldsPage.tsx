@@ -249,7 +249,7 @@ export default function FieldsPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-4xl p-6">
+      <div className="mx-auto max-w-6xl p-6">
         <div className="flex items-center justify-center h-64">
           <div className="flex items-center gap-3 text-gray-500">
             <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
@@ -264,7 +264,7 @@ export default function FieldsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-6 space-y-6">
+    <div className="mx-auto max-w-6xl p-6 space-y-6">
       {/* Header */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -284,7 +284,7 @@ export default function FieldsPage() {
           </div>
         </div>
         <Link
-          to="/forms/styles"
+          to="/app/forms/styles"
           className="inline-flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 transition-colors"
         >
           Next: Choose Style
@@ -314,14 +314,14 @@ export default function FieldsPage() {
         </div>
       )}
 
-      {/* Fields List */}
-      <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
-        <div className="px-5 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800">
+      {/* Fields Grid */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
           <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             Drag to reorder fields
           </p>
         </div>
-        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {fields.map((field, index) => {
             const meta = FIELD_TYPE_META[field.field_type] || FIELD_TYPE_META.text;
             const isExpanded = expandedField === field.key;
@@ -338,98 +338,88 @@ export default function FieldsPage() {
                 onDragOver={handleDragOver}
                 onDrop={() => handleDrop(index)}
                 onDragEnd={handleDragEnd}
-                className={`transition-all ${
-                  isDragging ? "opacity-50 bg-gray-50 dark:bg-gray-800" : ""
-                } ${isDragOver ? "border-t-2 border-indigo-500" : ""}`}
+                className={`rounded-xl border bg-white dark:bg-gray-900 transition-all ${
+                  isDragging ? "opacity-50 scale-95" : ""
+                } ${isDragOver ? "ring-2 ring-indigo-500 border-indigo-500" : "border-gray-200 dark:border-gray-800"
+                } ${!field.enabled ? "opacity-60" : ""}`}
               >
-                <div
-                  className={`px-5 py-4 flex items-center gap-4 cursor-grab active:cursor-grabbing ${
-                    !field.enabled ? "opacity-50" : ""
-                  }`}
-                >
-                  {/* Drag handle */}
-                  <div className="flex-shrink-0 text-gray-400">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-                    </svg>
-                  </div>
-
-                  {/* Enable toggle */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); toggleField(field.key); }}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
-                      field.enabled ? "bg-indigo-600" : "bg-gray-200 dark:bg-gray-700"
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out ${
-                        field.enabled ? "translate-x-6" : "translate-x-1"
-                      }`}
-                    />
-                  </button>
-
-                  {/* Field icon & type */}
-                  <div className={`flex-shrink-0 p-2 rounded-lg ${meta.color}`}>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      {meta.icon}
-                    </svg>
-                  </div>
-
-                  {/* Field info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                        {field.label}
-                      </span>
-                      {field.required && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                          Required
+                {/* Card Header */}
+                <div className="p-4 cursor-grab active:cursor-grabbing">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {/* Field icon */}
+                      <div className={`flex-shrink-0 p-2 rounded-lg ${meta.color}`}>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          {meta.icon}
+                        </svg>
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                          {field.label}
+                        </h3>
+                        <span className={`text-xs ${meta.color.replace('bg-', 'text-').split(' ')[0]}`}>
+                          {meta.label}
                         </span>
-                      )}
-                      {field.key.startsWith("custom_") && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                          Custom
-                        </span>
-                      )}
+                      </div>
                     </div>
+                    {/* Enable toggle */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleField(field.key); }}
+                      className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                        field.enabled ? "bg-indigo-600" : "bg-gray-200 dark:bg-gray-700"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out ${
+                          field.enabled ? "translate-x-5" : "translate-x-0.5"
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Badges */}
+                  <div className="flex flex-wrap items-center gap-1.5 mt-3">
+                    {field.required && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                        Required
+                      </span>
+                    )}
+                    {field.key.startsWith("custom_") && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                        Custom
+                      </span>
+                    )}
                     {field.placeholder && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                        {field.placeholder}
-                      </p>
+                      <span className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[120px]" title={field.placeholder}>
+                        "{field.placeholder}"
+                      </span>
                     )}
                   </div>
+                </div>
 
-                  {/* Type badge */}
-                  <span className={`hidden sm:inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${meta.color}`}>
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      {meta.icon}
+                {/* Card Footer */}
+                <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
                     </svg>
-                    {meta.label}
-                  </span>
-
-                  {/* Expand/Edit button */}
+                    <span className="text-xs">#{index + 1}</span>
+                  </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); setExpandedField(isExpanded ? null : field.key); }}
-                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    className="text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
                   >
-                    <svg
-                      className={`w-5 h-5 transition-transform ${isExpanded ? "rotate-180" : ""}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                    {isExpanded ? "Close" : "Edit"}
                   </button>
                 </div>
 
                 {/* Expanded edit section */}
                 {isExpanded && (
-                  <div className="px-5 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800">
+                    <div className="space-y-3">
                       {/* Label */}
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                           Label
                         </label>
                         <input
@@ -442,7 +432,7 @@ export default function FieldsPage() {
 
                       {/* Placeholder */}
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                           Placeholder
                         </label>
                         <input
@@ -469,7 +459,7 @@ export default function FieldsPage() {
                           }`} />
                         </label>
                         <span className="text-sm text-gray-700 dark:text-gray-300">
-                          Required field
+                          Required
                           {ALWAYS_REQUIRED_FIELDS.includes(field.key) && (
                             <span className="ml-1 text-xs text-gray-500">(always)</span>
                           )}
@@ -479,7 +469,7 @@ export default function FieldsPage() {
                       {/* Field type (for custom fields) */}
                       {field.key.startsWith("custom_") && (
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Field Type
                           </label>
                           <select
@@ -502,35 +492,33 @@ export default function FieldsPage() {
 
                       {/* Options editor for select/multi fields */}
                       {(field.field_type === "select" || field.field_type === "multi") && (
-                        <div className="col-span-full">
-                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Options (one per line)
                           </label>
                           <textarea
                             value={(field.options || []).join("\n")}
                             onChange={(e) => updateField(field.key, { options: e.target.value.split("\n").filter(o => o.trim()) })}
-                            rows={4}
+                            rows={3}
                             className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
                             placeholder="Option 1&#10;Option 2&#10;Option 3"
                           />
                         </div>
                       )}
-                    </div>
 
-                    {/* Delete button for custom fields */}
-                    {field.key.startsWith("custom_") && (
-                      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      {/* Delete button for custom fields */}
+                      {field.key.startsWith("custom_") && (
                         <button
                           onClick={() => removeField(field.key)}
-                          className="inline-flex items-center gap-2 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                          className="w-full mt-2 inline-flex items-center justify-center gap-2 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 py-2 border border-red-200 dark:border-red-900/40 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
-                          Delete this field
+                          Delete Field
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

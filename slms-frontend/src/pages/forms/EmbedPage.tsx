@@ -83,7 +83,7 @@ export default function EmbedPage() {
           </p>
         </div>
         <Link
-          to="/forms/styles"
+          to="/app/forms/styles"
           className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
         >
           &larr; Back to Styles
