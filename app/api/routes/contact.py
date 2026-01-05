@@ -8,7 +8,7 @@ import logging
 
 from app.services.email import send_contact_form_notification
 from app.core.rate_limit import check_rate_limit
-from app.core.captcha import verify_captcha_sync
+from app.core.captcha import verify_captcha
 from app.integrations.hubspot import create_lead_full as hubspot_create_lead_full
 
 logger = logging.getLogger(__name__)
@@ -65,7 +65,7 @@ async def submit_contact_form(
     check_rate_limit(request, "contact")
 
     # Verify CAPTCHA (skipped if not configured)
-    verify_captcha_sync(data.captcha_token, action="contact")
+    await verify_captcha(data.captcha_token, action="contact")
 
     # Determine source for HubSpot tracking
     source = data.source or "site2crm.io/contact"
