@@ -118,7 +118,7 @@ export const schemas = {
     name: "Site2CRM",
     url: "https://site2crm.io",
     logo: "https://site2crm.io/logo.png",
-    description: "AI-powered lead capture and CRM integration platform for SaaS companies",
+    description: "Lead capture and CRM integration platform for SaaS companies",
     parentOrganization: {
       "@type": "Organization",
       name: "Axion Deep Labs",

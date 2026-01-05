@@ -458,8 +458,8 @@ export default function AutomationPage() {
               <Toggle
                 enabled={settings.weekly_recommendations_enabled}
                 onChange={(v) => handleSettingChange("weekly_recommendations_enabled", v)}
-                label="Weekly AI recommendations"
-                description="Send AI-generated recommendations every Wednesday"
+                label="Weekly recommendations"
+                description="Send data-driven recommendations every Wednesday"
               />
             </div>
           </div>

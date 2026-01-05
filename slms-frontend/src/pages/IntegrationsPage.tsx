@@ -452,57 +452,6 @@ export default function IntegrationsPage() {
           {activeTab === "analytics" && <AnalyticsTab key="analytics" stats={stats} />}
         </AnimatePresence>
 
-        {/* AI Assistant Footer */}
-        <motion.div
-          className="mt-10 rounded-3xl overflow-hidden"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 p-[2px] rounded-3xl">
-            <div className="bg-white dark:bg-gray-900 rounded-3xl p-6">
-              <div className="flex items-start gap-5">
-                <motion.div
-                  className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-xl"
-                  animate={{ scale: [1, 1.05, 1] }}
-                  transition={{ duration: 3, repeat: Infinity }}
-                >
-                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
-                </motion.div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-bold text-lg text-gray-900 dark:text-white">AI Integration Copilot</h3>
-                    <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-gradient-to-r from-green-400 to-emerald-500 text-white flex items-center gap-1.5">
-                      <motion.span
-                        className="w-2 h-2 rounded-full bg-white"
-                        animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
-                        transition={{ duration: 1.5, repeat: Infinity }}
-                      />
-                      ACTIVE
-                    </span>
-                  </div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    I've analyzed your sync patterns and identified <span className="font-semibold text-indigo-600">3 optimization opportunities</span> that could improve data quality by 12% and reduce sync latency by 8ms.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {["Enable smart deduplication", "Optimize field mappings", "Configure webhook batching"].map((suggestion) => (
-                      <motion.button
-                        key={suggestion}
-                        className="px-4 py-2 rounded-xl text-sm font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        {suggestion}
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
       </div>
     </div>
   );
@@ -892,8 +841,8 @@ function FieldMappingTab({ fieldMappings, setFieldMappings }: { fieldMappings: t
         <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-900">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">AI-Powered Field Mapping</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Intelligent field matching with confidence scores</p>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Smart Field Mapping</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Automatic field matching with confidence scores</p>
             </div>
             <motion.button
               className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-medium shadow-lg"
@@ -964,7 +913,7 @@ function FieldMappingTab({ fieldMappings, setFieldMappings }: { fieldMappings: t
                   {mapping.type}
                 </span>
 
-                {/* AI Confidence */}
+                {/* Match Confidence */}
                 <div className="w-24">
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">

@@ -10,7 +10,7 @@ export default function AboutPage() {
           salesperson stats aggregated from your CRM.
         </p>
         <p className="text-gray-700 mt-3">
-          Future releases will add AI-powered lead scoring, coaching, and weekly
+          Future releases will add advanced lead scoring, coaching insights, and weekly
           reports—configurable in Settings.
         </p>
       </div>

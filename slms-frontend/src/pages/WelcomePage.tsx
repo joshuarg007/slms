@@ -52,7 +52,7 @@ export default function WelcomePage() {
           Breakdown by source, trendlines, export to CSV.
         </Feature>
         <Feature title="Salesperson analytics">
-          Email/Call/Meeting counts, new deals, and AI-powered lead scoring.
+          Email/Call/Meeting counts, new deals, and lead scoring.
         </Feature>
         <Feature title="Integrations">
           HubSpot today; Pipedrive, Nutshell, Salesforce next.
