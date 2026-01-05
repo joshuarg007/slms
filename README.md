@@ -278,7 +278,7 @@ FRONTEND_BASE_URL=https://site2crm.io
 ## Maintained By
 
 **Joshua R. Gutierrez**
-Email: joshua.g@site2crm.io
+Email: labs@axiondeep.com
 Website: [site2crm.io](https://site2crm.io)
 
 ---
@@ -287,4 +287,4 @@ Website: [site2crm.io](https://site2crm.io)
 
 Proprietary - All rights reserved.
 
-Copyright (c) 2026 Site2CRM
+Copyright (c) 2025 Axion Deep Labs Inc. All rights reserved.
