@@ -1,5 +1,6 @@
 // src/pages/AccountPage.tsx
 import { useEffect, useState } from "react";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useAuth } from "@/context/AuthProvider";
 import { getApiBase, refresh } from "@/utils/api";
 
@@ -42,6 +43,7 @@ async function authFetch(
 }
 
 export default function AccountPage() {
+  useDocumentTitle("Account");
   const { user, logout } = useAuth();
   const currentUserEmail = user?.email ?? "Unknown user";
 

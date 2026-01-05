@@ -1,6 +1,7 @@
 // src/pages/forms/FieldsPage.tsx
 import type { JSX } from "react";
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Link } from "react-router-dom";
 
 interface FieldConfig {
@@ -86,6 +87,7 @@ async function authFetch(url: string, init: RequestInit = {}): Promise<Response>
 }
 
 export default function FieldsPage() {
+  useDocumentTitle("Form Fields");
   const [fields, setFields] = useState<FieldConfig[]>(DEFAULT_FIELDS);
   const [formConfig, setFormConfig] = useState<FormConfig | null>(null);
   const [loading, setLoading] = useState(true);

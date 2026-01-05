@@ -1,5 +1,6 @@
 // src/pages/SalespeoplePage.tsx
 import { useEffect, useState, useMemo } from "react";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import StatsCards, { Row } from "@/components/StatsCards";
 import SalesScoreboard from "@/components/SalesScoreboard";
 import { getApiBase } from "@/utils/api";
@@ -34,6 +35,7 @@ function authFetch(input: RequestInfo | URL, init: RequestInit = {}) {
 type ViewMode = "cards" | "scoreboard";
 
 export default function SalespeoplePage() {
+  useDocumentTitle("Salespeople");
   const [rows, setRows] = useState<Row[]>([]);
   const [days, setDays] = useState(7);
   const [loading, setLoading] = useState(true);

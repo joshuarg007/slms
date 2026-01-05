@@ -1,6 +1,7 @@
 // src/pages/ReportsPage.tsx
 import { useEffect, useState, useMemo } from "react";
 import { getDashboardMetrics } from "@/utils/api";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { getApiBase } from "@/utils/api";
 import StatsCards, { Row as SalesRow } from "@/components/StatsCards";
 import AIInsightWidget from "@/components/AIInsightWidget";
@@ -42,6 +43,7 @@ function authFetch(input: RequestInfo | URL, init: RequestInit = {}) {
 }
 
 export default function ReportsPage() {
+  useDocumentTitle("Reports");
   const [activeTab, setActiveTab] = useState<Tab>("leads");
 
   const [leadsMetrics, setLeadsMetrics] = useState<LeadsMetrics | null>(null);

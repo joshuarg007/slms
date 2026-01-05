@@ -1,6 +1,7 @@
 // src/pages/DashboardPage.tsx
 import { useEffect, useState } from "react";
 import { api, type DashboardMetrics } from "@/utils/api";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Link } from "react-router-dom";
 import AIInsightWidget from "@/components/AIInsightWidget";
 import { AIPrediction, AIRecommendationCard } from "@/components/AIBadge";
@@ -8,6 +9,7 @@ import ViewModeSelector, { ViewModeInsight } from "@/components/ViewModeSelector
 import { RotatingWisdom } from "@/components/WisdomTooltip";
 
 export default function DashboardPage() {
+  useDocumentTitle("Dashboard");
   const [data, setData] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);

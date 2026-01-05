@@ -1,5 +1,6 @@
 // src/pages/UsersPage.tsx
 import { useEffect, useState } from "react";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthProvider";
 import { getApiBase, refresh } from "@/utils/api";
@@ -92,6 +93,7 @@ function getRoleDescription(role: string) {
 }
 
 export default function UsersPage() {
+  useDocumentTitle("Users");
   const { user } = useAuth();
 
   const [users, setUsers] = useState<OrgUser[]>([]);

@@ -1,6 +1,7 @@
 // src/pages/LeadsPage.tsx
 import React, { useEffect, useRef, useState } from "react";
 import { api } from "@/utils/api";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import AIInsightWidget from "@/components/AIInsightWidget";
 import AIBadge, { AIScoreRing } from "@/components/AIBadge";
 
@@ -67,6 +68,7 @@ const DEFAULT_DIR = "desc" as const;
 const PAGE_SIZES = [10, 25, 50, 100] as const;
 
 const LeadsPage: React.FC = () => {
+  useDocumentTitle("Leads");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<string>(DEFAULT_SORT);
   const [dir, setDir] = useState<"asc" | "desc">(DEFAULT_DIR);

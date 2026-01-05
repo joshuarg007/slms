@@ -1,5 +1,6 @@
 // src/pages/forms/EmbedPage.tsx
 import { useEffect, useState, useCallback } from "react";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Link } from "react-router-dom";
 import { getEmbedCode } from "../../utils/api";
 
@@ -10,6 +11,7 @@ interface EmbedCode {
 }
 
 export default function EmbedPage() {
+  useDocumentTitle("Embed Code");
   const [embedCode, setEmbedCode] = useState<EmbedCode | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

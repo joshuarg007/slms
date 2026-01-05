@@ -1,5 +1,6 @@
 // src/pages/forms/StylesPage.tsx
 import { useEffect, useState } from "react";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Link } from "react-router-dom";
 
 type FormStyle = "inline" | "wizard" | "modal" | "drawer";
@@ -64,6 +65,7 @@ async function authFetch(url: string, init: RequestInit = {}): Promise<Response>
 }
 
 export default function StylesPage() {
+  useDocumentTitle("Form Styles");
   const [formConfig, setFormConfig] = useState<FormConfig | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<FormStyle>("inline");
   const [styling, setStyling] = useState<StylingConfig>({

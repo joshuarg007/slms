@@ -1,5 +1,6 @@
 // src/pages/IntegrationsPage.tsx - Next-Gen CRM Integration Center
 import { useEffect, useState, useRef } from "react";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { getApiBase, refresh } from "@/utils/api";
@@ -165,6 +166,7 @@ function SyncPulse({ direction, status }: { direction: "outbound" | "inbound"; s
 }
 
 export default function IntegrationsPage() {
+  useDocumentTitle("Integrations");
   const [activeCRM, setActiveCRM] = useState<CRM>("hubspot");
   const [editing, setEditing] = useState<CRM>("hubspot");
   const [saving, setSaving] = useState(false);

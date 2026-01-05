@@ -1,6 +1,7 @@
 // src/pages/SettingsPage.tsx
 import { useEffect, useState } from "react";
 import { applyTheme, getSavedTheme, type Theme } from "@/utils/theme";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { getApiBase, refresh } from "@/utils/api";
 import CSVImportModal from "@/components/CSVImportModal";
 
@@ -70,6 +71,7 @@ async function authFetch(
 }
 
 export default function SettingsPage() {
+  useDocumentTitle("Settings");
   const [theme, setTheme] = useState<Theme>(() => getSavedTheme());
   const [rotating, setRotating] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
