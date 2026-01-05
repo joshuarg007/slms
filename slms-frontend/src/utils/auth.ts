@@ -3,7 +3,7 @@
 
 export async function logout() {
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+    const baseUrl = import.meta.env.VITE_API_URL || "/api";
     await fetch(`${baseUrl}/logout`, { method: "POST", credentials: "include" });
   } catch {}
   window.location.href = "/login";
