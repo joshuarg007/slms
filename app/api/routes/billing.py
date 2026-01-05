@@ -15,8 +15,8 @@ from app.db import models
 from app.api.routes.auth import get_current_user
 
 # Track recent checkout sessions to prevent duplicates (in-memory, resets on server restart)
-# Key: org_id, Value: (checkout_url, timestamp)
-_recent_checkouts: dict[int, tuple[str, datetime]] = {}
+# Key: "org_id:plan:cycle", Value: (checkout_url, timestamp)
+_recent_checkouts: dict[str, tuple[str, datetime]] = {}
 
 router = APIRouter(tags=["Billing"])
 
@@ -99,8 +99,9 @@ def create_checkout_session(
 
     # SAFEGUARD 2: Check for recent checkout session (within 2 minutes)
     # This prevents rapid double-clicks from creating multiple checkouts
-    if org.id in _recent_checkouts:
-        cached_url, cached_time = _recent_checkouts[org.id]
+    cache_key = f"{org.id}:{req.plan}:{req.billing_cycle}"
+    if cache_key in _recent_checkouts:
+        cached_url, cached_time = _recent_checkouts[cache_key]
         if datetime.utcnow() - cached_time < timedelta(minutes=2):
             # Return existing checkout URL instead of creating new one
             return {"url": cached_url}
@@ -148,7 +149,7 @@ def create_checkout_session(
         raise HTTPException(400, f"Unable to create checkout session: {str(e)}")
 
     # Cache the checkout URL to prevent duplicates
-    _recent_checkouts[org.id] = (session.url, datetime.utcnow())
+    _recent_checkouts[cache_key] = (session.url, datetime.utcnow())
 
     # Clean up old cache entries (older than 10 minutes)
     cutoff = datetime.utcnow() - timedelta(minutes=10)
