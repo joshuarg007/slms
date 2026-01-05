@@ -20,7 +20,7 @@ router = APIRouter(prefix="/salespeople", tags=["Salespeople"])
 
 @router.get("/stats", response_model=SalespersonStatsResponse)
 async def unified_salespeople_stats(
-    days: int = Query(7, ge=1, le=365),
+    days: int = Query(7, ge=0, le=1825),  # 0 = all time, up to 5 years
     owner_id: Optional[str] = Query(None),
     owner_email: Optional[str] = Query(None),
     db: Session = Depends(get_db),
