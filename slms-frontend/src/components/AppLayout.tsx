@@ -163,7 +163,8 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 // Keyboard shortcuts configuration for display
 const APP_SHORTCUTS = [
   { key: "?", description: "Show keyboard shortcuts", modifier: "Shift" },
-  { key: "/", description: "Focus search" },
+  { key: "/", description: "Open search" },
+  { key: "k", description: "Open search", modifier: "Ctrl" },
   { key: "d", modifier: "g", description: "Go to Dashboard" },
   { key: "l", modifier: "g", description: "Go to Leads" },
   { key: "s", modifier: "g", description: "Go to Salespeople" },
@@ -286,6 +287,7 @@ export default function AppLayout() {
               {icons.search}
             </span>
             <span className="flex-1 text-left">Search pages, leads...</span>
+            <span className="text-xs text-gray-400">/&nbsp; or&nbsp; Ctrl+K</span>
           </button>
         </div>
 
