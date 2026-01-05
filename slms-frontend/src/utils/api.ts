@@ -197,11 +197,19 @@ export type CurrentUser = {
   role: string;
   is_approved: boolean;
   email_verified: boolean;
+  cookie_consent: boolean;
   organization: UserOrganization | null;
 };
 
 export async function me() {
   return fetchJSON<CurrentUser>(`${baseUrl}/me`);
+}
+
+export async function setCookieConsent() {
+  return fetchJSON<{ ok: boolean; cookie_consent: boolean }>(
+    `${baseUrl}/cookie-consent`,
+    { method: "POST" }
+  );
 }
 
 // Public leads
@@ -760,6 +768,7 @@ export const api = {
   logout,
   clearToken,
   me,
+  setCookieConsent,
   createPublicLead,
   createLead,
   getLeads,

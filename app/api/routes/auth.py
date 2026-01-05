@@ -124,6 +124,7 @@ def me(current_user: models.User = Depends(get_current_user), db: Session = Depe
         "role": current_user.role,
         "is_approved": current_user.is_approved,
         "email_verified": current_user.email_verified,
+        "cookie_consent": current_user.cookie_consent_at is not None,
         "organization": {
             "id": org.id if org else None,
             "name": org.name if org else None,
@@ -132,3 +133,15 @@ def me(current_user: models.User = Depends(get_current_user), db: Session = Depe
             "trial_ends_at": org.trial_ends_at.isoformat() if org and org.trial_ends_at else None,
         } if org else None,
     }
+
+
+@router.post("/cookie-consent")
+def set_cookie_consent(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Record that user has accepted cookie consent."""
+    from datetime import datetime
+    current_user.cookie_consent_at = datetime.utcnow()
+    db.commit()
+    return {"ok": True, "cookie_consent": True}

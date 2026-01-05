@@ -152,6 +152,9 @@ class User(Base):
     email_verification_token = Column(String(100), nullable=True, index=True)
     email_verification_sent_at = Column(DateTime, nullable=True)
 
+    # Cookie consent - tracked per user for compliance
+    cookie_consent_at = Column(DateTime, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Enforce tenancy at the model level too

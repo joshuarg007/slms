@@ -1,27 +1,68 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import api from "@/utils/api";
 
 const COOKIE_CONSENT_KEY = "site2crm_cookie_consent";
 
 export default function CookieConsent() {
   const [visible, setVisible] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    // Check if user has already consented
-    const consent = localStorage.getItem(COOKIE_CONSENT_KEY);
-    if (!consent) {
-      // Show banner after a short delay for better UX
-      const timer = setTimeout(() => setVisible(true), 1000);
-      return () => clearTimeout(timer);
+    let cancelled = false;
+
+    async function checkConsent() {
+      // First check localStorage for visitors
+      const localConsent = localStorage.getItem(COOKIE_CONSENT_KEY);
+
+      // Try to check if user is logged in and their consent status
+      try {
+        const user = await api.me();
+        if (cancelled) return;
+
+        setIsLoggedIn(true);
+
+        // User is logged in - check their account consent status
+        if (!user.cookie_consent) {
+          // User hasn't consented yet - show banner
+          setTimeout(() => {
+            if (!cancelled) setVisible(true);
+          }, 1000);
+        }
+      } catch {
+        // Not logged in - use localStorage for visitors
+        if (!localConsent && !cancelled) {
+          setTimeout(() => {
+            if (!cancelled) setVisible(true);
+          }, 1000);
+        }
+      }
     }
+
+    checkConsent();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const handleAccept = () => {
+  const handleAccept = async () => {
+    // Always save to localStorage
     localStorage.setItem(COOKIE_CONSENT_KEY, "accepted");
+
+    // If logged in, also save to account
+    if (isLoggedIn) {
+      try {
+        await api.setCookieConsent();
+      } catch {
+        // Ignore errors - localStorage is saved anyway
+      }
+    }
+
     setVisible(false);
   };
 
   const handleDecline = () => {
+    // Save decline to localStorage only (not to account)
     localStorage.setItem(COOKIE_CONSENT_KEY, "declined");
     setVisible(false);
   };
