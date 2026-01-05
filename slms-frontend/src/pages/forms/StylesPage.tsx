@@ -192,38 +192,42 @@ export default function StylesPage() {
         </div>
       )}
 
-      {/* Style Selection */}
+      {/* Styling Options */}
       <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4">
-        <h2 className="text-lg font-medium mb-4">Form Type</h2>
-        <div className="grid sm:grid-cols-2 gap-3">
-          {STYLE_OPTIONS.map((style) => (
-            <button
-              key={style.id}
-              onClick={() => style.available && setSelectedStyle(style.id)}
-              disabled={!style.available}
-              className={`relative rounded-xl border px-4 py-4 text-left transition-colors ${
-                selectedStyle === style.id
-                  ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30"
-                  : style.available
-                  ? "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
-                  : "border-gray-200 dark:border-gray-700 opacity-50 cursor-not-allowed"
-              }`}
+        <h2 className="text-lg font-medium mb-4">Appearance</h2>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Primary Color</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={styling.primaryColor}
+                onChange={(e) => setStyling({ ...styling, primaryColor: e.target.value })}
+                className="w-10 h-10 rounded border border-gray-300 cursor-pointer"
+              />
+              <input
+                type="text"
+                value={styling.primaryColor}
+                onChange={(e) => setStyling({ ...styling, primaryColor: e.target.value })}
+                className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Border Radius</label>
+            <select
+              value={styling.borderRadius}
+              onChange={(e) => setStyling({ ...styling, borderRadius: e.target.value })}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
             >
-              <div className="flex items-start justify-between">
-                <div>
-                  <span className="font-medium">{style.name}</span>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {style.description}
-                  </p>
-                </div>
-                {selectedStyle === style.id && (
-                  <svg className="w-5 h-5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                )}
-              </div>
-            </button>
-          ))}
+              <option value="0px">None (0px)</option>
+              <option value="4px">Small (4px)</option>
+              <option value="8px">Medium (8px)</option>
+              <option value="10px">Default (10px)</option>
+              <option value="16px">Large (16px)</option>
+              <option value="24px">Extra Large (24px)</option>
+            </select>
+          </div>
         </div>
       </section>
 
@@ -292,45 +296,6 @@ export default function StylesPage() {
         </div>
       </section>
 
-      {/* Styling Options */}
-      <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4">
-        <h2 className="text-lg font-medium mb-4">Appearance</h2>
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Primary Color</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={styling.primaryColor}
-                onChange={(e) => setStyling({ ...styling, primaryColor: e.target.value })}
-                className="w-10 h-10 rounded border border-gray-300 cursor-pointer"
-              />
-              <input
-                type="text"
-                value={styling.primaryColor}
-                onChange={(e) => setStyling({ ...styling, primaryColor: e.target.value })}
-                className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Border Radius</label>
-            <select
-              value={styling.borderRadius}
-              onChange={(e) => setStyling({ ...styling, borderRadius: e.target.value })}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-            >
-              <option value="0px">None (0px)</option>
-              <option value="4px">Small (4px)</option>
-              <option value="8px">Medium (8px)</option>
-              <option value="10px">Default (10px)</option>
-              <option value="16px">Large (16px)</option>
-              <option value="24px">Extra Large (24px)</option>
-            </select>
-          </div>
-        </div>
-      </section>
-
       {/* Branding Options */}
       <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4">
         <h2 className="text-lg font-medium mb-4">Branding & Text</h2>
@@ -384,6 +349,41 @@ export default function StylesPage() {
             />
             Show "Powered by Site2CRM" badge
           </label>
+        </div>
+      </section>
+
+      {/* Style Selection - Form Type */}
+      <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4">
+        <h2 className="text-lg font-medium mb-4">Form Type</h2>
+        <div className="grid sm:grid-cols-2 gap-3">
+          {STYLE_OPTIONS.map((style) => (
+            <button
+              key={style.id}
+              onClick={() => style.available && setSelectedStyle(style.id)}
+              disabled={!style.available}
+              className={`relative rounded-xl border px-4 py-4 text-left transition-colors ${
+                selectedStyle === style.id
+                  ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30"
+                  : style.available
+                  ? "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  : "border-gray-200 dark:border-gray-700 opacity-50 cursor-not-allowed"
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="font-medium">{style.name}</span>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {style.description}
+                  </p>
+                </div>
+                {selectedStyle === style.id && (
+                  <svg className="w-5 h-5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </div>
+            </button>
+          ))}
         </div>
       </section>
 
