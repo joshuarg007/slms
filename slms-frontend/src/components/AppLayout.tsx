@@ -170,15 +170,6 @@ const APP_SHORTCUTS = [
   { key: "Escape", description: "Close dialogs" },
 ];
 
-// Detect if user is on Mac
-function isMacOS(): boolean {
-  if (typeof navigator !== "undefined") {
-    return navigator.platform.toUpperCase().indexOf("MAC") >= 0 ||
-      navigator.userAgent.toUpperCase().indexOf("MAC") >= 0;
-  }
-  return false;
-}
-
 export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -186,13 +177,7 @@ export default function AppLayout() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [isMac, setIsMac] = useState(false);
   const announce = useAnnounce();
-
-  // Detect OS on mount
-  useEffect(() => {
-    setIsMac(isMacOS());
-  }, []);
 
   // Keyboard shortcuts
   useKeyboardShortcuts([
@@ -301,9 +286,6 @@ export default function AppLayout() {
               {icons.search}
             </span>
             <span className="flex-1 text-left">Search pages, leads...</span>
-            <kbd className="hidden sm:flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-gray-400 bg-white dark:bg-gray-700 rounded shadow-sm">
-              {isMac ? <><span className="text-[10px]">⌘</span>K</> : <>Ctrl+K</>}
-            </kbd>
           </button>
         </div>
 

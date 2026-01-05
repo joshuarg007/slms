@@ -305,21 +305,6 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       });
     });
 
-    // If query but no results, add "search leads" action
-    if (items.length === 0 && q) {
-      items.push({
-        id: "action-search-leads",
-        type: "action",
-        title: `Search leads for "${query}"`,
-        icon: icons.search,
-        action: () => {
-          navigate(`/app/leads?q=${encodeURIComponent(query)}`);
-          saveRecentSearch(query);
-          onClose();
-        },
-      });
-    }
-
     return items;
   }, [query, leads, recentSearches, navigate, onClose]);
 
@@ -404,8 +389,30 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
         {/* Results */}
         <div ref={resultsRef} className="max-h-[50vh] overflow-y-auto">
           {results.length === 0 && query.trim() && !loading && (
-            <div className="px-5 py-8 text-center text-gray-500">
-              No results found for "{query}"
+            <div className="px-5 py-6">
+              <div className="text-center text-gray-500 mb-4">
+                No results for "{query}"
+              </div>
+              <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+                Try these instead
+              </div>
+              <div className="space-y-1">
+                {PAGES.slice(0, 5).map(page => (
+                  <button
+                    key={page.path}
+                    onClick={() => {
+                      navigate(page.path);
+                      onClose();
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                  >
+                    <span className="flex-shrink-0 p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                      {page.icon}
+                    </span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{page.name}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
