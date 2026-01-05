@@ -94,11 +94,18 @@
     s0.parentNode.insertBefore(s1,s0);
     })();
 
-    // Hide on dashboard pages
+    // Hide on dashboard/app pages - check continuously for SPA navigation
     Tawk_API.onLoad = function(){
-      if(window.location.pathname.startsWith('/app')) {
-        Tawk_API.hideWidget();
+      function checkAndHide() {
+        if(window.location.pathname.startsWith('/app')) {
+          Tawk_API.hideWidget();
+        } else {
+          Tawk_API.showWidget();
+        }
       }
+      checkAndHide();
+      // Re-check on route changes (SPA navigation)
+      setInterval(checkAndHide, 500);
     };
     </script>
     <!--End of Tawk.to Script-->
