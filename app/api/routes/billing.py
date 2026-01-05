@@ -87,14 +87,24 @@ def create_checkout_session(
     if not org:
         raise HTTPException(404, "Organization not found")
 
-    # SAFEGUARD 1: Check if already has active subscription for same plan
-    if (org.subscription_status == "active" and
+    # SAFEGUARD 1: Check if already has any active/pending subscription for same plan
+    # Block: active, past_due, incomplete, trialing, canceling (still valid until period end)
+    # Allow: canceled, inactive, None
+    blocking_statuses = {"active", "past_due", "incomplete", "trialing", "canceling"}
+    if (org.subscription_status in blocking_statuses and
         org.plan == req.plan and
         org.stripe_subscription_id):
+        status_msg = {
+            "active": "an active",
+            "past_due": "a past-due",
+            "incomplete": "a pending",
+            "trialing": "a trial",
+            "canceling": "a subscription (active until period end) for",
+        }.get(org.subscription_status, "a")
         raise HTTPException(
             400,
-            f"You already have an active {req.plan} subscription. "
-            "To change billing cycle, use the customer portal."
+            f"You already have {status_msg} {req.plan} subscription. "
+            "Please resolve or cancel it before subscribing again."
         )
 
     # SAFEGUARD 2: Check for recent checkout session (within 2 minutes)
