@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import Logo from "@/components/Logo";
 
-const API = import.meta.env.VITE_API_URL || "";
+const API = import.meta.env.VITE_API_URL || "/api";
 
 export default function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
@@ -24,7 +24,7 @@ export default function VerifyEmailPage() {
 
   async function verifyEmail(token: string) {
     try {
-      const res = await fetch(`${API}/api/verify-email?token=${encodeURIComponent(token)}`, {
+      const res = await fetch(`${API}/verify-email?token=${encodeURIComponent(token)}`, {
         method: "GET",
         credentials: "include",
       });

@@ -3,7 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthProvider";
 import Logo from "@/components/Logo";
 
-const API = import.meta.env.VITE_API_URL || "";
+const API = import.meta.env.VITE_API_URL || "/api";
 
 export default function LoginPage() {
   const { user, login } = useAuth();
@@ -54,7 +54,7 @@ export default function LoginPage() {
     }
     setResendStatus("sending");
     try {
-      const res = await fetch(`${API}/api/resend-verification`, {
+      const res = await fetch(`${API}/resend-verification`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
