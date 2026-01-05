@@ -126,13 +126,20 @@ def create_checkout_session(
     customer_id = _get_or_create_customer(db, org, user.email)
 
     # Cancel existing subscription if switching plans (different plan, not same plan)
-    if org.stripe_subscription_id and org.subscription_status == "active" and org.plan != req.plan:
+    if org.stripe_subscription_id and org.subscription_status in blocking_statuses and org.plan != req.plan:
         try:
             stripe.Subscription.cancel(org.stripe_subscription_id)
             org.stripe_subscription_id = None
+            org.subscription_status = "canceled"
+            org.plan = "free"
             db.commit()
-        except stripe.error.StripeError:
-            pass  # Continue even if cancel fails
+        except stripe.error.StripeError as e:
+            # DO NOT silently continue - this could create duplicate subscriptions
+            raise HTTPException(
+                400,
+                f"Unable to cancel existing {org.plan} subscription before switching. "
+                "Please contact support or cancel manually in billing settings first."
+            )
 
     # SAFEGUARD 3: Use idempotency key to prevent duplicate Stripe sessions
     # Key based on org_id + plan + cycle + 15-minute time bucket
