@@ -165,13 +165,13 @@ export default function StylesPage() {
         </div>
         <div className="flex gap-3">
           <Link
-            to="/forms/fields"
+            to="/app/forms/fields"
             className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
           >
             &larr; Fields
           </Link>
           <Link
-            to="/forms/embed"
+            to="/app/forms/embed"
             className="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
           >
             Get Embed Code &rarr;

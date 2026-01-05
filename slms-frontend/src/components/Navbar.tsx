@@ -28,9 +28,9 @@ export default function Navbar() {
     <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
         <nav className="flex items-center gap-6">
-          <Logo linkTo="/" size="sm" />
-          <Link to="/" className={`text-sm hover:underline ${isActive("/")}`}>Dashboard</Link>
-          <Link to="/leads" className={`text-sm hover:underline ${isActive("/leads")}`}>Leads</Link>
+          <Logo linkTo="/app" size="sm" />
+          <Link to="/app" className={`text-sm hover:underline ${isActive("/app")}`}>Dashboard</Link>
+          <Link to="/app/leads" className={`text-sm hover:underline ${isActive("/app/leads")}`}>Leads</Link>
         </nav>
         <button
           onClick={onSignOut}

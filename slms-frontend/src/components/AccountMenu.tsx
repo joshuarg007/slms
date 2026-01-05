@@ -74,9 +74,9 @@ export default function AccountMenu({ onSignOut }: Props) {
           </div>
 
           <nav className="py-1 text-sm" onClick={() => setOpen(false)}>
-            <Link to="/account"  className="block px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800" role="menuitem">Account</Link>
-            <Link to="/settings" className="block px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800" role="menuitem">Settings</Link>
-            <Link to="/billing"  className="block px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800" role="menuitem">Billing</Link>
+            <Link to="/app/account"  className="block px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800" role="menuitem">Account</Link>
+            <Link to="/app/settings" className="block px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800" role="menuitem">Settings</Link>
+            <Link to="/app/billing"  className="block px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800" role="menuitem">Billing</Link>
           </nav>
 
           <div className="border-t border-gray-100 dark:border-gray-800">
