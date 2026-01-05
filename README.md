@@ -1,136 +1,279 @@
-# SLMS (Site2CRM)
+# Site2CRM
 
-Multi-tenant SaaS backend for lead management and CRM integration. Production branding: **Site2CRM** (api.site2crm.io).
+> **AI-Powered Lead Analytics for SaaS Companies**
 
-## Maintained By
+[![Production](https://img.shields.io/badge/production-live-brightgreen)](https://site2crm.io)
+[![API](https://img.shields.io/badge/API-FastAPI-009688)](https://api.site2crm.io/docs)
+[![Frontend](https://img.shields.io/badge/frontend-React%2019-61DAFB)](https://site2crm.io)
+[![Security](https://img.shields.io/badge/security-hardened-blue)](#security-audit)
 
-Joshua R. Gutierrez
-Email: joshua.g@site2crm.io
+---
 
-## Overview
+## What is Site2CRM?
 
-SLMS is a comprehensive lead management system featuring:
-- Multi-tenant architecture with organization-scoped data
-- CRM integrations (HubSpot, Pipedrive, Salesforce, Nutshell)
-- Secure JWT authentication with cookie-based tokens
+Site2CRM transforms website visitors into qualified leads with AI-powered analytics. Built specifically for SaaS companies, it captures, scores, and syncs leads directly to your CRM.
+
+**Core Features:**
 - Embeddable lead capture widgets
-- Stripe billing integration
-- Automated email notifications via AWS SES
+- AI-powered lead scoring & insights
+- Real-time CRM sync (HubSpot, Salesforce, Pipedrive, Nutshell)
+- Multi-tenant architecture with organization isolation
+- 14-day free trial with Stripe billing
 
-## Technology Stack
+---
+
+## Architecture
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   CloudFront    │     │   Nginx/EC2     │     │   PostgreSQL    │
+│   (Frontend)    │────▶│   (FastAPI)     │────▶│   (RDS)         │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+        │                       │
+        │                       ▼
+        │               ┌─────────────────┐
+        │               │   CRM APIs      │
+        │               │  HubSpot/SF/etc │
+        │               └─────────────────┘
+        ▼
+┌─────────────────┐
+│   S3 Bucket     │
+│   (Static)      │
+└─────────────────┘
+```
+
+---
+
+## Tech Stack
 
 ### Backend
 | Component | Technology |
 |-----------|------------|
-| Framework | FastAPI 0.115.14 (Python async) |
-| Server | Uvicorn 0.35.0 |
-| Database | SQLite (dev), PostgreSQL (prod-ready) |
-| ORM | SQLAlchemy 2.0.41 |
-| Migrations | Alembic 1.16.2 |
-| Auth | JWT (python-jose), Bcrypt (passlib) |
-| Billing | Stripe 6.7.0 |
-| HTTP Client | httpx (async) |
+| Framework | **FastAPI** (Python 3.12, async) |
+| Database | **PostgreSQL** (RDS) + SQLAlchemy 2.0 |
+| Auth | **JWT** + HTTP-only cookies |
+| Billing | **Stripe** (subscriptions, webhooks) |
+| Email | **AWS SES** |
+| Rate Limiting | In-memory with IP tracking |
 
 ### Frontend
 | Component | Technology |
 |-----------|------------|
-| Framework | React 19.1.0 + TypeScript 5.8.3 |
-| Build | Vite 7.0.4 |
-| Styling | Tailwind CSS 3.4.3 |
-| Routing | React Router DOM 7.7.0 |
-| Charts | Plotly.js 3.0.3 |
+| Framework | **React 19** + TypeScript |
+| Build | **Vite 7** |
+| Styling | **Tailwind CSS** |
+| Charts | **Plotly.js** |
 
 ### Infrastructure
 | Component | Service |
 |-----------|---------|
-| Compute | Ubuntu EC2 + Nginx + Systemd |
-| Frontend | AWS S3 + CloudFront |
-| Email | AWS SES |
+| Compute | AWS EC2 (Ubuntu) |
+| CDN | CloudFront |
+| DNS | Route 53 |
 | CI/CD | GitHub Actions |
+
+---
+
+## Security Audit
+
+**Last Tested:** 2026-01-04
+
+### Penetration Test Results
+
+| Test | Status | Details |
+|------|--------|---------|
+| SQL Injection (Login) | **PASS** | Parameterized queries via SQLAlchemy |
+| SQL Injection (Signup) | **PASS** | Pydantic validation + ORM |
+| XSS (Input Fields) | **PASS** | Input sanitization |
+| JWT None Algorithm | **PASS** | Algorithm enforcement |
+| JWT Token Tampering | **PASS** | Signature validation |
+| Path Traversal | **PASS** | Framework routing protection |
+| IDOR (User Endpoints) | **PASS** | Auth required + org scoping |
+| CORS | **PASS** | Restricted to allowed origins |
+| Webhook Signature | **PASS** | Stripe signature validation |
+| Rate Limiting | **ACTIVE** | 10 login attempts/5 min, 5 signups/hour |
+
+### Security Features
+
+- **Multi-tenant isolation**: Organization-scoped data access
+- **Password hashing**: bcrypt with salt
+- **Token security**: HTTP-only cookies, short-lived JWTs
+- **Email verification**: Required before login
+- **User approval flow**: Owner must approve new org members
+- **Webhook validation**: Stripe signature verification
+- **Rate limiting**: Brute-force protection on auth endpoints
+
+### Recommendations (Post-Launch)
+
+| Priority | Issue | Fix |
+|----------|-------|-----|
+| Medium | Missing security headers | Add X-Frame-Options, CSP, HSTS via Nginx |
+| Low | Server version disclosure | Remove `server` header in Nginx |
+
+---
 
 ## Project Structure
 
 ```
-slms/
+site2crm/
 ├── app/                          # FastAPI backend
 │   ├── api/routes/               # API endpoints
-│   ├── crud/                     # Database operations
-│   ├── db/                       # Models & session
+│   │   ├── auth.py               # JWT auth, login, logout
+│   │   ├── billing.py            # Stripe checkout, webhooks
+│   │   ├── orgs.py               # Signup, email verify, onboarding
+│   │   ├── leads.py              # Lead CRUD
+│   │   └── crm.py                # CRM sync endpoints
 │   ├── integrations/             # CRM API clients
-│   ├── schemas/                  # Pydantic models
-│   ├── services/                 # Business logic
-│   └── core/                     # Config, security, rate limiting
-├── slms-frontend/                # React frontend
-│   ├── src/
-│   │   ├── pages/                # Page components
-│   │   ├── components/           # UI components
-│   │   ├── context/              # Auth, CRM context
-│   │   └── utils/                # API client, helpers
+│   │   ├── hubspot.py
+│   │   ├── salesforce.py
+│   │   ├── pipedrive.py
+│   │   └── nutshell.py
+│   ├── core/                     # Config, security, rate limiting
+│   └── db/                       # SQLAlchemy models
+├── slms-frontend/                # React SPA
+│   └── src/
+│       ├── pages/                # Dashboard, Settings, Billing
+│       ├── components/           # Reusable UI
+│       └── context/              # Auth, CRM providers
 ├── widget/                       # Embeddable form widget
-├── alembic/                      # Database migrations
 └── .github/workflows/            # CI/CD pipelines
 ```
 
+---
+
 ## Getting Started
 
-### Backend Setup
+### Prerequisites
+- Python 3.12+
+- Node.js 20+
+- PostgreSQL (or SQLite for local dev)
+
+### Backend
 ```bash
+cd site2crm
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env  # Configure your environment
 alembic upgrade head
-uvicorn main:app --reload
+uvicorn main:app --reload --port 8000
 ```
 
-### Frontend Setup
+### Frontend
 ```bash
 cd slms-frontend
 npm install
 npm run dev
 ```
 
-### Widget Build
+### Widget
 ```bash
 cd widget
 npm install
 npm run build
 ```
 
+---
+
 ## Environment Variables
 
-Key settings (see `app/core/config.py`):
-- `SECRET_KEY` - JWT signing key
-- `DATABASE_URL` - Database connection string
-- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
-- `EMAIL_*` - AWS SES configuration
-- `RECAPTCHA_SECRET_KEY` - reCAPTCHA v3 backend key
-- `ALLOWED_ORIGINS` - CORS origins (comma-separated)
+```bash
+# Core
+SECRET_KEY=your-jwt-secret
+DATABASE_URL=postgresql://user:pass@host/db
+
+# Stripe
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_STARTER_MONTHLY=price_...
+STRIPE_PRICE_PRO_MONTHLY=price_...
+
+# CRM Integrations (per-org via UI)
+# Users configure their own API keys in Settings
+
+# Email (AWS SES)
+EMAIL_SMTP_HOST=email-smtp.us-east-1.amazonaws.com
+EMAIL_SMTP_USERNAME=AKIA...
+EMAIL_SMTP_PASSWORD=...
+EMAIL_FROM_ADDRESS=noreply@site2crm.io
+
+# CORS
+FRONTEND_BASE_URL=https://site2crm.io
+```
+
+---
 
 ## CRM Integrations
 
-| Provider   | Auth Type | Status |
-|------------|-----------|--------|
-| HubSpot    | PAT       | Active |
-| Pipedrive  | API Key   | Active |
-| Salesforce | OAuth     | Active |
-| Nutshell   | API Key   | Active |
+| Provider | Auth Method | Sync Type | Status |
+|----------|-------------|-----------|--------|
+| HubSpot | API Key (PAT) | Real-time push | Active |
+| Salesforce | OAuth 2.0 | Real-time push | Active |
+| Pipedrive | API Key | Real-time push | Active |
+| Nutshell | API Key | Real-time push | Active |
+
+---
 
 ## API Documentation
 
-Auto-generated documentation available at:
-- `/docs` - Swagger UI
-- `/redoc` - ReDoc
+- **Swagger UI**: [api.site2crm.io/docs](https://api.site2crm.io/docs)
+- **ReDoc**: [api.site2crm.io/redoc](https://api.site2crm.io/redoc)
+
+### Key Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/signup` | Create account |
+| POST | `/api/token` | Login |
+| GET | `/api/me` | Current user |
+| POST | `/api/billing/checkout` | Start subscription |
+| POST | `/api/billing/webhook` | Stripe events |
+| GET | `/api/leads` | List leads |
+| POST | `/api/leads` | Create lead |
+
+---
 
 ## Deployment
 
-### Backend
-Triggered on push to `main` via GitHub Actions:
-- Git pull → pip install → alembic upgrade → systemctl restart
+### Backend (GitHub Actions → EC2)
+```yaml
+# On push to main:
+- SSH to EC2
+- git pull
+- pip install
+- alembic upgrade head
+- systemctl restart site2crm
+```
 
-### Frontend
-Triggered on push to `main`:
-- npm build → S3 sync → CloudFront invalidation
+### Frontend (GitHub Actions → S3/CloudFront)
+```yaml
+# On push to main:
+- npm run build
+- aws s3 sync dist/ s3://bucket
+- aws cloudfront create-invalidation
+```
+
+---
+
+## Billing Plans
+
+| Plan | Monthly | Annual | Features |
+|------|---------|--------|----------|
+| Starter | $29 | $290 | 500 leads/mo, 1 CRM |
+| Pro | $79 | $790 | Unlimited leads, all CRMs, AI features |
+
+---
+
+## Maintained By
+
+**Joshua R. Gutierrez**
+Email: joshua.g@site2crm.io
+Website: [site2crm.io](https://site2crm.io)
+
+---
 
 ## License
 
 Proprietary - All rights reserved.
+
+Copyright (c) 2026 Site2CRM
