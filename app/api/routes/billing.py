@@ -135,8 +135,9 @@ def create_checkout_session(
             pass  # Continue even if cancel fails
 
     # SAFEGUARD 3: Use idempotency key to prevent duplicate Stripe sessions
-    # Key based on org_id + plan + cycle + 5-minute time bucket
-    time_bucket = int(datetime.utcnow().timestamp() // 300)  # 5-minute buckets
+    # Key based on org_id + plan + cycle + 15-minute time bucket
+    # 15 min reduces boundary collision risk vs 5 min, while still allowing re-attempts after reasonable wait
+    time_bucket = int(datetime.utcnow().timestamp() // 900)  # 15-minute buckets
     idempotency_key = hashlib.sha256(
         f"{org.id}:{req.plan}:{req.billing_cycle}:{time_bucket}".encode()
     ).hexdigest()[:32]
