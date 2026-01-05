@@ -17,6 +17,7 @@ import {
   GRADIENTS,
   CHART_COLORS,
 } from "../components/charts";
+import { SkeletonLeaderboard, SkeletonStatsGrid } from "@/components/Skeleton";
 import { useGamification } from "@/contexts/GamificationContext";
 import { DemoTeamToggle } from "@/components/DemoSalespersonCard";
 import { RotatingWisdom } from "@/components/WisdomTooltip";
@@ -279,14 +280,33 @@ export default function LeaderboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative w-16 h-16">
-            <div className="absolute inset-0 rounded-full border-4 border-indigo-100 dark:border-indigo-900/30" />
-            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-indigo-600 animate-spin" />
+      <div className="space-y-6" role="status" aria-label="Loading leaderboard">
+        {/* Header skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-7 w-40 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
+            <div className="h-4 w-64 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Loading leaderboard...</p>
+          <div className="flex gap-3">
+            <div className="h-10 w-28 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse" />
+            <div className="h-10 w-28 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse" />
+          </div>
         </div>
+
+        {/* Stats skeleton */}
+        <SkeletonStatsGrid count={6} />
+
+        {/* Leaderboard skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <SkeletonLeaderboard rows={8} />
+          </div>
+          <div className="space-y-6">
+            <SkeletonLeaderboard rows={4} />
+            <SkeletonLeaderboard rows={3} />
+          </div>
+        </div>
+        <span className="sr-only">Loading leaderboard data...</span>
       </div>
     );
   }

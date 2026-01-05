@@ -16,19 +16,29 @@ export function Skeleton({ className, style }: SkeletonProps) {
         className
       )}
       style={style}
-    />
+      role="status"
+      aria-label="Loading"
+      aria-busy="true"
+    >
+      <span className="sr-only">Loading...</span>
+    </div>
   );
 }
 
 // Common skeleton patterns
 export function SkeletonCard({ className }: SkeletonProps) {
   return (
-    <div className={cn("rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6", className)}>
+    <div
+      className={cn("rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6", className)}
+      role="status"
+      aria-label="Loading card"
+    >
       <div className="space-y-4">
         <Skeleton className="h-4 w-1/3" />
         <Skeleton className="h-8 w-2/3" />
         <Skeleton className="h-3 w-1/2" />
       </div>
+      <span className="sr-only">Loading card content...</span>
     </div>
   );
 }
@@ -45,7 +55,11 @@ export function SkeletonStatsGrid({ count = 4 }: { count?: number }) {
 
 export function SkeletonTable({ rows = 5, cols = 4 }: { rows?: number; cols?: number }) {
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+    <div
+      className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden"
+      role="status"
+      aria-label="Loading table"
+    >
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex gap-4">
         {Array.from({ length: cols }).map((_, i) => (
@@ -68,6 +82,7 @@ export function SkeletonTable({ rows = 5, cols = 4 }: { rows?: number; cols?: nu
           </div>
         ))}
       </div>
+      <span className="sr-only">Loading table data...</span>
     </div>
   );
 }

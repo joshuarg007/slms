@@ -5,19 +5,18 @@
 ---
 
 ## SESSION STATE
-**Last Updated:** 2026-01-04
+**Last Updated:** 2026-01-05
 
 ### Where We Left Off:
-- v2.0.0 released and tagged
-- Stripe billing configured and tested (live keys)
-- Pen test passed - all security tests passed
-- www.site2crm.io redirect configured via CloudFront Function
-- Full signup → billing flow tested and working
+- Fixed CRITICAL triple-charge billing bug
+- Implemented comprehensive safeguards: frontend + backend
+- Added loading skeletons, tooltips, accessibility, empty states
+- Added CSV export, improved error boundary, API caching
 
 ### Immediate Next Steps:
-- Update frontend messaging with real origin story
-- Verify RDS automated backups enabled
-- Configure Salesforce OAuth credentials (post-launch)
+- Deploy backend changes to production (billing.py safeguards)
+- Deploy frontend changes to production (BillingPage.tsx)
+- Test checkout flow to verify safeguards work
 
 ### Current Blockers:
 - None
@@ -140,6 +139,37 @@ ssh -i /home/joshua/AllProjects/slms/site2crm-key.pem ubuntu@34.230.32.54 \
 |------|---------|--------|-----------|
 | Starter | $29 | $290 | price_1Sm2MgDONWOyN0HvUXfvluYZ (mo), price_1Sm2MgDONWOyN0Hv2KlY3vqs (yr) |
 | Pro | $79 | $790 | price_1Sm2OQDONWOyN0HvC6Wgi0NN (mo), price_1Sm2OQDONWOyN0HvK1JwQasi (yr) |
+
+---
+
+---
+
+## CRITICAL LESSONS LEARNED
+
+### 🚨 BILLING BUG - TRIPLE CHARGE (2026-01-05)
+
+**What Happened**: User made ONE purchase, got charged THREE times ($29 + $79 + $29 = $137).
+
+**Root Cause**:
+1. `FRONTEND_BASE_URL` was set to wrong domain (`axiondeep.com` instead of `site2crm.io`)
+2. After Stripe checkout, user was redirected to blank page
+3. User likely clicked back/retry, triggering multiple checkout sessions
+4. NO SAFEGUARDS existed to prevent duplicate subscriptions
+
+**Fixes Applied (2026-01-05)**:
+1. ✅ Fixed `FRONTEND_BASE_URL` in production `.env`
+2. ✅ Added loading/disabled state + sessionStorage lock to prevent double-clicks (BillingPage.tsx)
+3. ✅ Backend rejects checkout if user already has active subscription for same plan (billing.py)
+4. ✅ Added idempotency keys (5-minute time buckets) to Stripe checkout creation (billing.py)
+5. ✅ Show "Redirecting to secure checkout..." banner during redirect (BillingPage.tsx)
+6. ✅ Backend caches checkout URLs for 2 minutes - returns same URL on rapid requests (billing.py)
+
+**Prevention Checklist** (for ALL payment integrations):
+- [x] Always verify redirect URLs in production before going live
+- [x] Disable checkout button after first click (sessionStorage + state)
+- [x] Check for existing active subscriptions (backend 400 error)
+- [x] Use Stripe idempotency keys (hash of org:plan:cycle:time_bucket)
+- [ ] Test full payment flow end-to-end in production (with refund)
 
 ---
 

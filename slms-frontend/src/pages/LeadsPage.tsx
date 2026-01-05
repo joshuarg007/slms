@@ -2,6 +2,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { api } from "@/utils/api";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { SkeletonTable } from "@/components/Skeleton";
+import ExportCsvButton from "@/components/ExportCsvButton";
 
 type Lead = {
   id: number | string;
@@ -146,12 +148,9 @@ const LeadsPage: React.FC = () => {
         </div>
         <div className="flex items-center gap-3 text-sm">
           {loading ? (
-            <span className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              Loading...
+            <span className="flex items-center gap-2 text-gray-500 dark:text-gray-400" role="status">
+              <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" aria-hidden="true" />
+              <span className="sr-only">Loading lead count...</span>
             </span>
           ) : (
             <span className="text-gray-600 dark:text-gray-300 font-medium">
@@ -188,6 +187,24 @@ const LeadsPage: React.FC = () => {
               </option>
             ))}
           </select>
+
+          {/* Export CSV */}
+          {items.length > 0 && (
+            <ExportCsvButton
+              rows={items.map(lead => ({
+                Name: fullName(lead) || "",
+                Email: lead.email || "",
+                Phone: lead.phone || "",
+                Company: lead.company || "",
+                Source: lead.source || "",
+                "CRM Source": lead.crm_source || "",
+                Notes: lead.notes || "",
+                "Created At": lead.created_at || "",
+              }))}
+              filename={`leads-export-${new Date().toISOString().split("T")[0]}.csv`}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            />
+          )}
         </div>
       </div>
 
@@ -273,13 +290,22 @@ const LeadsPage: React.FC = () => {
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {loading ? (
                 <tr>
-                  <td className="px-5 py-12 text-center text-gray-500 dark:text-gray-400" colSpan={7}>
-                    <div className="flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Loading leads...
+                  <td colSpan={7} className="p-0">
+                    <div role="status" aria-label="Loading leads">
+                      <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <div key={i} className="px-5 py-4 flex gap-4 items-center animate-pulse">
+                            <div className="h-4 w-32 bg-gray-200 dark:bg-gray-800 rounded" />
+                            <div className="h-4 w-40 bg-gray-200 dark:bg-gray-800 rounded" />
+                            <div className="h-4 w-28 bg-gray-200 dark:bg-gray-800 rounded hidden sm:block" />
+                            <div className="h-4 w-24 bg-gray-200 dark:bg-gray-800 rounded hidden md:block" />
+                            <div className="h-6 w-20 bg-gray-200 dark:bg-gray-800 rounded-full" />
+                            <div className="h-4 w-24 bg-gray-200 dark:bg-gray-800 rounded hidden lg:block" />
+                            <div className="h-4 w-32 bg-gray-200 dark:bg-gray-800 rounded hidden xl:block" />
+                          </div>
+                        ))}
+                      </div>
+                      <span className="sr-only">Loading leads data...</span>
                     </div>
                   </td>
                 </tr>

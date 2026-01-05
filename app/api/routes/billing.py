@@ -1,5 +1,6 @@
 # app/api/routes/billing.py
 from datetime import datetime, timedelta
+import hashlib
 import stripe
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -12,6 +13,10 @@ from app.core.plans import PLAN_LIMITS, TRIAL_DURATION_DAYS, get_plan_limits
 from app.db.session import SessionLocal
 from app.db import models
 from app.api.routes.auth import get_current_user
+
+# Track recent checkout sessions to prevent duplicates (in-memory, resets on server restart)
+# Key: org_id, Value: (checkout_url, timestamp)
+_recent_checkouts: dict[int, tuple[str, datetime]] = {}
 
 router = APIRouter(tags=["Billing"])
 
@@ -82,6 +87,24 @@ def create_checkout_session(
     if not org:
         raise HTTPException(404, "Organization not found")
 
+    # SAFEGUARD 1: Check if already has active subscription for same plan
+    if (org.subscription_status == "active" and
+        org.plan == req.plan and
+        org.stripe_subscription_id):
+        raise HTTPException(
+            400,
+            f"You already have an active {req.plan} subscription. "
+            "To change billing cycle, use the customer portal."
+        )
+
+    # SAFEGUARD 2: Check for recent checkout session (within 2 minutes)
+    # This prevents rapid double-clicks from creating multiple checkouts
+    if org.id in _recent_checkouts:
+        cached_url, cached_time = _recent_checkouts[org.id]
+        if datetime.utcnow() - cached_time < timedelta(minutes=2):
+            # Return existing checkout URL instead of creating new one
+            return {"url": cached_url}
+
     # Get the right price ID
     price_key = f"{req.plan}_{req.billing_cycle}"
     price_id = PRICE_IDS.get(price_key)
@@ -91,8 +114,8 @@ def create_checkout_session(
 
     customer_id = _get_or_create_customer(db, org, user.email)
 
-    # Cancel existing subscription if switching plans
-    if org.stripe_subscription_id and org.subscription_status == "active":
+    # Cancel existing subscription if switching plans (different plan, not same plan)
+    if org.stripe_subscription_id and org.subscription_status == "active" and org.plan != req.plan:
         try:
             stripe.Subscription.cancel(org.stripe_subscription_id)
             org.stripe_subscription_id = None
@@ -100,18 +123,39 @@ def create_checkout_session(
         except stripe.error.StripeError:
             pass  # Continue even if cancel fails
 
-    session = stripe.checkout.Session.create(
-        mode="subscription",
-        customer=customer_id,
-        client_reference_id=str(org.id),
-        success_url=_success_url(),
-        cancel_url=_cancel_url(),
-        allow_promotion_codes=True,
-        line_items=[{"price": price_id, "quantity": 1}],
-        subscription_data={
-            "metadata": {"org_id": str(org.id), "plan": req.plan, "billing_cycle": req.billing_cycle}
-        },
-    )
+    # SAFEGUARD 3: Use idempotency key to prevent duplicate Stripe sessions
+    # Key based on org_id + plan + cycle + 5-minute time bucket
+    time_bucket = int(datetime.utcnow().timestamp() // 300)  # 5-minute buckets
+    idempotency_key = hashlib.sha256(
+        f"{org.id}:{req.plan}:{req.billing_cycle}:{time_bucket}".encode()
+    ).hexdigest()[:32]
+
+    try:
+        session = stripe.checkout.Session.create(
+            mode="subscription",
+            customer=customer_id,
+            client_reference_id=str(org.id),
+            success_url=_success_url(),
+            cancel_url=_cancel_url(),
+            allow_promotion_codes=True,
+            line_items=[{"price": price_id, "quantity": 1}],
+            subscription_data={
+                "metadata": {"org_id": str(org.id), "plan": req.plan, "billing_cycle": req.billing_cycle}
+            },
+            idempotency_key=idempotency_key,
+        )
+    except stripe.error.StripeError as e:
+        raise HTTPException(400, f"Unable to create checkout session: {str(e)}")
+
+    # Cache the checkout URL to prevent duplicates
+    _recent_checkouts[org.id] = (session.url, datetime.utcnow())
+
+    # Clean up old cache entries (older than 10 minutes)
+    cutoff = datetime.utcnow() - timedelta(minutes=10)
+    stale_keys = [k for k, (_, t) in _recent_checkouts.items() if t < cutoff]
+    for k in stale_keys:
+        del _recent_checkouts[k]
+
     return {"url": session.url}
 
 

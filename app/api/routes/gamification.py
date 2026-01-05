@@ -208,6 +208,89 @@ def get_avatar_color(user_id: int) -> str:
     return colors[user_id % len(colors)]
 
 
+def get_activity_streak(db: Session, user_id: int, org_id: int) -> int:
+    """Calculate consecutive days with activity for a user."""
+    today = datetime.utcnow().date()
+    streak = 0
+
+    # Check each day going backwards
+    for days_ago in range(365):  # Max 1 year streak
+        check_date = today - timedelta(days=days_ago)
+        start_of_day = datetime.combine(check_date, datetime.min.time())
+        end_of_day = datetime.combine(check_date, datetime.max.time())
+
+        activity_count = db.query(models.LeadActivity).filter(
+            models.LeadActivity.organization_id == org_id,
+            models.LeadActivity.user_id == user_id,
+            models.LeadActivity.activity_at >= start_of_day,
+            models.LeadActivity.activity_at <= end_of_day,
+        ).count()
+
+        if activity_count > 0:
+            streak += 1
+        else:
+            # Allow 1 day grace (weekends) if streak > 5
+            if days_ago > 0 and streak >= 5:
+                # Check if previous day had activity
+                continue
+            break
+
+    return streak
+
+
+def get_previous_period_rankings(
+    db: Session, org_id: int, metric: str, period: str
+) -> dict[int, int]:
+    """Get user rankings from previous period for comparison."""
+    now = datetime.utcnow()
+
+    # Calculate previous period range
+    if period == "week":
+        prev_end = now - timedelta(days=7)
+        prev_start = prev_end - timedelta(days=7)
+    elif period == "month":
+        # Previous month
+        first_of_this_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        prev_end = first_of_this_month - timedelta(days=1)
+        prev_start = prev_end.replace(day=1)
+    elif period == "quarter":
+        quarter_month = ((now.month - 1) // 3) * 3 + 1
+        first_of_quarter = now.replace(month=quarter_month, day=1, hour=0, minute=0, second=0, microsecond=0)
+        prev_end = first_of_quarter - timedelta(days=1)
+        prev_quarter_month = ((prev_end.month - 1) // 3) * 3 + 1
+        prev_start = prev_end.replace(month=prev_quarter_month, day=1)
+    else:  # year
+        first_of_year = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        prev_end = first_of_year - timedelta(days=1)
+        prev_start = prev_end.replace(month=1, day=1)
+
+    # Get salespeople
+    salespeople = db.query(models.Salesperson).filter(
+        models.Salesperson.organization_id == org_id,
+        models.Salesperson.is_active == True,
+    ).all()
+
+    # Calculate metrics for previous period
+    prev_data = []
+    for sp in salespeople:
+        stats = get_user_stats(db, sp.user_id, org_id, prev_start, prev_end)
+
+        if metric == "revenue":
+            value = stats["total_revenue"]
+        elif metric == "deals":
+            value = stats["won_leads"]
+        elif metric == "activities":
+            value = stats["total_activities"]
+        else:  # close_rate
+            value = stats["close_rate"] if stats["total_closed"] >= 5 else 0
+
+        prev_data.append({"user_id": sp.user_id, "value": value})
+
+    # Sort and create ranking map
+    prev_data.sort(key=lambda x: x["value"], reverse=True)
+    return {entry["user_id"]: idx + 1 for idx, entry in enumerate(prev_data)}
+
+
 def get_user_stats(db: Session, user_id: int, org_id: int, start_date: datetime, end_date: datetime) -> dict:
     """Get comprehensive stats for a user."""
 
@@ -350,17 +433,27 @@ def get_leaderboard(
     # Sort and rank
     entries_data.sort(key=lambda x: x["value"], reverse=True)
 
+    # Get previous period rankings for comparison
+    prev_rankings = get_previous_period_rankings(db, org_id, metric, period)
+
     entries = []
     for idx, entry in enumerate(entries_data):
+        current_rank = idx + 1
+        prev_rank = prev_rankings.get(entry["user_id"], current_rank)
+        rank_change = prev_rank - current_rank  # Positive = moved up
+
+        # Get activity streak for this user
+        streak = get_activity_streak(db, entry["user_id"], org_id)
+
         entries.append(LeaderboardEntry(
-            rank=idx + 1,
+            rank=current_rank,
             user_id=entry["user_id"],
             display_name=entry["display_name"],
             email=entry["email"],
             avatar_color=get_avatar_color(entry["user_id"]),
             value=round(entry["value"], 2),
-            change=0,  # TODO: Compare with previous period
-            streak=0,  # TODO: Calculate streak
+            change=rank_change,
+            streak=streak,
         ))
 
     return LeaderboardResponse(
@@ -486,11 +579,14 @@ def get_gamification_overview(
     user_revenue = next((rev for uid, rev in revenues if uid == user.id), 0)
     points_this_month = int(user_revenue / 100)
 
+    # Get activity streak
+    streak_days = get_activity_streak(db, user.id, org_id)
+
     return GamificationOverview(
         current_rank=current_rank,
         total_participants=len(revenues),
         points_this_month=points_this_month,
         badges_earned=len(badges_data.earned_badges),
-        active_competitions=0,  # TODO: Implement competitions
-        streak_days=0,  # TODO: Track streaks
+        active_competitions=0,  # Competitions coming soon
+        streak_days=streak_days,
     )

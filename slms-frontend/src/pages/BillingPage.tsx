@@ -179,16 +179,39 @@ export default function BillingPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [checkoutRedirecting, setCheckoutRedirecting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const [showUpdateCard, setShowUpdateCard] = useState(false);
+
+  // Prevent duplicate checkout - check if already in progress on mount
+  useEffect(() => {
+    const checkoutStarted = sessionStorage.getItem("checkout_in_progress");
+    if (checkoutStarted) {
+      const startTime = parseInt(checkoutStarted, 10);
+      // If checkout started within last 5 minutes, show redirecting state
+      if (Date.now() - startTime < 5 * 60 * 1000) {
+        setCheckoutRedirecting(true);
+      } else {
+        // Stale checkout flag, clear it
+        sessionStorage.removeItem("checkout_in_progress");
+      }
+    }
+  }, []);
 
   // Check for success/cancel from Stripe redirect
   useEffect(() => {
     const status = searchParams.get("status");
     if (status === "success") {
       setSuccess("Subscription activated successfully!");
+      // Clear checkout flag on success
+      sessionStorage.removeItem("checkout_in_progress");
+      setCheckoutRedirecting(false);
+    } else if (status === "cancel") {
+      // Clear checkout flag on cancel
+      sessionStorage.removeItem("checkout_in_progress");
+      setCheckoutRedirecting(false);
     }
   }, [searchParams]);
 
@@ -270,6 +293,17 @@ export default function BillingPage() {
   }
 
   async function checkout(plan: string) {
+    // Prevent duplicate clicks
+    if (busy || checkoutRedirecting) {
+      return;
+    }
+
+    // Check if already has active subscription for this plan
+    if (subscription?.subscription_status === "active" && subscription?.plan === plan) {
+      setErr("You already have an active subscription for this plan.");
+      return;
+    }
+
     setBusy(true);
     setErr(null);
     try {
@@ -281,10 +315,18 @@ export default function BillingPage() {
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.detail || "Unable to start checkout");
+
+      // Set persistent flag BEFORE redirect to prevent duplicate checkouts
+      sessionStorage.setItem("checkout_in_progress", Date.now().toString());
+      setCheckoutRedirecting(true);
+
+      // Navigate to Stripe
       window.location.href = j.url;
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Checkout error");
       setBusy(false);
+      setCheckoutRedirecting(false);
+      sessionStorage.removeItem("checkout_in_progress");
     }
   }
 
@@ -361,6 +403,17 @@ export default function BillingPage() {
           </p>
         </header>
 
+        {/* Checkout in progress banner */}
+        {checkoutRedirecting && (
+          <div className="flex items-center gap-3 rounded-xl border border-indigo-200 dark:border-indigo-800/50 bg-indigo-50 dark:bg-indigo-900/20 px-4 py-3 text-sm text-indigo-700 dark:text-indigo-300">
+            <svg className="w-5 h-5 flex-shrink-0 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            Redirecting to secure checkout... Please wait.
+          </div>
+        )}
+
         {/* Alerts */}
         {err && (
           <div className="flex items-center gap-3 rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-300">
@@ -401,10 +454,10 @@ export default function BillingPage() {
               </div>
               <button
                 onClick={() => checkout("pro")}
-                disabled={busy}
-                className="px-6 py-3 bg-white text-orange-600 font-semibold rounded-xl hover:bg-orange-50 transition-colors disabled:opacity-50"
+                disabled={busy || checkoutRedirecting}
+                className="px-6 py-3 bg-white text-orange-600 font-semibold rounded-xl hover:bg-orange-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Upgrade Now
+                {checkoutRedirecting ? "Redirecting..." : "Upgrade Now"}
               </button>
             </div>
           </div>
@@ -628,7 +681,7 @@ export default function BillingPage() {
 
                   <button
                     onClick={() => checkout(plan.id)}
-                    disabled={busy || isCurrent}
+                    disabled={busy || isCurrent || checkoutRedirecting}
                     className={`mt-6 w-full py-3 font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                       isCurrent
                         ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 cursor-default"
@@ -637,7 +690,7 @@ export default function BillingPage() {
                           : "bg-indigo-600 text-white hover:bg-indigo-700"
                     }`}
                   >
-                    {getButtonText()}
+                    {checkoutRedirecting ? "Redirecting..." : getButtonText()}
                   </button>
                 </div>
               );

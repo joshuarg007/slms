@@ -5,6 +5,8 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Link } from "react-router-dom";
 import ViewModeSelector, { ViewModeInsight } from "@/components/ViewModeSelector";
 import { RotatingWisdom } from "@/components/WisdomTooltip";
+import { SkeletonDashboard } from "@/components/Skeleton";
+import { StatTooltip, InfoTooltip } from "@/components/ui/Tooltip";
 
 export default function DashboardPage() {
   useDocumentTitle("Dashboard");
@@ -32,14 +34,9 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400">
-          <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-          </svg>
-          Loading dashboard...
-        </div>
+      <div className="max-w-6xl mx-auto px-2 sm:px-0" role="status" aria-label="Loading dashboard">
+        <SkeletonDashboard />
+        <span className="sr-only">Loading dashboard data...</span>
       </div>
     );
   }
@@ -104,58 +101,76 @@ export default function DashboardPage() {
       </header>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" role="region" aria-label="Key metrics">
         {/* Total Leads */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full bg-white/10 blur-2xl" />
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-white/20 rounded-lg">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+        <StatTooltip
+          title="Total Leads"
+          description="The total number of leads captured across all sources since your account was created. This includes form submissions, imports, and CRM syncs."
+          position="bottom"
+        >
+          <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg cursor-help" tabIndex={0} role="article" aria-label={`Total leads: ${total.toLocaleString()}`}>
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-white/20 rounded-lg" aria-hidden="true">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <span className="text-sm font-medium text-white/80">Total Leads</span>
               </div>
-              <span className="text-sm font-medium text-white/80">Total Leads</span>
+              <div className="text-4xl font-bold">{total.toLocaleString()}</div>
+              <div className="mt-2 text-sm text-white/70">All time captured leads</div>
             </div>
-            <div className="text-4xl font-bold">{total.toLocaleString()}</div>
-            <div className="mt-2 text-sm text-white/70">All time captured leads</div>
           </div>
-        </div>
+        </StatTooltip>
 
         {/* Unique Sources */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-6 text-white shadow-lg">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full bg-white/10 blur-2xl" />
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-white/20 rounded-lg">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                </svg>
+        <StatTooltip
+          title="Unique Sources"
+          description="Different channels where your leads come from, such as website forms, landing pages, campaigns, or CRM integrations. More sources = wider reach."
+          position="bottom"
+        >
+          <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-6 text-white shadow-lg cursor-help" tabIndex={0} role="article" aria-label={`Unique sources: ${sourceCount}`}>
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-white/20 rounded-lg" aria-hidden="true">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                </div>
+                <span className="text-sm font-medium text-white/80">Unique Sources</span>
               </div>
-              <span className="text-sm font-medium text-white/80">Unique Sources</span>
+              <div className="text-4xl font-bold">{sourceCount}</div>
+              <div className="mt-2 text-sm text-white/70">Active lead channels</div>
             </div>
-            <div className="text-4xl font-bold">{sourceCount}</div>
-            <div className="mt-2 text-sm text-white/70">Active lead channels</div>
           </div>
-        </div>
+        </StatTooltip>
 
         {/* Last Updated */}
-        <div className="relative overflow-hidden bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
-              <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+        <StatTooltip
+          title="Last Updated"
+          description="When this dashboard data was last refreshed. Click the Refresh button to get the latest numbers from your CRM and lead sources."
+          position="bottom"
+        >
+          <div className="relative overflow-hidden bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 cursor-help" tabIndex={0} role="article" aria-label="Dashboard last updated">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg" aria-hidden="true">
+                <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Last Updated</span>
             </div>
-            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Last Updated</span>
+            <div className="text-xl font-semibold text-gray-900 dark:text-white">
+              {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </div>
+            <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              {new Date().toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
+            </div>
           </div>
-          <div className="text-xl font-semibold text-gray-900 dark:text-white">
-            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </div>
-          <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            {new Date().toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
-          </div>
-        </div>
+        </StatTooltip>
       </div>
 
 
