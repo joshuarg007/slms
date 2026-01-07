@@ -89,8 +89,14 @@ site2crm/
 
 ## Deployment
 
-- **Backend**: Push to `main` → GitHub Actions → SSM deploy to EC2
-- **Frontend**: Push to `main` → GitHub Actions → S3 + CloudFront invalidation
+**All deployments are automated via GitHub Actions. Push to `main` to deploy.**
+
+| Component | Trigger | Pipeline |
+|-----------|---------|----------|
+| Backend | Push to `main` | GitHub Actions → SSM → EC2 |
+| Frontend | Push to `main` | GitHub Actions → S3 → CloudFront invalidation |
+
+Workflow files: `.github/workflows/`
 
 ---
 
