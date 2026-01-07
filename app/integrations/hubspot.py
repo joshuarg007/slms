@@ -38,12 +38,18 @@ def _get_org_token(organization_id: int) -> Optional[str]:
 # ---------------------------------------------------------------
 # HEADERS
 # ---------------------------------------------------------------
-def _headers(token_override: Optional[str] = None) -> Dict[str, str]:
+def _headers(token_override: Optional[str] = None, allow_global_fallback: bool = False) -> Dict[str, str]:
     """
     Returns API headers using an override token if provided.
-    No fallback to global key - each org must have their own integration.
+
+    Args:
+        token_override: Explicit token to use
+        allow_global_fallback: If True, falls back to global settings.hubspot_api_key
+                               (used for marketing contact forms without org context)
     """
     token = token_override
+    if not token and allow_global_fallback:
+        token = settings.hubspot_api_key
     if not token:
         raise RuntimeError("No HubSpot integration configured for this organization.")
     return {
@@ -283,6 +289,67 @@ async def create_lead_full(
             result["associated"] = associated
 
     return result
+
+
+# ---------------------------------------------------------------
+# MARKETING CONTACT FORM (uses global API key)
+# ---------------------------------------------------------------
+async def create_marketing_contact(
+    email: str,
+    first_name: str = "",
+    last_name: str = "",
+    company_name: str = "",
+    source: str = "",
+) -> Dict[str, Any]:
+    """
+    Create a contact in HubSpot using the global API key.
+
+    Used for marketing site contact forms where there's no organization context.
+    Falls back to the global HUBSPOT_API_KEY from settings.
+
+    Args:
+        email: Contact email (required)
+        first_name: Contact first name
+        last_name: Contact last name
+        company_name: Company name (stored in contact properties)
+        source: Lead source (e.g., "site2crm.io/contact")
+
+    Returns:
+        HubSpot contact object or error dict
+    """
+    if not settings.hubspot_api_key:
+        return {"error": "HubSpot not configured"}
+
+    url = f"{HUBSPOT_BASE_URL}/crm/v3/objects/contacts"
+    properties = {
+        "email": email,
+        "firstname": first_name,
+        "lastname": last_name,
+    }
+    if company_name:
+        properties["company"] = company_name
+    if source:
+        properties["hs_lead_status"] = "NEW"
+        properties["leadsource"] = source
+
+    payload = {"properties": properties}
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            resp = await client.post(
+                url,
+                json=payload,
+                headers=_headers(allow_global_fallback=True),
+            )
+            if resp.status_code == 409:
+                # Contact already exists - that's fine
+                return {"status": "exists", "email": email}
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPStatusError as e:
+            return {"error": f"HubSpot API error: {e.response.status_code}"}
+        except Exception as e:
+            return {"error": str(e)}
 
 
 # ---------------------------------------------------------------

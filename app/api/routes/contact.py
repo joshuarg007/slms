@@ -9,7 +9,7 @@ import logging
 from app.services.email import send_contact_form_notification
 from app.core.rate_limit import check_rate_limit
 from app.core.captcha import verify_captcha
-from app.integrations.hubspot import create_lead_full as hubspot_create_lead_full
+from app.integrations.hubspot import create_marketing_contact
 
 logger = logging.getLogger(__name__)
 
@@ -29,22 +29,24 @@ class ContactFormRequest(BaseModel):
 
 
 async def _sync_to_hubspot(name: str, email: str, company: str, source: str):
-    """Push contact form submission to HubSpot as a lead."""
+    """Push contact form submission to HubSpot using global API key."""
     try:
         # Parse name into first/last
         parts = name.strip().split(maxsplit=1)
         first_name = parts[0] if parts else ""
         last_name = parts[1] if len(parts) > 1 else ""
 
-        await hubspot_create_lead_full(
+        result = await create_marketing_contact(
             email=email,
             first_name=first_name,
             last_name=last_name,
-            phone="",
             company_name=company or "",
-            organization_id=None,  # Uses global HubSpot API key
+            source=source,
         )
-        logger.info(f"HubSpot sync successful for contact: {email} (source: {source})")
+        if "error" in result:
+            logger.error(f"HubSpot sync failed for contact {email}: {result['error']}")
+        else:
+            logger.info(f"HubSpot sync successful for contact: {email} (source: {source})")
     except Exception as exc:
         logger.error(f"HubSpot sync failed for contact {email}: {exc}")
 
