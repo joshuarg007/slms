@@ -135,37 +135,49 @@ export const schemas = {
     },
   },
 
-  product: (pricing?: { starter: string; pro: string }) => ({
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    name: "Site2CRM",
-    applicationCategory: "BusinessApplication",
-    operatingSystem: "Web",
-    description: "Lead capture forms with CRM integration for SaaS companies",
-    offers: pricing
-      ? [
-          {
-            "@type": "Offer",
-            name: "Starter",
-            price: pricing.starter,
-            priceCurrency: "USD",
-            priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-          },
-          {
-            "@type": "Offer",
-            name: "Professional",
-            price: pricing.pro,
-            priceCurrency: "USD",
-            priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-          },
-        ]
-      : undefined,
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: "4.8",
-      ratingCount: "127",
-    },
-  }),
+  product: (options?: {
+    pricing?: { starter: string; pro: string };
+    rating?: { value: string; count: string };
+  }) => {
+    const schema: Record<string, unknown> = {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: "Site2CRM",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      description: "Lead capture forms with CRM integration for SaaS companies",
+    };
+
+    if (options?.pricing) {
+      schema.offers = [
+        {
+          "@type": "Offer",
+          name: "Starter",
+          price: options.pricing.starter,
+          priceCurrency: "USD",
+          priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+        },
+        {
+          "@type": "Offer",
+          name: "Professional",
+          price: options.pricing.pro,
+          priceCurrency: "USD",
+          priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+        },
+      ];
+    }
+
+    // Only include ratings if real data is provided
+    if (options?.rating) {
+      schema.aggregateRating = {
+        "@type": "AggregateRating",
+        ratingValue: options.rating.value,
+        ratingCount: options.rating.count,
+      };
+    }
+
+    return schema;
+  },
 
   faqPage: (faqs: { question: string; answer: string }[]) => ({
     "@context": "https://schema.org",

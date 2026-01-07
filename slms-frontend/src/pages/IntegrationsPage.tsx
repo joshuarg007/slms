@@ -184,6 +184,8 @@ export default function IntegrationsPage() {
   const [tokenBusy, setTokenBusy] = useState<CRM | null>(null);
   const [sfConnected, setSfConnected] = useState(false);
   const [sfBusy, setSfBusy] = useState(false);
+  const [hsOAuthConnected, setHsOAuthConnected] = useState(false);
+  const [hsOAuthBusy, setHsOAuthBusy] = useState(false);
 
   // Real-time stats
   const [stats, setStats] = useState({
@@ -237,6 +239,7 @@ export default function IntegrationsPage() {
           const items = (await res.json()) as CredentialSummary[];
           setCreds(items || []);
           setSfConnected(items?.some((c) => c.provider === "salesforce" && c.is_active) || false);
+          setHsOAuthConnected(items?.some((c) => c.provider === "hubspot" && c.auth_type === "oauth" && c.is_active) || false);
         }
       } catch { /* ignore */ }
     })();
@@ -436,6 +439,9 @@ export default function IntegrationsPage() {
               sfConnected={sfConnected}
               sfBusy={sfBusy}
               setSfBusy={setSfBusy}
+              hsOAuthConnected={hsOAuthConnected}
+              hsOAuthBusy={hsOAuthBusy}
+              setHsOAuthBusy={setHsOAuthBusy}
             />
           )}
 
@@ -477,6 +483,9 @@ function CommandCenterTab({
   sfConnected,
   sfBusy,
   setSfBusy,
+  hsOAuthConnected,
+  hsOAuthBusy,
+  setHsOAuthBusy,
 }: any) {
   const getCredential = (provider: CRM) => creds.find((c: any) => c.provider === provider && c.is_active);
 
@@ -578,7 +587,7 @@ function CommandCenterTab({
           {/* Connection Form */}
           <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
             <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-4">
-              {editing === "salesforce" ? "OAuth Connection" : "API Credentials"}
+              {editing === "salesforce" || editing === "hubspot" ? "OAuth Connection" : "API Credentials"}
             </h4>
 
             {editing === "salesforce" ? (
@@ -602,21 +611,66 @@ function CommandCenterTab({
                   {sfConnected ? "Reconnect" : sfBusy ? "Connecting..." : "Connect Salesforce"}
                 </motion.button>
               </div>
+            ) : editing === "hubspot" ? (
+              <div className="space-y-4">
+                {/* HubSpot OAuth (Recommended) */}
+                <div className="flex items-center justify-between p-5 rounded-2xl bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border border-orange-100 dark:border-orange-800/50">
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {hsOAuthConnected ? "HubSpot is connected via OAuth" : "Connect via OAuth (Recommended)"}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Automatic token refresh, full CRM access</p>
+                  </div>
+                  <motion.button
+                    onClick={() => {
+                      setHsOAuthBusy(true);
+                      window.location.href = `${getApiBase()}/integrations/hubspot/auth`;
+                    }}
+                    disabled={hsOAuthBusy}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-red-600 text-white text-sm font-medium shadow-lg hover:shadow-xl transition-all disabled:opacity-60"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {hsOAuthConnected ? "Reconnect" : hsOAuthBusy ? "Connecting..." : "Connect HubSpot"}
+                  </motion.button>
+                </div>
+                {/* HubSpot API Key (Fallback) */}
+                <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Or use Private App API Key:</p>
+                  <div className="flex gap-3">
+                    <input
+                      type="password"
+                      value={hubspotToken}
+                      onChange={(e) => setHubspotToken(e.target.value)}
+                      placeholder="Enter HubSpot API key (pat-na2-...)"
+                      className="flex-1 rounded-lg border border-gray-200 dark:border-gray-600 px-4 py-2 text-sm dark:bg-gray-800 focus:outline-none focus:border-indigo-500 transition-all"
+                    />
+                    <motion.button
+                      onClick={() => saveToken("hubspot")}
+                      disabled={tokenBusy === "hubspot"}
+                      className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-all disabled:opacity-60"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      {tokenBusy === "hubspot" ? "..." : "Save"}
+                    </motion.button>
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className="flex gap-3">
                 <input
                   type="password"
-                  value={editing === "hubspot" ? hubspotToken : editing === "pipedrive" ? pipedriveToken : nutshellToken}
+                  value={editing === "pipedrive" ? pipedriveToken : nutshellToken}
                   onChange={(e) => {
-                    if (editing === "hubspot") setHubspotToken(e.target.value);
-                    else if (editing === "pipedrive") setPipedriveToken(e.target.value);
+                    if (editing === "pipedrive") setPipedriveToken(e.target.value);
                     else setNutshellToken(e.target.value);
                   }}
                   placeholder={`Enter ${CRM_OPTIONS.find((o) => o.id === editing)?.label} API key`}
                   className="flex-1 rounded-xl border-2 border-gray-200 dark:border-gray-700 px-5 py-3 text-sm dark:bg-gray-800 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
                 />
                 <motion.button
-                  onClick={() => saveToken(editing as "hubspot" | "pipedrive" | "nutshell")}
+                  onClick={() => saveToken(editing as "pipedrive" | "nutshell")}
                   disabled={tokenBusy === editing}
                   className="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-medium shadow-lg hover:shadow-xl transition-all disabled:opacity-60"
                   whileHover={{ scale: 1.02 }}

@@ -2,6 +2,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     hubspot_api_key: str = ""
+    # HubSpot OAuth
+    hubspot_client_id: str = ""
+    hubspot_client_secret: str = ""
+    hubspot_redirect_uri: str = ""  # e.g. https://api.site2crm.io/api/integrations/hubspot/callback
+
     pipedrive_api_token: str = ""
     pipedrive_base_url: str = "https://api.pipedrive.com"
 

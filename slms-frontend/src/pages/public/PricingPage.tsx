@@ -95,7 +95,7 @@ export default function PricingPage() {
     description:
       "Simple, transparent pricing for Site2CRM. Starter plan at $29/mo, Professional at $79/mo. 14-day free trial, no credit card required. Cancel anytime.",
     path: "/pricing",
-    jsonLd: schemas.product({ starter: "29", pro: "79" }),
+    jsonLd: schemas.product({ pricing: { starter: "29", pro: "79" } }),
   });
 
   return (
