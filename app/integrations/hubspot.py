@@ -330,7 +330,8 @@ async def create_marketing_contact(
         properties["company"] = company_name
     if source:
         properties["hs_lead_status"] = "NEW"
-        properties["leadsource"] = source
+        # Note: 'leadsource' is not a default HubSpot property
+        # Store source in notes or create custom property in HubSpot if needed
 
     payload = {"properties": properties}
 

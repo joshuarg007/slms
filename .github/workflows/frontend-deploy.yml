@@ -48,6 +48,7 @@ jobs:
         env:
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
           VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VITE_RECAPTCHA_SITE_KEY: "6LdafhssAAAAAIGW4U2QA9XQwcFbMEEkBor7WukX"
         run: npm run build
 
       - name: Configure AWS credentials (frontend)
