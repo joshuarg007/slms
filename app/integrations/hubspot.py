@@ -302,55 +302,153 @@ async def create_marketing_contact(
     source: str = "",
 ) -> Dict[str, Any]:
     """
-    Create a contact in HubSpot using the global API key.
+    Create a full lead in HubSpot using the global API key.
 
+    Creates: Contact + Company + Deal, all associated together.
     Used for marketing site contact forms where there's no organization context.
-    Falls back to the global HUBSPOT_API_KEY from settings.
 
     Args:
         email: Contact email (required)
         first_name: Contact first name
         last_name: Contact last name
-        company_name: Company name (stored in contact properties)
+        company_name: Company name (defaults to "Site2CRM Lead" if empty)
         source: Lead source (e.g., "site2crm.io/contact")
 
     Returns:
-        HubSpot contact object or error dict
+        Dict with contact, company, deal info or error
     """
     if not settings.hubspot_api_key:
         return {"error": "HubSpot not configured"}
 
-    url = f"{HUBSPOT_BASE_URL}/crm/v3/objects/contacts"
-    properties = {
-        "email": email,
-        "firstname": first_name,
-        "lastname": last_name,
+    headers = _headers(allow_global_fallback=True)
+    result: Dict[str, Any] = {
+        "contact": None,
+        "company": None,
+        "deal": None,
     }
-    if company_name:
-        properties["company"] = company_name
-    if source:
-        properties["hs_lead_status"] = "NEW"
-        # Note: 'leadsource' is not a default HubSpot property
-        # Store source in notes or create custom property in HubSpot if needed
-
-    payload = {"properties": properties}
 
     async with httpx.AsyncClient(timeout=30.0) as client:
+        # 1. Create Contact
+        contact_props = {
+            "email": email,
+            "firstname": first_name,
+            "lastname": last_name,
+            "hs_lead_status": "NEW",
+        }
+        actual_company = company_name.strip() if company_name else "Site2CRM Lead"
+        contact_props["company"] = actual_company
+
         try:
             resp = await client.post(
-                url,
-                json=payload,
-                headers=_headers(allow_global_fallback=True),
+                f"{HUBSPOT_BASE_URL}/crm/v3/objects/contacts",
+                json={"properties": contact_props},
+                headers=headers,
             )
             if resp.status_code == 409:
-                # Contact already exists - that's fine
-                return {"status": "exists", "email": email}
-            resp.raise_for_status()
-            return resp.json()
-        except httpx.HTTPStatusError as e:
-            return {"error": f"HubSpot API error: {e.response.status_code}"}
+                # Contact exists, try to get their ID
+                search_resp = await client.post(
+                    f"{HUBSPOT_BASE_URL}/crm/v3/objects/contacts/search",
+                    json={"filterGroups": [{"filters": [{"propertyName": "email", "operator": "EQ", "value": email}]}], "limit": 1},
+                    headers=headers,
+                )
+                if search_resp.status_code == 200:
+                    results = search_resp.json().get("results", [])
+                    if results:
+                        result["contact"] = results[0]
+            else:
+                resp.raise_for_status()
+                result["contact"] = resp.json()
         except Exception as e:
-            return {"error": str(e)}
+            return {"error": f"Contact creation failed: {e}"}
+
+        contact_id = result["contact"].get("id") if result["contact"] else None
+        if not contact_id:
+            return {"error": "Failed to get contact ID"}
+
+        # 2. Create Company
+        try:
+            resp = await client.post(
+                f"{HUBSPOT_BASE_URL}/crm/v3/objects/companies",
+                json={"properties": {"name": actual_company}},
+                headers=headers,
+            )
+            if resp.status_code == 409:
+                # Company exists, search for it
+                search_resp = await client.post(
+                    f"{HUBSPOT_BASE_URL}/crm/v3/objects/companies/search",
+                    json={"filterGroups": [{"filters": [{"propertyName": "name", "operator": "EQ", "value": actual_company}]}], "limit": 1},
+                    headers=headers,
+                )
+                if search_resp.status_code == 200:
+                    results = search_resp.json().get("results", [])
+                    if results:
+                        result["company"] = results[0]
+            else:
+                resp.raise_for_status()
+                result["company"] = resp.json()
+        except Exception as e:
+            # Company creation failed but continue - not critical
+            pass
+
+        company_id = result["company"].get("id") if result["company"] else None
+
+        # 3. Associate Contact with Company
+        if company_id:
+            try:
+                await client.put(
+                    f"{HUBSPOT_BASE_URL}/crm/v4/objects/contacts/{contact_id}/associations/companies/{company_id}",
+                    json=[{"associationCategory": "HUBSPOT_DEFINED", "associationTypeId": 1}],
+                    headers=headers,
+                )
+            except Exception:
+                pass  # Association failed but continue
+
+        # 4. Create Deal
+        contact_name = f"{first_name} {last_name}".strip() or email
+        deal_name = f"Lead: {contact_name}" + (f" ({actual_company})" if actual_company != "Site2CRM Lead" else "")
+        try:
+            resp = await client.post(
+                f"{HUBSPOT_BASE_URL}/crm/v3/objects/deals",
+                json={"properties": {
+                    "dealname": deal_name,
+                    "pipeline": "default",
+                    "dealstage": "appointmentscheduled",  # First stage
+                    "description": f"Lead from {source}" if source else "Lead from Site2CRM contact form",
+                }},
+                headers=headers,
+            )
+            resp.raise_for_status()
+            result["deal"] = resp.json()
+        except Exception as e:
+            # Deal creation failed
+            result["deal_error"] = str(e)
+
+        deal_id = result["deal"].get("id") if result["deal"] else None
+
+        # 5. Associate Deal with Contact and Company
+        if deal_id:
+            try:
+                # Deal -> Contact association
+                await client.put(
+                    f"{HUBSPOT_BASE_URL}/crm/v4/objects/deals/{deal_id}/associations/contacts/{contact_id}",
+                    json=[{"associationCategory": "HUBSPOT_DEFINED", "associationTypeId": 3}],
+                    headers=headers,
+                )
+            except Exception:
+                pass
+
+            if company_id:
+                try:
+                    # Deal -> Company association
+                    await client.put(
+                        f"{HUBSPOT_BASE_URL}/crm/v4/objects/deals/{deal_id}/associations/companies/{company_id}",
+                        json=[{"associationCategory": "HUBSPOT_DEFINED", "associationTypeId": 5}],
+                        headers=headers,
+                    )
+                except Exception:
+                    pass
+
+        return result
 
 
 # ---------------------------------------------------------------
