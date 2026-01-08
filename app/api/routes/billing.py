@@ -1,7 +1,10 @@
 # app/api/routes/billing.py
+import logging
 from datetime import datetime, timedelta
 import hashlib
 import stripe
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -585,7 +588,17 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 org.subscription_status = "past_due"
                 db.commit()
 
-    except Exception:
-        pass
+    except Exception as e:
+        # Log webhook processing errors but still return 200 to prevent Stripe retries
+        # that would cause duplicate processing attempts
+        logger.error(
+            f"Webhook processing error for event type '{t}': {str(e)}",
+            exc_info=True,
+            extra={
+                "event_type": t,
+                "event_id": event.get("id"),
+                "error": str(e),
+            }
+        )
 
     return JSONResponse({"ok": True})

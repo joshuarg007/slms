@@ -17,7 +17,7 @@ else:
         pool_size=20,           # Number of persistent connections
         max_overflow=40,        # Extra connections when pool exhausted
         pool_pre_ping=True,     # Test connections before use (handles stale)
-        pool_recycle=1800,      # Recycle connections after 30 min
+        pool_recycle=600,       # Recycle connections after 10 min (< RDS 15min timeout)
         pool_timeout=30,        # Wait max 30s for a connection
     )
 

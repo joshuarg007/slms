@@ -5,21 +5,29 @@
 ---
 
 ## SESSION STATE
-**Last Updated:** 2026-01-05
+**Last Updated:** 2026-01-08
 
 ### Where We Left Off:
-- Fixed CRITICAL triple-charge billing bug
-- Implemented comprehensive safeguards: frontend + backend
-- Added loading skeletons, tooltips, accessibility, empty states
-- Added CSV export, improved error boundary, API caching
+- Completed Phase 1 production readiness fixes
+- Added structured logging configuration
+- Created standardized error response schema
+- Fixed database pool_recycle timeout
+- Added FriendlyError component for user-facing errors
 
 ### Immediate Next Steps:
-- Deploy backend changes to production (billing.py safeguards)
-- Deploy frontend changes to production (BillingPage.tsx)
-- Test checkout flow to verify safeguards work
+- Deploy Phase 1 changes to production
+- Begin Phase 2 (Sentry, automated tests, GDPR endpoints)
 
 ### Current Blockers:
 - None
+
+### Recent Changes (2026-01-08):
+- `app/core/logging_config.py` - Structured logging with JSON format for production
+- `app/core/errors.py` - Standardized API error responses
+- `app/db/session.py` - Fixed pool_recycle (1800 → 600) for RDS compatibility
+- `app/core/config.py` - Added environment validation
+- `.env.example` - Template for environment configuration
+- `main.py` - Integrated logging middleware and error handlers
 
 ---
 
@@ -147,6 +155,64 @@ ssh -i /home/joshua/AllProjects/slms/site2crm-key.pem ubuntu@34.230.32.54 \
 | Pro | $79 | $790 | price_1Sm2OQDONWOyN0HvC6Wgi0NN (mo), price_1Sm2OQDONWOyN0HvK1JwQasi (yr) |
 
 ---
+
+---
+
+## PRODUCTION READINESS ROADMAP
+
+### Phase 1 - Core Infrastructure ✅ COMPLETE (2026-01-08)
+- [x] Fix database `pool_recycle` timeout (1800 → 600 for RDS compatibility)
+- [x] Add structured logging configuration (`app/core/logging_config.py`)
+- [x] Create standardized error response schema (`app/core/errors.py`)
+- [x] Add environment validation in config
+- [x] Create `.env.example` template
+- [x] Integrate request logging middleware (timing, correlation IDs)
+
+### Phase 2 - Observability & Testing (Target: Week 1)
+- [ ] **Sentry Integration** - Error tracking and alerting
+  - Add `sentry-sdk[fastapi]` to requirements
+  - Configure in `main.py` with DSN from environment
+  - Set `traces_sample_rate=0.1` for performance monitoring
+- [ ] **Automated Test Suite**
+  - Move `billing_safeguards_manual.py` to pytest
+  - Add integration tests for Stripe webhooks
+  - Add OAuth callback tests
+  - Target: 70% code coverage in CI/CD
+- [ ] **Request Timing Alerts**
+  - Log warning for requests > 1 second
+  - Add `/metrics` endpoint for Prometheus (optional)
+- [ ] **GDPR Compliance**
+  - `DELETE /api/users/{id}` - Account deletion with data anonymization
+  - `GET /api/users/{id}/export` - Data export (JSON download)
+  - Add audit logging for PII access
+
+### Phase 3 - Scaling & Hardening (Target: Month 1)
+- [ ] **Redis-backed Rate Limiting**
+  - Current: In-memory (single worker only)
+  - Needed for: Multi-worker/horizontal scaling
+  - Implementation: `redis-py` + sliding window
+- [ ] **Blue/Green Deployment**
+  - Two systemd services: `site2crm-a`, `site2crm-b`
+  - Load balancer health check switching
+  - Instant rollback capability
+- [ ] **Pre-deploy Smoke Tests**
+  - Add to GitHub Actions: `pytest tests/ --tb=short`
+  - Post-deploy health check: `curl -f https://api.site2crm.io/health`
+- [ ] **Database Query Optimization**
+  - Add query timing logging
+  - Identify N+1 queries with `sqlalchemy-utils`
+  - Add composite index on `integration_credentials(org_id, provider)`
+- [ ] **CSRF Protection**
+  - Add double-submit cookie validation for public forms
+  - Validate Origin header on state-changing requests
+
+### Security Rotation Schedule
+| Secret | Rotation Frequency | How to Rotate |
+|--------|-------------------|---------------|
+| SECRET_KEY | Every 90 days | Generate new: `openssl rand -base64 32` |
+| Stripe keys | On compromise only | Regenerate in Stripe Dashboard |
+| OAuth secrets | On compromise only | Regenerate in provider dashboard |
+| Database password | Every 180 days | Update in RDS + `.env` |
 
 ---
 

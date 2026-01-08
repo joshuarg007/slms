@@ -59,7 +59,7 @@ def _require_hubspot_env() -> None:
 def _success_redirect() -> str:
     """Redirect URL on successful OAuth."""
     base = settings.frontend_base_url.rstrip("/")
-    return f"{base}/integrations?hubspot=connected"
+    return f"{base}/app/integrations?hubspot=connected"
 
 
 def _error_redirect(code: str, message: str = "") -> str:
@@ -68,7 +68,7 @@ def _error_redirect(code: str, message: str = "") -> str:
     params = {"hubspot_error": code}
     if message:
         params["message"] = message[:100]  # Truncate long messages
-    return f"{base}/integrations?{urlencode(params)}"
+    return f"{base}/app/integrations?{urlencode(params)}"
 
 
 @router.get("/auth")

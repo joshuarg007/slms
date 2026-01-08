@@ -1,6 +1,14 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
+from typing import Optional
+import os
+
 
 class Settings(BaseSettings):
+    # Environment configuration
+    environment: str = "development"  # development | staging | production
+    log_level: str = "INFO"
+
     hubspot_api_key: str = ""
     # HubSpot OAuth
     hubspot_client_id: str = ""
@@ -19,6 +27,12 @@ class Settings(BaseSettings):
     salesforce_client_secret: str = ""
     salesforce_redirect_uri: str = ""  # e.g. https://api.site2crm.io/api/integrations/salesforce/callback
     salesforce_login_base: str = "https://login.salesforce.com"  # use test.salesforce.com for sandbox
+
+    # Zoho OAuth
+    zoho_client_id: str = ""
+    zoho_client_secret: str = ""
+    zoho_redirect_uri: str = ""  # e.g. https://api.site2crm.io/api/integrations/zoho/callback
+    zoho_accounts_url: str = "https://accounts.zoho.com"  # US datacenter, use .eu/.in/.com.au for others
 
     # Nutshell
     nutshell_username: str = ""   # e.g. your-account@domain.com
@@ -53,4 +67,52 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="allow")
 
+    @field_validator("environment")
+    @classmethod
+    def validate_environment(cls, v: str) -> str:
+        allowed = {"development", "staging", "production"}
+        if v.lower() not in allowed:
+            raise ValueError(f"environment must be one of: {allowed}")
+        return v.lower()
+
+    @field_validator("stripe_secret_key")
+    @classmethod
+    def validate_stripe_key(cls, v: str) -> str:
+        # Only validate in production if key is provided
+        if v and not v.startswith(("sk_test_", "sk_live_")):
+            raise ValueError("stripe_secret_key must start with sk_test_ or sk_live_")
+        return v
+
+    def is_production(self) -> bool:
+        """Check if running in production environment."""
+        return self.environment == "production"
+
+    def validate_production_config(self) -> list[str]:
+        """
+        Validate that all required production settings are configured.
+        Returns list of missing/invalid settings.
+        """
+        issues = []
+
+        if self.is_production():
+            if not self.stripe_secret_key:
+                issues.append("STRIPE_SECRET_KEY is required in production")
+            if not self.stripe_webhook_secret:
+                issues.append("STRIPE_WEBHOOK_SECRET is required in production")
+            if self.frontend_base_url == "http://127.0.0.1:5173":
+                issues.append("FRONTEND_BASE_URL must be set to production URL")
+            if not self.email_enabled:
+                issues.append("EMAIL_ENABLED should be true in production")
+
+        return issues
+
+
 settings = Settings()
+
+# Log any production configuration issues (but don't fail startup)
+_config_issues = settings.validate_production_config()
+if _config_issues:
+    import logging
+    _logger = logging.getLogger("app.config")
+    for issue in _config_issues:
+        _logger.warning(f"Configuration warning: {issue}")

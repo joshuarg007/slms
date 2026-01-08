@@ -8,6 +8,7 @@ import {
   type Lead,
 } from "@/utils/api";
 import WMEM from "@/utils/wmem";
+import { FriendlyError } from "@/components/FriendlyError";
 
 type ContextType = "general" | "lead_analysis" | "coaching";
 
@@ -454,8 +455,12 @@ export default function ChatPage() {
 
         {/* Error */}
         {error && (
-          <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20 border-t border-red-200 dark:border-red-800">
-            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          <div className="px-4 py-2">
+            <FriendlyError
+              error={error}
+              compact
+              onRetry={() => setError(null)}
+            />
           </div>
         )}
 

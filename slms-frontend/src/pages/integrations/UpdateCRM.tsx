@@ -2,14 +2,37 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getApiBase, refresh } from "@/utils/api";
+import { Skeleton } from "@/components/Skeleton";
 
 // Import CRM logos
 import hubspotLogo from "@/assets/hubspot_logo_long.png";
 import pipedriveLogo from "@/assets/pipedrive_logo_long.png";
 import salesforceLogo from "@/assets/salesforce_logo_long.png";
 import nutshellLogo from "@/assets/nutshell_logo_long.png";
+// Zoho logo will be text-based until we add an asset
 
-type CRM = "hubspot" | "pipedrive" | "salesforce" | "nutshell";
+type CRM = "hubspot" | "pipedrive" | "salesforce" | "nutshell" | "zoho";
+
+// Skeleton for CRM card during loading
+function CRMCardSkeleton() {
+  return (
+    <div className="rounded-2xl border-2 border-gray-200 dark:border-gray-700 p-5 bg-white dark:bg-gray-800/50">
+      <div className="flex items-center justify-between mb-4">
+        <Skeleton className="h-8 w-32" />
+        <Skeleton className="h-6 w-16 rounded-full" />
+      </div>
+      <Skeleton className="h-4 w-3/4 mb-3" />
+      <div className="flex items-center gap-2 mb-3">
+        <Skeleton className="w-2 h-2 rounded-full" />
+        <Skeleton className="h-3 w-24" />
+      </div>
+      <div className="flex gap-1.5 mb-4">
+        <Skeleton className="h-6 w-20 rounded-md" />
+        <Skeleton className="h-6 w-24 rounded-md" />
+      </div>
+    </div>
+  );
+}
 
 const CRM_OPTIONS: {
   id: CRM;
@@ -46,6 +69,13 @@ const CRM_OPTIONS: {
     gradient: "from-purple-500 to-violet-600",
     logo: nutshellLogo,
   },
+  {
+    id: "zoho",
+    label: "Zoho CRM",
+    description: "Full-featured CRM with OAuth",
+    gradient: "from-red-500 to-yellow-500",
+    logo: "", // Text-based logo
+  },
 ];
 
 type CredentialSummary = {
@@ -57,6 +87,8 @@ type CredentialSummary = {
   created_at?: string | null;
   updated_at?: string | null;
 };
+
+type TestResult = { status: "success" | "error"; message: string } | null;
 
 // Auth helper with cookie include and refresh on 401
 async function authFetch(
@@ -115,6 +147,21 @@ export default function UpdateCRM() {
   const [hsOAuthBusy, setHsOAuthBusy] = useState(false);
   const [pdOAuthConnected, setPdOAuthConnected] = useState(false);
   const [pdOAuthBusy, setPdOAuthBusy] = useState(false);
+  const [zohoOAuthConnected, setZohoOAuthConnected] = useState(false);
+  const [zohoOAuthBusy, setZohoOAuthBusy] = useState(false);
+
+  // Test connection state
+  const [testingCRM, setTestingCRM] = useState<CRM | null>(null);
+  const [testResults, setTestResults] = useState<Record<CRM, TestResult>>({
+    hubspot: null,
+    pipedrive: null,
+    salesforce: null,
+    nutshell: null,
+    zoho: null,
+  });
+
+  // Disconnect state
+  const [disconnectingCRM, setDisconnectingCRM] = useState<CRM | null>(null);
 
   // Load active CRM and credentials
   useEffect(() => {
@@ -162,6 +209,12 @@ export default function UpdateCRM() {
           Array.isArray(credsJson) &&
           credsJson.some((c) => c.provider === "pipedrive" && c.auth_type === "oauth" && c.is_active);
         setPdOAuthConnected(Boolean(hasPdOAuth));
+
+        // Detect Zoho OAuth credentials
+        const hasZohoOAuth =
+          Array.isArray(credsJson) &&
+          credsJson.some((c) => c.provider === "zoho" && c.auth_type === "oauth" && c.is_active);
+        setZohoOAuthConnected(Boolean(hasZohoOAuth));
       } catch (e: any) {
         if (!cancelled) {
           setMsg({ type: "error", text: e?.message || "Could not load CRM settings." });
@@ -204,6 +257,12 @@ export default function UpdateCRM() {
         Array.isArray(items) &&
         items.some((c) => c.provider === "pipedrive" && c.auth_type === "oauth" && c.is_active);
       setPdOAuthConnected(Boolean(hasPdOAuth));
+
+      // Detect Zoho OAuth credentials
+      const hasZohoOAuth =
+        Array.isArray(items) &&
+        items.some((c) => c.provider === "zoho" && c.auth_type === "oauth" && c.is_active);
+      setZohoOAuthConnected(Boolean(hasZohoOAuth));
     } catch {
       // non blocking
     } finally {
@@ -282,6 +341,33 @@ export default function UpdateCRM() {
     })();
   }, []);
 
+  // Detect ?zoho=connected after OAuth
+  useEffect(() => {
+    (async () => {
+      const usp = new URLSearchParams(window.location.search);
+      if (usp.get("zoho") === "connected") {
+        try {
+          await refreshCreds();
+        } finally {
+          usp.delete("zoho");
+          const next = `${window.location.pathname}${usp.toString() ? `?${usp}` : ""}`;
+          window.history.replaceState({}, "", next);
+          setMsg({ type: "success", text: "Zoho CRM connected successfully via OAuth!" });
+        }
+      }
+      // Handle Zoho OAuth errors
+      if (usp.get("zoho_error")) {
+        const errCode = usp.get("zoho_error");
+        const errMsg = usp.get("message") || errCode;
+        usp.delete("zoho_error");
+        usp.delete("message");
+        const next = `${window.location.pathname}${usp.toString() ? `?${usp}` : ""}`;
+        window.history.replaceState({}, "", next);
+        setMsg({ type: "error", text: `Zoho OAuth failed: ${errMsg}` });
+      }
+    })();
+  }, []);
+
   async function onSave() {
     if (editing === activeCRM) {
       setMsg({ type: "info", text: "No changes to save." });
@@ -349,6 +435,69 @@ export default function UpdateCRM() {
     }
   }
 
+  async function connectZoho() {
+    setZohoOAuthBusy(true);
+    try {
+      window.location.href = `${getApiBase()}/integrations/zoho/auth`;
+    } catch (e: any) {
+      setMsg({ type: "error", text: e?.message || "Failed to start Zoho auth." });
+      setZohoOAuthBusy(false);
+    }
+  }
+
+  // Test CRM connection
+  async function testConnection(provider: CRM) {
+    setTestingCRM(provider);
+    setTestResults((prev) => ({ ...prev, [provider]: null }));
+    try {
+      // Test by fetching salespeople/owners - this validates the connection
+      const endpoint = `${getApiBase()}/integrations/${provider}/salespeople`;
+      const res = await authFetch(endpoint);
+      if (res.ok) {
+        setTestResults((prev) => ({
+          ...prev,
+          [provider]: { status: "success", message: "Connection verified!" },
+        }));
+      } else {
+        const errorText = await res.text();
+        setTestResults((prev) => ({
+          ...prev,
+          [provider]: { status: "error", message: errorText.slice(0, 100) || "Connection failed" },
+        }));
+      }
+    } catch (e: any) {
+      setTestResults((prev) => ({
+        ...prev,
+        [provider]: { status: "error", message: e?.message || "Connection test failed" },
+      }));
+    } finally {
+      setTestingCRM(null);
+    }
+  }
+
+  // Disconnect OAuth integration
+  async function disconnectOAuth(provider: CRM) {
+    const confirmed = window.confirm(
+      `Disconnect ${labelOf(provider)}?\n\nThis will revoke the OAuth connection. You can reconnect anytime.`
+    );
+    if (!confirmed) return;
+
+    setDisconnectingCRM(provider);
+    try {
+      const res = await authFetch(`${getApiBase()}/integrations/${provider}/disconnect`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Disconnect failed");
+      await refreshCreds();
+      setMsg({ type: "success", text: `${labelOf(provider)} disconnected successfully.` });
+      setTestResults((prev) => ({ ...prev, [provider]: null }));
+    } catch (e: any) {
+      setMsg({ type: "error", text: e?.message || "Failed to disconnect." });
+    } finally {
+      setDisconnectingCRM(null);
+    }
+  }
+
   function getActiveCredential(provider: CRM): CredentialSummary | undefined {
     return creds.find((c) => c.provider === provider && c.is_active);
   }
@@ -397,12 +546,14 @@ export default function UpdateCRM() {
   const pipedriveCred = getActiveCredential("pipedrive");
   const salesforceCred = getActiveCredential("salesforce");
   const nutshellCred = getActiveCredential("nutshell");
+  const zohoCred = getActiveCredential("zoho");
 
   function getCredFor(id: CRM) {
     if (id === "hubspot") return hubspotCred;
     if (id === "pipedrive") return pipedriveCred;
     if (id === "salesforce") return salesforceCred;
     if (id === "nutshell") return nutshellCred;
+    if (id === "zoho") return zohoCred;
     return undefined;
   }
 
@@ -421,20 +572,20 @@ export default function UpdateCRM() {
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">CRM Integrations</h1>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 max-w-lg">
-              Connect your CRM to sync leads and power analytics. Choose from HubSpot, Pipedrive, Salesforce, or Nutshell.
+              Connect your CRM to sync leads and power analytics. Choose from HubSpot, Pipedrive, Salesforce, Nutshell, or Zoho.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <Link
               to="/app/integrations/current"
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-center text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               View Current
             </Link>
             <button
               onClick={onSave}
               disabled={saving || editing === activeCRM}
-              className="px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all disabled:opacity-50 disabled:shadow-none"
+              className="px-5 py-2 text-sm font-medium text-center text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all disabled:opacity-50 disabled:shadow-none"
             >
               {saving ? (
                 <span className="flex items-center gap-2">
@@ -503,19 +654,28 @@ export default function UpdateCRM() {
         </div>
       </div>
 
-      {/* 2x2 Grid of CRM Options */}
+      {/* CRM Grid - Loading State or Cards */}
+      {loadingCreds ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <CRMCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {CRM_OPTIONS.map((opt) => {
           const cred = getCredFor(opt.id);
           const isActive = activeCRM === opt.id;
           const isSelected = editing === opt.id;
-          const isConnected = opt.id === "salesforce" ? sfConnected : opt.id === "hubspot" ? (hsOAuthConnected || Boolean(cred)) : opt.id === "pipedrive" ? (pdOAuthConnected || Boolean(cred)) : Boolean(cred);
+          const isOAuthConnected = opt.id === "salesforce" ? sfConnected : opt.id === "hubspot" ? hsOAuthConnected : opt.id === "pipedrive" ? pdOAuthConnected : opt.id === "zoho" ? zohoOAuthConnected : false;
+          const isConnected = isOAuthConnected || Boolean(cred);
+          const testResult = testResults[opt.id];
 
           return (
             <div
               key={opt.id}
               onClick={() => setEditing(opt.id)}
-              className={`relative rounded-2xl border-2 p-5 cursor-pointer transition-all duration-200 ${
+              className={`relative rounded-2xl border-2 p-4 sm:p-5 cursor-pointer transition-all duration-200 ${
                 isSelected
                   ? "border-indigo-500 bg-white dark:bg-gray-800 shadow-lg shadow-indigo-500/10"
                   : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md"
@@ -533,11 +693,17 @@ export default function UpdateCRM() {
               {/* Header with Logo */}
               <div className="flex items-center justify-between mb-4">
                 <div className="h-8 flex items-center">
-                  <img
-                    src={opt.logo}
-                    alt={opt.label}
-                    className="h-full w-auto object-contain max-w-[140px] dark:brightness-0 dark:invert"
-                  />
+                  {opt.logo ? (
+                    <img
+                      src={opt.logo}
+                      alt={opt.label}
+                      className="h-full w-auto object-contain max-w-[140px] dark:brightness-0 dark:invert"
+                    />
+                  ) : (
+                    <span className={`text-xl font-bold bg-gradient-to-r ${opt.gradient} bg-clip-text text-transparent`}>
+                      {opt.label}
+                    </span>
+                  )}
                 </div>
                 {isActive && (
                   <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
@@ -550,7 +716,7 @@ export default function UpdateCRM() {
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{opt.description}</p>
 
               {/* Connection Status */}
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
                 <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"}`} />
                 <span className={`text-xs font-medium ${isConnected ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-gray-400"}`}>
                   {isConnected ? "Connected" : "Not connected"}
@@ -560,7 +726,34 @@ export default function UpdateCRM() {
                     ...{cred.token_suffix}
                   </span>
                 )}
+                {cred?.updated_at && (
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 hidden sm:inline">
+                    Updated {new Date(cred.updated_at).toLocaleDateString()}
+                  </span>
+                )}
               </div>
+
+              {/* Test Result */}
+              {testResult && (
+                <div className={`mb-3 px-3 py-2 rounded-lg text-xs ${
+                  testResult.status === "success"
+                    ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300"
+                    : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300"
+                }`}>
+                  <div className="flex items-center gap-2">
+                    {testResult.status === "success" ? (
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
+                    {testResult.message}
+                  </div>
+                </div>
+              )}
 
               {/* Capabilities */}
               <div className="flex flex-wrap gap-1.5 mb-4">
@@ -574,7 +767,7 @@ export default function UpdateCRM() {
                 }`}>
                   {opt.id === "hubspot" ? "Limited Analytics" : "Full Analytics"}
                 </span>
-                {(opt.id === "salesforce" || opt.id === "hubspot" || opt.id === "pipedrive") && (
+                {(opt.id === "salesforce" || opt.id === "hubspot" || opt.id === "pipedrive" || opt.id === "zoho") && (
                   <span className="px-2 py-1 text-[10px] font-medium rounded-md bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
                     OAuth
                   </span>
@@ -583,38 +776,67 @@ export default function UpdateCRM() {
 
               {/* Action area - only show when selected */}
               {isSelected && (
-                <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
+                <div className="pt-3 border-t border-gray-100 dark:border-gray-700 space-y-3">
                   {opt.id === "salesforce" ? (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); connectSalesforce(); }}
-                      disabled={sfBusy}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all disabled:opacity-50"
-                    >
-                      {sfBusy ? (
-                        <>
-                          <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                          </svg>
-                          Connecting...
-                        </>
-                      ) : sfConnected ? (
-                        <>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          Manage Connection
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                          </svg>
-                          Connect with OAuth
-                        </>
+                    <div className="space-y-2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); connectSalesforce(); }}
+                        disabled={sfBusy}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all disabled:opacity-50"
+                      >
+                        {sfBusy ? (
+                          <>
+                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                            Connecting...
+                          </>
+                        ) : sfConnected ? (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Reconnect
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                            Connect with OAuth
+                          </>
+                        )}
+                      </button>
+                      {sfConnected && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); testConnection("salesforce"); }}
+                            disabled={testingCRM === "salesforce"}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                          >
+                            {testingCRM === "salesforce" ? (
+                              <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            )}
+                            Test
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); disconnectOAuth("salesforce"); }}
+                            disabled={disconnectingCRM === "salesforce"}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
+                          >
+                            {disconnectingCRM === "salesforce" ? "..." : "Disconnect"}
+                          </button>
+                        </div>
                       )}
-                    </button>
+                    </div>
                   ) : opt.id === "hubspot" ? (
                     <div className="space-y-3">
                       {/* HubSpot OAuth (primary) */}
@@ -634,9 +856,9 @@ export default function UpdateCRM() {
                         ) : hsOAuthConnected ? (
                           <>
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
-                            OAuth Connected
+                            Reconnect OAuth
                           </>
                         ) : (
                           <>
@@ -647,6 +869,35 @@ export default function UpdateCRM() {
                           </>
                         )}
                       </button>
+                      {/* Test & Disconnect for HubSpot OAuth */}
+                      {hsOAuthConnected && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); testConnection("hubspot"); }}
+                            disabled={testingCRM === "hubspot"}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                          >
+                            {testingCRM === "hubspot" ? (
+                              <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            )}
+                            Test
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); disconnectOAuth("hubspot"); }}
+                            disabled={disconnectingCRM === "hubspot"}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
+                          >
+                            {disconnectingCRM === "hubspot" ? "..." : "Disconnect"}
+                          </button>
+                        </div>
+                      )}
                       {/* HubSpot API key fallback */}
                       <div className="relative">
                         <div className="absolute inset-0 flex items-center">
@@ -693,9 +944,9 @@ export default function UpdateCRM() {
                         ) : pdOAuthConnected ? (
                           <>
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
-                            OAuth Connected
+                            Reconnect OAuth
                           </>
                         ) : (
                           <>
@@ -706,6 +957,35 @@ export default function UpdateCRM() {
                           </>
                         )}
                       </button>
+                      {/* Test & Disconnect for Pipedrive OAuth */}
+                      {pdOAuthConnected && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); testConnection("pipedrive"); }}
+                            disabled={testingCRM === "pipedrive"}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                          >
+                            {testingCRM === "pipedrive" ? (
+                              <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            )}
+                            Test
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); disconnectOAuth("pipedrive"); }}
+                            disabled={disconnectingCRM === "pipedrive"}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
+                          >
+                            {disconnectingCRM === "pipedrive" ? "..." : "Disconnect"}
+                          </button>
+                        </div>
+                      )}
                       {/* Pipedrive API token fallback */}
                       <div className="relative">
                         <div className="absolute inset-0 flex items-center">
@@ -733,26 +1013,108 @@ export default function UpdateCRM() {
                         </button>
                       </div>
                     </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <input
-                        type="password"
-                        value={nutshellToken}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          setNutshellToken(e.target.value);
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        placeholder={`Enter ${opt.label} API token`}
-                        className="flex-1 px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                      />
+                  ) : opt.id === "zoho" ? (
+                    <div className="space-y-2">
                       <button
-                        onClick={(e) => { e.stopPropagation(); saveToken("nutshell"); }}
-                        disabled={tokenBusy === "nutshell"}
-                        className={`px-4 py-2 text-sm font-medium text-white bg-gradient-to-r ${opt.gradient} rounded-xl hover:shadow-lg transition-all disabled:opacity-50`}
+                        onClick={(e) => { e.stopPropagation(); connectZoho(); }}
+                        disabled={zohoOAuthBusy}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-yellow-500 rounded-xl hover:shadow-lg hover:shadow-red-500/25 transition-all disabled:opacity-50"
                       >
-                        {tokenBusy === "nutshell" ? "..." : "Save"}
+                        {zohoOAuthBusy ? (
+                          <>
+                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                            Connecting...
+                          </>
+                        ) : zohoOAuthConnected ? (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Reconnect
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                            Connect with OAuth
+                          </>
+                        )}
                       </button>
+                      {zohoOAuthConnected && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); testConnection("zoho"); }}
+                            disabled={testingCRM === "zoho"}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                          >
+                            {testingCRM === "zoho" ? (
+                              <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            )}
+                            Test
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); disconnectOAuth("zoho"); }}
+                            disabled={disconnectingCRM === "zoho"}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
+                          >
+                            {disconnectingCRM === "zoho" ? "..." : "Disconnect"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <input
+                          type="password"
+                          value={nutshellToken}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            setNutshellToken(e.target.value);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          placeholder={`Enter ${opt.label} API token`}
+                          className="flex-1 px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                        />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); saveToken("nutshell"); }}
+                          disabled={tokenBusy === "nutshell"}
+                          className={`px-4 py-2 text-sm font-medium text-white bg-gradient-to-r ${opt.gradient} rounded-xl hover:shadow-lg transition-all disabled:opacity-50`}
+                        >
+                          {tokenBusy === "nutshell" ? "..." : "Save"}
+                        </button>
+                      </div>
+                      {/* Test button for Nutshell */}
+                      {cred && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); testConnection("nutshell"); }}
+                          disabled={testingCRM === "nutshell"}
+                          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                        >
+                          {testingCRM === "nutshell" ? (
+                            <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          )}
+                          Test Connection
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -761,6 +1123,7 @@ export default function UpdateCRM() {
           );
         })}
       </div>
+      )}
 
       {/* Help section */}
       <div className="mt-8 p-5 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
@@ -799,6 +1162,13 @@ export default function UpdateCRM() {
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Nutshell</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Settings › API Keys › Generate new API key › Copy the key</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold flex items-center justify-center flex-shrink-0">Z</span>
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Zoho CRM</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Click "Connect with OAuth" and authorize Site2CRM in your Zoho account</p>
                 </div>
               </div>
             </div>

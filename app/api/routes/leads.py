@@ -19,6 +19,7 @@ from app.integrations.hubspot import (
 from app.integrations import nutshell
 from app.integrations.pipedrive import create_lead as pipedrive_create_lead
 from app.integrations.salesforce import create_lead as salesforce_create_lead
+from app.integrations.zoho import create_lead as zoho_create_lead
 
 # Email notifications
 from app.services.email import send_new_lead_notification, send_crm_error_notification
@@ -132,6 +133,31 @@ async def _sync_to_nutshell_with_notification(
     except Exception as exc:
         logger.error(f"Nutshell sync failed for org {org_id}: {exc}")
         _maybe_send_crm_error_notification(org_id, org_name, "nutshell", str(exc), lead_name)
+
+
+async def _sync_to_zoho_with_notification(
+    org_id: int,
+    org_name: Optional[str],
+    lead_name: str,
+    email: str,
+    first_name: str,
+    last_name: str,
+    company: str = "",
+    phone: str = "",
+):
+    """Sync lead to Zoho CRM, sending error notification on failure if enabled."""
+    try:
+        await zoho_create_lead(
+            title=f"Lead from {email}",
+            name=f"{first_name} {last_name}".strip() or email,
+            email=email,
+            company=company,
+            phone=phone,
+            organization_id=org_id,
+        )
+    except Exception as exc:
+        logger.error(f"Zoho sync failed for org {org_id}: {exc}")
+        _maybe_send_crm_error_notification(org_id, org_name, "zoho", str(exc), lead_name)
 
 
 def _maybe_send_crm_error_notification(
@@ -321,6 +347,20 @@ def public_create_lead(
                 description=description,
                 contact_name=display_name,
                 contact_email=email,
+            )
+
+        # Zoho: REST API Lead creation
+        elif provider == "zoho":
+            background_tasks.add_task(
+                _sync_to_zoho_with_notification,
+                org_id=org.id,
+                org_name=org_name,
+                lead_name=display_name,
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                company=company,
+                phone=phone,
             )
 
         # Email notifications to organization users (only for new leads, if enabled)

@@ -1,12 +1,20 @@
 # main.py
 import sys
 import os
+import logging
 from contextlib import asynccontextmanager
 
 sys.path.append(os.path.dirname(__file__))
 
+# Configure logging FIRST before any other imports
+from app.core.logging_config import configure_logging, RequestLoggingMiddleware
+configure_logging()
+
+logger = logging.getLogger("app")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.core.errors import register_exception_handlers
 from app.db.session import engine
 from app.db import models
 from app.api.routes.integrations_current import router as integrations_current_router
@@ -19,6 +27,8 @@ from app.api.routes.integrations_notifications import router as integrations_not
 from app.api.routes import salesforce
 from app.api.routes import hubspot_oauth
 from app.api.routes import pipedrive_oauth
+from app.api.routes import zoho_oauth
+from app.api.routes import nutshell
 from app.api.routes.salespeople_stats import router as salespeople_router
 from app.api.routes import forms as forms_routes
 from app.api.routes import public_forms as public_forms_routes
@@ -47,16 +57,50 @@ from app.services.scheduler import start_scheduler, stop_scheduler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: start the scheduler
+    logger.info("Application starting up", extra={"event": "startup"})
     start_scheduler()
     yield
     # Shutdown: stop the scheduler
+    logger.info("Application shutting down", extra={"event": "shutdown"})
     stop_scheduler()
 
 
 # -----------------------------------
 # App & CORS
 # -----------------------------------
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    title="Site2CRM API",
+    description="""
+Site2CRM API - Lead capture forms that sync directly to your CRM.
+
+## Features
+- **Lead Management**: Create, update, and track leads
+- **CRM Integrations**: HubSpot, Salesforce, Pipedrive, Zoho, Nutshell
+- **Form Builder**: Embeddable forms with custom styling
+- **Analytics**: Lead scoring, pipeline tracking, team performance
+- **Billing**: Stripe-powered subscription management
+
+## Authentication
+Most endpoints require a Bearer token. Get one via `/api/auth/login`.
+
+## Rate Limits
+- Login: 10 requests / 5 minutes
+- Signup: 5 requests / hour
+- Public forms: 30 requests / minute
+""",
+    version="1.0.0",
+    contact={
+        "name": "Axion Deep Labs",
+        "email": "labs@axiondeep.com",
+    },
+    license_info={
+        "name": "Proprietary",
+    },
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+)
 
 # CORS: Specific origins for credentials, wildcard for public endpoints
 ALLOWED_ORIGINS = [
@@ -79,8 +123,20 @@ app.add_middleware(
         "Accept",
         "Origin",
     ],
-    expose_headers=["Content-Type", "X-Request-Id"],
+    expose_headers=["Content-Type", "X-Request-Id", "X-Process-Time"],
 )
+
+# Add request logging middleware (tracks timing, adds correlation IDs)
+app.add_middleware(RequestLoggingMiddleware)
+
+# Register standardized error handlers
+register_exception_handlers(app)
+
+logger.info("Application initialized", extra={
+    "event": "app_init",
+    "cors_origins": ALLOWED_ORIGINS,
+    "docs_url": "/docs"
+})
 
 
 # Routers
@@ -98,6 +154,8 @@ app.include_router(integrations.router, prefix="/api", tags=["Integrations"])
 app.include_router(salesforce.router, prefix="/api", tags=["Salesforce"])
 app.include_router(hubspot_oauth.router, prefix="/api", tags=["HubSpot OAuth"])
 app.include_router(pipedrive_oauth.router, prefix="/api", tags=["Pipedrive OAuth"])
+app.include_router(zoho_oauth.router, prefix="/api", tags=["Zoho OAuth"])
+app.include_router(nutshell.router, prefix="/api", tags=["Nutshell"])
 #app.include_router(salespeople_unified_router, prefix="/api", tags=["Salespeople"])
 app.include_router(salespeople_router, prefix="/api", tags=["Salespeople"])
 app.include_router(integrations_current_router, prefix="/api", tags=["Integrations"])
@@ -143,6 +201,11 @@ def readiness_check():
         db.close()
         return {"status": "ok", "database": "connected", "timestamp": datetime.utcnow().isoformat()}
     except Exception as e:
+        logger.error(
+            "Database health check failed",
+            exc_info=True,
+            extra={"event": "health_check_failed", "error": str(e)}
+        )
         from fastapi import Response
         return Response(
             content='{"status": "error", "database": "disconnected"}',

@@ -123,6 +123,38 @@ Now leads flow directly from web forms into your CRM in real-time. No copy-pasti
 
 ---
 
+## Production Readiness Roadmap
+
+### Phase 1 - Core Infrastructure ✅ COMPLETE
+- [x] Structured logging with JSON format (`app/core/logging_config.py`)
+- [x] Standardized API error responses (`app/core/errors.py`)
+- [x] Database connection pool optimization (pool_recycle for RDS)
+- [x] Environment validation and configuration
+- [x] Request timing and correlation IDs
+
+### Phase 2 - Observability & Testing (In Progress)
+- [ ] **Sentry Integration** - Error tracking and alerting
+- [ ] **Automated Test Suite** - 70% coverage target in CI/CD
+- [ ] **GDPR Compliance** - Data export/deletion endpoints
+- [ ] **Request Timing Alerts** - Log slow requests (>1s)
+
+### Phase 3 - Scaling & Hardening
+- [ ] **Redis Rate Limiting** - For horizontal scaling
+- [ ] **Blue/Green Deployment** - Zero-downtime releases
+- [ ] **Pre-deploy Smoke Tests** - Automated verification
+- [ ] **Query Optimization** - N+1 detection, composite indexes
+- [ ] **CSRF Protection** - Double-submit cookies
+
+### Security Rotation Schedule
+
+| Secret | Frequency | Method |
+|--------|-----------|--------|
+| SECRET_KEY | 90 days | `openssl rand -base64 32` |
+| Database Password | 180 days | RDS console + .env |
+| API Keys | On compromise | Provider dashboard |
+
+---
+
 ## Project Structure
 
 ```

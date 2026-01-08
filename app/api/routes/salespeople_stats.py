@@ -14,6 +14,7 @@ from app.integrations import hubspot
 from app.integrations import pipedrive
 from app.integrations import salesforce
 from app.integrations import nutshell
+from app.integrations import zoho
 
 router = APIRouter(prefix="/salespeople", tags=["Salespeople"])
 
@@ -107,6 +108,13 @@ async def unified_salespeople_stats(
 
             elif provider == "nutshell":
                 results = await nutshell.owners_stats(
+                    days=days,
+                    owner_id=owner_id,
+                    organization_id=org.id,
+                )
+
+            elif provider == "zoho":
+                results = await zoho.owners_stats(
                     days=days,
                     owner_id=owner_id,
                     organization_id=org.id,

@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Link } from "react-router-dom";
 import { getEmbedCode } from "../../utils/api";
+import { FriendlyError } from "@/components/FriendlyError";
 
 interface EmbedCode {
   script_tag: string;
@@ -62,12 +63,11 @@ export default function EmbedPage() {
         <header>
           <h1 className="text-2xl font-semibold">Embed Code</h1>
         </header>
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
-          {error}
-        </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Make sure your organization has an API key configured.
-        </p>
+        <FriendlyError
+          error={error}
+          message="We couldn't load your embed code. Make sure your organization has an API key configured."
+          onRetry={() => window.location.reload()}
+        />
       </div>
     );
   }

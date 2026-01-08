@@ -10,7 +10,7 @@ from app.api.deps.auth import get_db, get_current_user
 
 router = APIRouter(prefix="/integrations", tags=["Integrations"])
 
-Provider = Literal["hubspot", "pipedrive", "salesforce", "nutshell"]
+Provider = Literal["hubspot", "pipedrive", "salesforce", "nutshell", "zoho"]
 AuthType = Literal["pat", "api_key", "oauth"]
 
 
@@ -125,8 +125,8 @@ def upsert_credential(
     )
 
 
-# 🔹 ALLOW NUTSHELL AS ACTIVE CRM
-CRMProvider = Literal["hubspot", "pipedrive", "salesforce", "nutshell"]
+# 🔹 ALLOW ALL CRMs AS ACTIVE
+CRMProvider = Literal["hubspot", "pipedrive", "salesforce", "nutshell", "zoho"]
 
 
 class ActiveCRMOut(BaseModel):

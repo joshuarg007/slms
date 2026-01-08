@@ -1,5 +1,5 @@
 // src/utils/crm.ts
-export type CRM = "hubspot" | "pipedrive" | "salesforce" | "nutshell";
+export type CRM = "hubspot" | "pipedrive" | "salesforce" | "nutshell" | "zoho";
 
 const KEY = "slms.crm";
 
@@ -8,6 +8,7 @@ const CRM_LABELS: Record<CRM, string> = {
   pipedrive: "Pipedrive",
   salesforce: "Salesforce",
   nutshell: "Nutshell",
+  zoho: "Zoho",
 };
 
 export function getCRM(): CRM {
@@ -37,4 +38,4 @@ export function crmSalespeopleBase(v: CRM): string {
 }
 
 // All supported CRMs
-export const ALL_CRMS: CRM[] = ["hubspot", "pipedrive", "salesforce", "nutshell"];
+export const ALL_CRMS: CRM[] = ["hubspot", "pipedrive", "salesforce", "nutshell", "zoho"];

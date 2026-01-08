@@ -178,7 +178,13 @@ export default function AppLayout() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const announce = useAnnounce();
+
+  // Close sidebar on navigation (mobile)
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts([
@@ -269,15 +275,32 @@ export default function AppLayout() {
       {/* Header */}
       <header
         role="banner"
-        className="sticky top-0 z-50 h-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 flex items-center px-6"
+        className="sticky top-0 z-50 h-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 flex items-center px-4 sm:px-6"
       >
+        {/* Mobile menu button */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="lg:hidden mr-3 p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          aria-label="Toggle navigation menu"
+        >
+          {sidebarOpen ? (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
+        </button>
+
         {/* Logo */}
-        <div className="flex items-center mr-8">
+        <div className="flex items-center mr-4 lg:mr-8">
           <Logo linkTo="/app" size="sm" />
         </div>
 
-        {/* Search - centered */}
-        <div className="flex-1 flex justify-center">
+        {/* Search - centered (hidden on mobile) */}
+        <div className="hidden sm:flex flex-1 justify-center">
           <button
             onClick={() => setCommandPaletteOpen(true)}
             className="relative flex items-center gap-3 w-80 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full text-sm text-gray-500 dark:text-gray-400 transition-colors"
@@ -291,12 +314,24 @@ export default function AppLayout() {
           </button>
         </div>
 
+        {/* Spacer for mobile */}
+        <div className="flex-1 sm:hidden" />
+
         {/* Right side */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 sm:gap-3">
+          {/* Mobile search button */}
+          <button
+            onClick={() => setCommandPaletteOpen(true)}
+            className="sm:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            aria-label="Open search"
+          >
+            {icons.search}
+          </button>
+
           {/* Keyboard shortcuts hint */}
           <button
             onClick={() => setShortcutsOpen(true)}
-            className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             aria-label="Show keyboard shortcuts"
             title="Keyboard shortcuts"
           >
@@ -307,7 +342,7 @@ export default function AppLayout() {
           {/* Support */}
           <button
             onClick={() => setSupportOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
             aria-label="Get support"
             title="Get Support"
           >
@@ -321,13 +356,13 @@ export default function AppLayout() {
 
           <NavLink
             to="/app/account"
-            className="flex items-center gap-3 px-3 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             aria-label={`Account settings for ${userEmail || "user"}`}
           >
             <div className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm font-semibold shadow-sm">
               {userInitial}
             </div>
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:block">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden md:block">
               {userEmail ? userEmail.split("@")[0] : "Account"}
             </span>
           </NavLink>
@@ -335,20 +370,36 @@ export default function AppLayout() {
           <button
             onClick={handleLogout}
             aria-label="Log out of your account"
-            className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+            className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
           >
             {icons.logout}
-            <span className="hidden sm:block">Logout</span>
+            <span className="hidden md:block">Logout</span>
           </button>
         </div>
       </header>
 
-      <div className="flex flex-1">
+      <div className="flex flex-1 relative">
+        {/* Mobile sidebar overlay */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
         {/* Sidebar */}
         <aside
           role="complementary"
           aria-label="Main navigation sidebar"
-          className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200/50 dark:border-gray-800/50 p-4 overflow-y-auto"
+          className={`
+            fixed lg:static inset-y-0 left-0 z-50 lg:z-0
+            w-64 bg-white dark:bg-gray-900 border-r border-gray-200/50 dark:border-gray-800/50
+            p-4 overflow-y-auto
+            transform transition-transform duration-300 ease-in-out
+            ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+            top-16 lg:top-0 h-[calc(100vh-4rem)] lg:h-auto
+          `}
         >
           <nav role="navigation" aria-label="Main navigation" className="space-y-6">
             {/* Main */}
@@ -414,7 +465,7 @@ export default function AppLayout() {
           role="main"
           aria-label="Main content"
           tabIndex={-1}
-          className="flex-1 p-6 overflow-y-auto focus:outline-none"
+          className="flex-1 p-4 sm:p-6 overflow-y-auto focus:outline-none"
         >
           <CrmConnectionBanner />
           <PageErrorBoundary resetKey={location.pathname}>

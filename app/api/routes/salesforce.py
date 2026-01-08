@@ -45,12 +45,12 @@ def _require_sf_env() -> None:
 def _success_redirect() -> str:
     # we use Integrations page to reflect connection state
     base = getattr(settings, "frontend_base_url", "http://127.0.0.1:5173").rstrip("/")
-    return f"{base}/integrations?salesforce=connected"
+    return f"{base}/app/integrations?salesforce=connected"
 
 
 def _error_redirect(code: str) -> str:
     base = getattr(settings, "frontend_base_url", "http://127.0.0.1:5173").rstrip("/")
-    return f"{base}/settings?salesforce_error={code}"
+    return f"{base}/app/integrations?salesforce_error={code}"
 
 
 @router.get("/auth")
