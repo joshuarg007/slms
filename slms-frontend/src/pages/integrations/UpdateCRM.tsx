@@ -6,7 +6,7 @@ import { getApiBase, refresh } from "@/utils/api";
 // Import CRM logos
 import hubspotLogo from "@/assets/hubspot_logo_long.png";
 import pipedriveLogo from "@/assets/pipedrive_logo_long.png";
-import salesforceLogo from "@/assets/salesforce_logo.png";
+import salesforceLogo from "@/assets/salesforce_logo_long.png";
 import nutshellLogo from "@/assets/nutshell_logo_long.png";
 
 type CRM = "hubspot" | "pipedrive" | "salesforce" | "nutshell";
@@ -111,6 +111,8 @@ export default function UpdateCRM() {
 
   const [sfConnected, setSfConnected] = useState(false);
   const [sfBusy, setSfBusy] = useState(false);
+  const [hsOAuthConnected, setHsOAuthConnected] = useState(false);
+  const [hsOAuthBusy, setHsOAuthBusy] = useState(false);
 
   // Load active CRM and credentials
   useEffect(() => {
@@ -146,6 +148,12 @@ export default function UpdateCRM() {
           Array.isArray(credsJson) &&
           credsJson.some((c) => c.provider === "salesforce" && c.is_active);
         setSfConnected(Boolean(hasSF));
+
+        // Detect HubSpot OAuth credentials
+        const hasHsOAuth =
+          Array.isArray(credsJson) &&
+          credsJson.some((c) => c.provider === "hubspot" && c.auth_type === "oauth" && c.is_active);
+        setHsOAuthConnected(Boolean(hasHsOAuth));
       } catch (e: any) {
         if (!cancelled) {
           setMsg({ type: "error", text: e?.message || "Could not load CRM settings." });
@@ -176,6 +184,12 @@ export default function UpdateCRM() {
         Array.isArray(items) &&
         items.some((c) => c.provider === "salesforce" && c.is_active);
       setSfConnected(Boolean(hasSF));
+
+      // Detect HubSpot OAuth credentials
+      const hasHsOAuth =
+        Array.isArray(items) &&
+        items.some((c) => c.provider === "hubspot" && c.auth_type === "oauth" && c.is_active);
+      setHsOAuthConnected(Boolean(hasHsOAuth));
     } catch {
       // non blocking
     } finally {
@@ -196,6 +210,33 @@ export default function UpdateCRM() {
           window.history.replaceState({}, "", next);
           setMsg({ type: "success", text: "Salesforce connected successfully!" });
         }
+      }
+    })();
+  }, []);
+
+  // Detect ?hubspot=connected after OAuth
+  useEffect(() => {
+    (async () => {
+      const usp = new URLSearchParams(window.location.search);
+      if (usp.get("hubspot") === "connected") {
+        try {
+          await refreshCreds();
+        } finally {
+          usp.delete("hubspot");
+          const next = `${window.location.pathname}${usp.toString() ? `?${usp}` : ""}`;
+          window.history.replaceState({}, "", next);
+          setMsg({ type: "success", text: "HubSpot connected successfully via OAuth!" });
+        }
+      }
+      // Handle HubSpot OAuth errors
+      if (usp.get("hubspot_error")) {
+        const errCode = usp.get("hubspot_error");
+        const errMsg = usp.get("message") || errCode;
+        usp.delete("hubspot_error");
+        usp.delete("message");
+        const next = `${window.location.pathname}${usp.toString() ? `?${usp}` : ""}`;
+        window.history.replaceState({}, "", next);
+        setMsg({ type: "error", text: `HubSpot OAuth failed: ${errMsg}` });
       }
     })();
   }, []);
@@ -244,6 +285,16 @@ export default function UpdateCRM() {
     } catch (e: any) {
       setMsg({ type: "error", text: e?.message || "Failed to start Salesforce auth." });
       setSfBusy(false);
+    }
+  }
+
+  async function connectHubspot() {
+    setHsOAuthBusy(true);
+    try {
+      window.location.href = `${getApiBase()}/integrations/hubspot/auth`;
+    } catch (e: any) {
+      setMsg({ type: "error", text: e?.message || "Failed to start HubSpot auth." });
+      setHsOAuthBusy(false);
     }
   }
 
@@ -407,7 +458,7 @@ export default function UpdateCRM() {
           const cred = getCredFor(opt.id);
           const isActive = activeCRM === opt.id;
           const isSelected = editing === opt.id;
-          const isConnected = opt.id === "salesforce" ? sfConnected : Boolean(cred);
+          const isConnected = opt.id === "salesforce" ? sfConnected : opt.id === "hubspot" ? (hsOAuthConnected || Boolean(cred)) : Boolean(cred);
 
           return (
             <div
@@ -472,7 +523,7 @@ export default function UpdateCRM() {
                 }`}>
                   {opt.id === "hubspot" ? "Limited Analytics" : "Full Analytics"}
                 </span>
-                {opt.id === "salesforce" && (
+                {(opt.id === "salesforce" || opt.id === "hubspot") && (
                   <span className="px-2 py-1 text-[10px] font-medium rounded-md bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
                     OAuth
                   </span>
@@ -513,15 +564,73 @@ export default function UpdateCRM() {
                         </>
                       )}
                     </button>
+                  ) : opt.id === "hubspot" ? (
+                    <div className="space-y-3">
+                      {/* HubSpot OAuth (primary) */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); connectHubspot(); }}
+                        disabled={hsOAuthBusy}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-red-500 rounded-xl hover:shadow-lg hover:shadow-orange-500/25 transition-all disabled:opacity-50"
+                      >
+                        {hsOAuthBusy ? (
+                          <>
+                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                            Connecting...
+                          </>
+                        ) : hsOAuthConnected ? (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            OAuth Connected
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                            Connect with OAuth (Recommended)
+                          </>
+                        )}
+                      </button>
+                      {/* HubSpot API key fallback */}
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-gray-200 dark:border-gray-600"></div>
+                        </div>
+                        <div className="relative flex justify-center text-xs">
+                          <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">or use API key</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="password"
+                          value={hubspotToken}
+                          onChange={(e) => { e.stopPropagation(); setHubspotToken(e.target.value); }}
+                          onClick={(e) => e.stopPropagation()}
+                          placeholder="Enter HubSpot Private App token"
+                          className="flex-1 px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                        />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); saveToken("hubspot"); }}
+                          disabled={tokenBusy === "hubspot"}
+                          className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all disabled:opacity-50"
+                        >
+                          {tokenBusy === "hubspot" ? "..." : "Save"}
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex gap-2">
                       <input
                         type="password"
-                        value={opt.id === "hubspot" ? hubspotToken : opt.id === "pipedrive" ? pipedriveToken : nutshellToken}
+                        value={opt.id === "pipedrive" ? pipedriveToken : nutshellToken}
                         onChange={(e) => {
                           e.stopPropagation();
-                          if (opt.id === "hubspot") setHubspotToken(e.target.value);
-                          else if (opt.id === "pipedrive") setPipedriveToken(e.target.value);
+                          if (opt.id === "pipedrive") setPipedriveToken(e.target.value);
                           else setNutshellToken(e.target.value);
                         }}
                         onClick={(e) => e.stopPropagation()}
@@ -529,7 +638,7 @@ export default function UpdateCRM() {
                         className="flex-1 px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
                       />
                       <button
-                        onClick={(e) => { e.stopPropagation(); saveToken(opt.id as "hubspot" | "pipedrive" | "nutshell"); }}
+                        onClick={(e) => { e.stopPropagation(); saveToken(opt.id as "pipedrive" | "nutshell"); }}
                         disabled={tokenBusy === opt.id}
                         className={`px-4 py-2 text-sm font-medium text-white bg-gradient-to-r ${opt.gradient} rounded-xl hover:shadow-lg transition-all disabled:opacity-50`}
                       >
@@ -559,14 +668,14 @@ export default function UpdateCRM() {
                 <span className="w-6 h-6 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-xs font-bold flex items-center justify-center flex-shrink-0">H</span>
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300">HubSpot</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Settings → Integrations → Private Apps → Create private app → Copy token</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Click "Connect with OAuth" (recommended), or use Private Apps: Settings › Integrations › Private Apps › Create app</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <span className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs font-bold flex items-center justify-center flex-shrink-0">P</span>
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Pipedrive</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Settings → Personal preferences → API → Copy your personal API token</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Settings › Personal preferences › API › Copy your personal API token</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -580,7 +689,7 @@ export default function UpdateCRM() {
                 <span className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-xs font-bold flex items-center justify-center flex-shrink-0">N</span>
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Nutshell</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Settings → API Keys → Generate new API key → Copy the key</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Settings › API Keys › Generate new API key › Copy the key</p>
                 </div>
               </div>
             </div>
