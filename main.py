@@ -18,6 +18,7 @@ from app.api.routes.integrations_update import router as integrations_update_rou
 from app.api.routes.integrations_notifications import router as integrations_notifications_router
 from app.api.routes import salesforce
 from app.api.routes import hubspot_oauth
+from app.api.routes import pipedrive_oauth
 from app.api.routes.salespeople_stats import router as salespeople_router
 from app.api.routes import forms as forms_routes
 from app.api.routes import public_forms as public_forms_routes
@@ -96,6 +97,7 @@ app.include_router(reports.router, prefix="/api", tags=["Reports"])
 app.include_router(integrations.router, prefix="/api", tags=["Integrations"])
 app.include_router(salesforce.router, prefix="/api", tags=["Salesforce"])
 app.include_router(hubspot_oauth.router, prefix="/api", tags=["HubSpot OAuth"])
+app.include_router(pipedrive_oauth.router, prefix="/api", tags=["Pipedrive OAuth"])
 #app.include_router(salespeople_unified_router, prefix="/api", tags=["Salespeople"])
 app.include_router(salespeople_router, prefix="/api", tags=["Salespeople"])
 app.include_router(integrations_current_router, prefix="/api", tags=["Integrations"])

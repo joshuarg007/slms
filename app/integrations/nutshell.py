@@ -209,3 +209,87 @@ async def get_salespeople_stats(
         )
 
     return rows
+
+
+# Alias for consistency with other CRM integrations
+async def owners_stats(
+    days: int = 7,
+    owner_id: Optional[str] = None,
+    include_archived_owners: bool = False,
+    organization_id: Optional[int] = None,
+    **kwargs: Any,
+) -> List[Dict[str, Any]]:
+    return await get_salespeople_stats(
+        days=days,
+        owner_id=owner_id,
+        include_archived_owners=include_archived_owners,
+        organization_id=organization_id,
+        **kwargs,
+    )
+
+
+# ---------------------------------------------------------------------
+# CREATE LEAD
+# ---------------------------------------------------------------------
+async def create_lead(
+    description: str,
+    contact_name: str,
+    contact_email: str,
+    organization_id: Optional[int] = None,
+    **kwargs: Any,
+) -> Optional[Dict[str, Any]]:
+    """
+    Create a new lead in Nutshell CRM.
+
+    Nutshell requires creating a contact first, then linking to a lead.
+    Uses JSON-RPC methods: newContact, newLead
+    """
+    token = _get_org_token(organization_id) if organization_id else None
+
+    # Parse name into first/last
+    name_parts = (contact_name or contact_email or "Unknown").strip().split(" ", 1)
+    first_name = name_parts[0]
+    last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+    # Step 1: Create or find contact
+    contact_result = await _nutshell_request(
+        "newContact",
+        params={
+            "contact": {
+                "name": {
+                    "givenName": first_name,
+                    "familyName": last_name,
+                },
+                "email": [contact_email] if contact_email else [],
+            }
+        },
+        token=token,
+    )
+
+    if isinstance(contact_result, str):
+        # Contact creation failed, try to create lead without contact
+        contact_id = None
+    else:
+        contact_id = contact_result.get("id") if contact_result else None
+
+    # Step 2: Create lead
+    lead_params: Dict[str, Any] = {
+        "lead": {
+            "description": description or f"Lead from {contact_email}",
+        }
+    }
+
+    # Link contact if we have one
+    if contact_id:
+        lead_params["lead"]["contacts"] = [{"id": contact_id}]
+
+    lead_result = await _nutshell_request(
+        "newLead",
+        params=lead_params,
+        token=token,
+    )
+
+    if isinstance(lead_result, str):
+        return None
+
+    return lead_result

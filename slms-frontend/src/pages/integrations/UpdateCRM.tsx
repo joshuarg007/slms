@@ -113,6 +113,8 @@ export default function UpdateCRM() {
   const [sfBusy, setSfBusy] = useState(false);
   const [hsOAuthConnected, setHsOAuthConnected] = useState(false);
   const [hsOAuthBusy, setHsOAuthBusy] = useState(false);
+  const [pdOAuthConnected, setPdOAuthConnected] = useState(false);
+  const [pdOAuthBusy, setPdOAuthBusy] = useState(false);
 
   // Load active CRM and credentials
   useEffect(() => {
@@ -154,6 +156,12 @@ export default function UpdateCRM() {
           Array.isArray(credsJson) &&
           credsJson.some((c) => c.provider === "hubspot" && c.auth_type === "oauth" && c.is_active);
         setHsOAuthConnected(Boolean(hasHsOAuth));
+
+        // Detect Pipedrive OAuth credentials
+        const hasPdOAuth =
+          Array.isArray(credsJson) &&
+          credsJson.some((c) => c.provider === "pipedrive" && c.auth_type === "oauth" && c.is_active);
+        setPdOAuthConnected(Boolean(hasPdOAuth));
       } catch (e: any) {
         if (!cancelled) {
           setMsg({ type: "error", text: e?.message || "Could not load CRM settings." });
@@ -190,6 +198,12 @@ export default function UpdateCRM() {
         Array.isArray(items) &&
         items.some((c) => c.provider === "hubspot" && c.auth_type === "oauth" && c.is_active);
       setHsOAuthConnected(Boolean(hasHsOAuth));
+
+      // Detect Pipedrive OAuth credentials
+      const hasPdOAuth =
+        Array.isArray(items) &&
+        items.some((c) => c.provider === "pipedrive" && c.auth_type === "oauth" && c.is_active);
+      setPdOAuthConnected(Boolean(hasPdOAuth));
     } catch {
       // non blocking
     } finally {
@@ -237,6 +251,33 @@ export default function UpdateCRM() {
         const next = `${window.location.pathname}${usp.toString() ? `?${usp}` : ""}`;
         window.history.replaceState({}, "", next);
         setMsg({ type: "error", text: `HubSpot OAuth failed: ${errMsg}` });
+      }
+    })();
+  }, []);
+
+  // Detect ?pipedrive=connected after OAuth
+  useEffect(() => {
+    (async () => {
+      const usp = new URLSearchParams(window.location.search);
+      if (usp.get("pipedrive") === "connected") {
+        try {
+          await refreshCreds();
+        } finally {
+          usp.delete("pipedrive");
+          const next = `${window.location.pathname}${usp.toString() ? `?${usp}` : ""}`;
+          window.history.replaceState({}, "", next);
+          setMsg({ type: "success", text: "Pipedrive connected successfully via OAuth!" });
+        }
+      }
+      // Handle Pipedrive OAuth errors
+      if (usp.get("pipedrive_error")) {
+        const errCode = usp.get("pipedrive_error");
+        const errMsg = usp.get("message") || errCode;
+        usp.delete("pipedrive_error");
+        usp.delete("message");
+        const next = `${window.location.pathname}${usp.toString() ? `?${usp}` : ""}`;
+        window.history.replaceState({}, "", next);
+        setMsg({ type: "error", text: `Pipedrive OAuth failed: ${errMsg}` });
       }
     })();
   }, []);
@@ -295,6 +336,16 @@ export default function UpdateCRM() {
     } catch (e: any) {
       setMsg({ type: "error", text: e?.message || "Failed to start HubSpot auth." });
       setHsOAuthBusy(false);
+    }
+  }
+
+  async function connectPipedrive() {
+    setPdOAuthBusy(true);
+    try {
+      window.location.href = `${getApiBase()}/integrations/pipedrive/auth`;
+    } catch (e: any) {
+      setMsg({ type: "error", text: e?.message || "Failed to start Pipedrive auth." });
+      setPdOAuthBusy(false);
     }
   }
 
@@ -458,7 +509,7 @@ export default function UpdateCRM() {
           const cred = getCredFor(opt.id);
           const isActive = activeCRM === opt.id;
           const isSelected = editing === opt.id;
-          const isConnected = opt.id === "salesforce" ? sfConnected : opt.id === "hubspot" ? (hsOAuthConnected || Boolean(cred)) : Boolean(cred);
+          const isConnected = opt.id === "salesforce" ? sfConnected : opt.id === "hubspot" ? (hsOAuthConnected || Boolean(cred)) : opt.id === "pipedrive" ? (pdOAuthConnected || Boolean(cred)) : Boolean(cred);
 
           return (
             <div
@@ -523,7 +574,7 @@ export default function UpdateCRM() {
                 }`}>
                   {opt.id === "hubspot" ? "Limited Analytics" : "Full Analytics"}
                 </span>
-                {(opt.id === "salesforce" || opt.id === "hubspot") && (
+                {(opt.id === "salesforce" || opt.id === "hubspot" || opt.id === "pipedrive") && (
                   <span className="px-2 py-1 text-[10px] font-medium rounded-md bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
                     OAuth
                   </span>
@@ -623,26 +674,84 @@ export default function UpdateCRM() {
                         </button>
                       </div>
                     </div>
+                  ) : opt.id === "pipedrive" ? (
+                    <div className="space-y-3">
+                      {/* Pipedrive OAuth (primary) */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); connectPipedrive(); }}
+                        disabled={pdOAuthBusy}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl hover:shadow-lg hover:shadow-green-500/25 transition-all disabled:opacity-50"
+                      >
+                        {pdOAuthBusy ? (
+                          <>
+                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                            Connecting...
+                          </>
+                        ) : pdOAuthConnected ? (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            OAuth Connected
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                            Connect with OAuth (Recommended)
+                          </>
+                        )}
+                      </button>
+                      {/* Pipedrive API token fallback */}
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-gray-200 dark:border-gray-600"></div>
+                        </div>
+                        <div className="relative flex justify-center text-xs">
+                          <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">or use API token</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="password"
+                          value={pipedriveToken}
+                          onChange={(e) => { e.stopPropagation(); setPipedriveToken(e.target.value); }}
+                          onClick={(e) => e.stopPropagation()}
+                          placeholder="Enter Pipedrive API token"
+                          className="flex-1 px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                        />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); saveToken("pipedrive"); }}
+                          disabled={tokenBusy === "pipedrive"}
+                          className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all disabled:opacity-50"
+                        >
+                          {tokenBusy === "pipedrive" ? "..." : "Save"}
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex gap-2">
                       <input
                         type="password"
-                        value={opt.id === "pipedrive" ? pipedriveToken : nutshellToken}
+                        value={nutshellToken}
                         onChange={(e) => {
                           e.stopPropagation();
-                          if (opt.id === "pipedrive") setPipedriveToken(e.target.value);
-                          else setNutshellToken(e.target.value);
+                          setNutshellToken(e.target.value);
                         }}
                         onClick={(e) => e.stopPropagation()}
                         placeholder={`Enter ${opt.label} API token`}
                         className="flex-1 px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
                       />
                       <button
-                        onClick={(e) => { e.stopPropagation(); saveToken(opt.id as "pipedrive" | "nutshell"); }}
-                        disabled={tokenBusy === opt.id}
+                        onClick={(e) => { e.stopPropagation(); saveToken("nutshell"); }}
+                        disabled={tokenBusy === "nutshell"}
                         className={`px-4 py-2 text-sm font-medium text-white bg-gradient-to-r ${opt.gradient} rounded-xl hover:shadow-lg transition-all disabled:opacity-50`}
                       >
-                        {tokenBusy === opt.id ? "..." : "Save"}
+                        {tokenBusy === "nutshell" ? "..." : "Save"}
                       </button>
                     </div>
                   )}
@@ -675,7 +784,7 @@ export default function UpdateCRM() {
                 <span className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs font-bold flex items-center justify-center flex-shrink-0">P</span>
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Pipedrive</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Settings › Personal preferences › API › Copy your personal API token</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Click "Connect with OAuth" (recommended), or use API token: Settings › Personal preferences › API</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">

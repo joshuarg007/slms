@@ -1,6 +1,6 @@
 // src/components/CRMSelect.tsx
 import type { CRM } from "@/utils/crm";
-import { crmLabel } from "@/utils/crm";
+import { crmLabel, ALL_CRMS } from "@/utils/crm";
 
 type Props = {
   value: CRM;
@@ -16,8 +16,11 @@ export default function CRMSelect({ value, onChange, className }: Props) {
       className={className ?? "rounded-md border px-3 py-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"}
       aria-label="Select CRM"
     >
-      <option value="hubspot">{crmLabel("hubspot")}</option>
-      <option value="pipedrive">{crmLabel("pipedrive")}</option>
+      {ALL_CRMS.map((crm) => (
+        <option key={crm} value={crm}>
+          {crmLabel(crm)}
+        </option>
+      ))}
     </select>
   );
 }

@@ -9,6 +9,16 @@ class Settings(BaseSettings):
 
     pipedrive_api_token: str = ""
     pipedrive_base_url: str = "https://api.pipedrive.com"
+    # Pipedrive OAuth
+    pipedrive_client_id: str = ""
+    pipedrive_client_secret: str = ""
+    pipedrive_redirect_uri: str = ""  # e.g. https://api.site2crm.io/api/integrations/pipedrive/callback
+
+    # Salesforce OAuth
+    salesforce_client_id: str = ""
+    salesforce_client_secret: str = ""
+    salesforce_redirect_uri: str = ""  # e.g. https://api.site2crm.io/api/integrations/salesforce/callback
+    salesforce_login_base: str = "https://login.salesforce.com"  # use test.salesforce.com for sandbox
 
     # Nutshell
     nutshell_username: str = ""   # e.g. your-account@domain.com

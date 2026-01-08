@@ -1,12 +1,20 @@
 // src/utils/crm.ts
-export type CRM = "hubspot" | "pipedrive";
+export type CRM = "hubspot" | "pipedrive" | "salesforce" | "nutshell";
 
 const KEY = "slms.crm";
+
+const CRM_LABELS: Record<CRM, string> = {
+  hubspot: "HubSpot",
+  pipedrive: "Pipedrive",
+  salesforce: "Salesforce",
+  nutshell: "Nutshell",
+};
 
 export function getCRM(): CRM {
   try {
     const v = (typeof localStorage !== "undefined" && localStorage.getItem(KEY)) as CRM | null;
-    return v === "pipedrive" ? "pipedrive" : "hubspot";
+    if (v && v in CRM_LABELS) return v;
+    return "hubspot";
   } catch {
     return "hubspot";
   }
@@ -18,8 +26,8 @@ export function setCRM(v: CRM) {
   } catch {}
 }
 
-export function crmLabel(v: CRM) {
-  return v === "pipedrive" ? "Pipedrive" : "HubSpot";
+export function crmLabel(v: CRM): string {
+  return CRM_LABELS[v] || v;
 }
 
 // salespeople endpoints root for a CRM
@@ -27,3 +35,6 @@ export function crmSalespeopleBase(v: CRM): string {
   // e.g. /integrations/hubspot/salespeople or /integrations/pipedrive/salespeople
   return `/integrations/${v}/salespeople`;
 }
+
+// All supported CRMs
+export const ALL_CRMS: CRM[] = ["hubspot", "pipedrive", "salesforce", "nutshell"];
