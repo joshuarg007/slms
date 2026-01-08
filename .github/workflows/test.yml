@@ -28,18 +28,18 @@ jobs:
 
       - name: Run tests with coverage
         env:
-          SECRET_KEY: test-secret-key-for-ci
-          DATABASE_URL: sqlite:///:memory:
-          STRIPE_SECRET_KEY: sk_test_fake
-          STRIPE_WEBHOOK_SECRET: whsec_fake
-          STRIPE_PRICE_STARTER_MONTHLY: price_starter_mo
-          STRIPE_PRICE_STARTER_ANNUAL: price_starter_yr
-          STRIPE_PRICE_PRO_MONTHLY: price_pro_mo
-          STRIPE_PRICE_PRO_ANNUAL: price_pro_yr
-          STRIPE_PRICE_PRO_AI_MONTHLY: price_pro_ai_mo
-          STRIPE_PRICE_PRO_AI_ANNUAL: price_pro_ai_yr
-          FRONTEND_BASE_URL: http://localhost:5173
-          ENVIRONMENT: development
+          SECRET_KEY: "test-secret-key-for-ci"
+          DATABASE_URL: "sqlite:///:memory:"
+          STRIPE_SECRET_KEY: "sk_test_fake"
+          STRIPE_WEBHOOK_SECRET: "whsec_fake"
+          STRIPE_PRICE_STARTER_MONTHLY: "price_starter_mo"
+          STRIPE_PRICE_STARTER_ANNUAL: "price_starter_yr"
+          STRIPE_PRICE_PRO_MONTHLY: "price_pro_mo"
+          STRIPE_PRICE_PRO_ANNUAL: "price_pro_yr"
+          STRIPE_PRICE_PRO_AI_MONTHLY: "price_pro_ai_mo"
+          STRIPE_PRICE_PRO_AI_ANNUAL: "price_pro_ai_yr"
+          FRONTEND_BASE_URL: "http://localhost:5173"
+          ENVIRONMENT: "development"
         run: |
           pytest tests/ -v --tb=short --cov=app --cov-report=xml --cov-report=term-missing
 
