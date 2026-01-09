@@ -191,6 +191,17 @@ def redeem_appsumo_code(
         f"code={code_record.code[:8]}..., version={APPSUMO_ADDENDUM_VERSION}"
     )
 
+    # Send welcome email
+    try:
+        from app.services.email import send_appsumo_welcome_email
+        send_appsumo_welcome_email(
+            recipient=current_user.email,
+            user_name=current_user.email.split("@")[0],  # Use email prefix as name
+            organization_name=org.name,
+        )
+    except Exception as e:
+        logger.warning(f"Failed to send AppSumo welcome email: {e}")
+
     # Return success with plan details
     from app.core.plans import get_plan_limits
     limits = get_plan_limits("appsumo")

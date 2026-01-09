@@ -1174,6 +1174,109 @@ View your options: https://site2crm.io/app/billing
     return send_email(subject, body_text, list(recipients), body_html)
 
 
+def send_appsumo_welcome_email(
+    recipient: str,
+    user_name: Optional[str] = None,
+    organization_name: Optional[str] = None,
+) -> bool:
+    """
+    Send welcome email after successful AppSumo code redemption.
+    """
+    subject = "Your AppSumo Lifetime License is Active!"
+    greeting = f"Hi {user_name}," if user_name else "Hi there,"
+    org_label = organization_name or "your organization"
+
+    body_text = f"""
+{greeting}
+
+Congratulations! Your AppSumo lifetime license for Site2CRM is now active.
+
+Your AppSumo Plan Includes:
+- 1,500 leads per month
+- 2 CRM integrations
+- 2 active forms
+- Lifetime access with no recurring fees
+
+Important Notes:
+- Leads beyond 1,500/month are blocked (hard cap)
+- This plan has no upgrade path
+- Support is via email only
+
+Get Started:
+1. Build your first form in the Form Builder
+2. Connect your CRM (HubSpot, Salesforce, Pipedrive, Zoho, or Nutshell)
+3. Embed the form on your website
+
+View your license details: https://site2crm.io/app/appsumo
+
+Thank you for being a lifetime customer!
+
+- The Site2CRM Team
+"""
+
+    content = f"""
+<h1 style="margin: 0 0 16px; font-size: 24px; font-weight: 600; color: #18181b;">
+    Your Lifetime License is Active!
+</h1>
+<p style="margin: 0 0 16px; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+    {greeting.replace(',', '')} Congratulations! Your AppSumo lifetime license for Site2CRM is now active.
+</p>
+
+<div style="margin: 24px 0; padding: 24px; background-color: #f3e8ff; border: 1px solid #d8b4fe; border-radius: 12px;">
+    <p style="margin: 0 0 4px; font-size: 12px; font-weight: 600; color: #7c3aed; text-transform: uppercase; letter-spacing: 0.5px;">
+        AppSumo Lifetime Plan
+    </p>
+    <p style="margin: 0 0 16px; font-size: 20px; font-weight: 700; color: #581c87;">
+        {org_label}
+    </p>
+    <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td style="padding: 8px 0; color: #6b21a8; font-size: 14px;">Leads per month</td>
+            <td style="padding: 8px 0; color: #581c87; font-size: 14px; font-weight: 600; text-align: right;">1,500</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #6b21a8; font-size: 14px;">CRM integrations</td>
+            <td style="padding: 8px 0; color: #581c87; font-size: 14px; font-weight: 600; text-align: right;">2</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #6b21a8; font-size: 14px;">Active forms</td>
+            <td style="padding: 8px 0; color: #581c87; font-size: 14px; font-weight: 600; text-align: right;">2</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #6b21a8; font-size: 14px;">Billing</td>
+            <td style="padding: 8px 0; color: #581c87; font-size: 14px; font-weight: 600; text-align: right;">Lifetime (one-time)</td>
+        </tr>
+    </table>
+</div>
+
+<h2 style="margin: 24px 0 12px; font-size: 18px; font-weight: 600; color: #18181b;">
+    Get Started
+</h2>
+<ol style="margin: 0 0 24px; padding-left: 20px; font-size: 16px; color: #3f3f46; line-height: 1.8;">
+    <li>Build your first form in the Form Builder</li>
+    <li>Connect your CRM (HubSpot, Salesforce, Pipedrive, Zoho, or Nutshell)</li>
+    <li>Embed the form on your website with one line of code</li>
+</ol>
+
+{_button_html("Go to Dashboard", "https://site2crm.io/app", "#7c3aed")}
+
+<div style="margin: 24px 0; padding: 16px; background-color: #fefce8; border: 1px solid #fef08a; border-radius: 8px;">
+    <p style="margin: 0; font-size: 14px; color: #854d0e; line-height: 1.5;">
+        <strong>Important:</strong> Your plan has a hard cap of 1,500 leads/month.
+        Submissions beyond this limit are rejected. Limits reset on the 1st of each month.
+    </p>
+</div>
+
+<p style="margin: 0; font-size: 14px; color: #71717a; line-height: 1.6;">
+    Need help? Contact <a href="mailto:support@site2crm.io" style="color: #6366f1;">support@site2crm.io</a>
+</p>
+"""
+
+    body_html = _base_html_template(content, "Your AppSumo lifetime license is now active!")
+
+    return send_email(subject, body_text, [recipient], body_html)
+
+
 def send_support_request_notification(
     recipients: Iterable[str],
     issue_type: str,
