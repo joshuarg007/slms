@@ -55,7 +55,7 @@ class Organization(Base):
     api_key = Column(String, nullable=True, unique=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
-    users = relationship("User", back_populates="organization")
+    users = relationship("User", back_populates="organization", foreign_keys="[User.organization_id]")
     leads = relationship("Lead", back_populates="organization")
 
     stripe_customer_id = Column(String, index=True, nullable=True)
