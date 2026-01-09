@@ -92,26 +92,6 @@ export class ErrorBoundary extends Component<Props, State> {
               </button>
             )}
 
-            {/* Error details (only in development) */}
-            {import.meta.env.DEV && this.state.error && (
-              <details className="mb-6 text-left">
-                <summary className="cursor-pointer text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
-                  Show technical details
-                </summary>
-                <div className="mt-2 p-4 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
-                  <p className="text-xs font-mono text-red-700 dark:text-red-300 break-all whitespace-pre-wrap">
-                    {this.state.error.message}
-                    {this.state.error.stack && (
-                      <>
-                        {"\n\n"}
-                        {this.state.error.stack}
-                      </>
-                    )}
-                  </p>
-                </div>
-              </details>
-            )}
-
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 onClick={this.handleReload}

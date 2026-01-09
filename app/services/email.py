@@ -1343,6 +1343,93 @@ Please respond to this request within 24 hours.
     return send_email(subject, body_text, recipients, body_html)
 
 
+def send_error_report_notification(
+    recipients: Iterable[str],
+    error_id: Optional[str],
+    message: str,
+    stack: Optional[str] = None,
+    url: Optional[str] = None,
+    user_email: Optional[str] = None,
+    organization_name: Optional[str] = None,
+) -> bool:
+    """
+    Send notification about a frontend error to the admin team.
+    Called automatically when React error boundary catches an error.
+    """
+    subject = f"🚨 Frontend Error: {error_id or 'Unknown'}"
+    org_text = f" ({organization_name})" if organization_name else ""
+    user_text = user_email or "Anonymous"
+
+    body_text = f"""
+Frontend Error Report
+
+Error ID: {error_id or "N/A"}
+User: {user_text}{org_text}
+URL: {url or "Unknown"}
+
+Error Message:
+{message}
+
+Stack Trace:
+{stack or "Not available"}
+
+This error was automatically captured by the error boundary.
+
+- Site2CRM Monitoring
+"""
+
+    # Truncate stack for display
+    display_stack = (stack[:500] + "...") if stack and len(stack) > 500 else stack
+
+    content = f"""
+<h1 style="margin: 0 0 16px; font-size: 24px; font-weight: 600; color: #dc2626;">
+    Frontend Error Report
+</h1>
+<div style="margin: 24px 0; padding: 20px; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 12px;">
+    <table role="presentation" cellspacing="0" cellpadding="0" style="width: 100%; font-size: 15px;">
+        <tr>
+            <td style="padding: 8px 0; color: #991b1b; width: 100px;">Error ID:</td>
+            <td style="padding: 8px 0; color: #dc2626; font-weight: 600; font-family: monospace;">{error_id or "N/A"}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #991b1b;">User:</td>
+            <td style="padding: 8px 0; color: #18181b; font-weight: 500;">{user_text}{org_text}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #991b1b;">URL:</td>
+            <td style="padding: 8px 0; color: #18181b; font-weight: 500; word-break: break-all;">{url or "Unknown"}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #991b1b;">Time:</td>
+            <td style="padding: 8px 0; color: #18181b; font-weight: 500;">{datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")}</td>
+        </tr>
+    </table>
+</div>
+
+<h2 style="margin: 24px 0 12px; font-size: 18px; font-weight: 600; color: #18181b;">
+    Error Message
+</h2>
+<div style="padding: 16px; background-color: #fee2e2; border-radius: 8px; font-size: 14px; font-family: monospace; color: #991b1b; line-height: 1.6; white-space: pre-wrap; word-break: break-word;">
+{message}
+</div>
+
+{f'''<h2 style="margin: 24px 0 12px; font-size: 18px; font-weight: 600; color: #18181b;">
+    Stack Trace
+</h2>
+<div style="padding: 16px; background-color: #f4f4f5; border-radius: 8px; font-size: 12px; font-family: monospace; color: #52525b; line-height: 1.4; white-space: pre-wrap; word-break: break-word; max-height: 300px; overflow: auto;">
+{display_stack}
+</div>''' if display_stack else ''}
+
+<p style="margin: 24px 0 0; font-size: 14px; color: #71717a; line-height: 1.6;">
+    This error was automatically captured by the error boundary. The user saw a friendly "Working on this" message.
+</p>
+"""
+
+    body_html = _base_html_template(content, f"Frontend error: {message[:50]}...")
+
+    return send_email(subject, body_text, recipients, body_html)
+
+
 def send_account_deletion_email(
     recipient: str,
 ) -> bool:

@@ -1,12 +1,15 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthProvider";
 
+// Session key to track if user just logged in for onboarding
+const ONBOARDING_SESSION_KEY = "site2crm.onboarding_session";
+
 /**
  * Protects routes using AuthProvider state.
  * - While loading  -> spinner
  * - If unauth       -> redirect to /login (remember 'from')
  * - If not approved -> show pending approval page
- * - If onboarding incomplete -> redirect to /app/onboarding
+ * - If onboarding incomplete -> require fresh login, then redirect to /app/onboarding
  * - If authenticated-> render children
  */
 export default function ProtectedRoute() {
@@ -31,13 +34,34 @@ export default function ProtectedRoute() {
     return <PendingApprovalPage email={user.email} />;
   }
 
-  // Check onboarding status - redirect to onboarding if not completed
-  // But don't redirect if already on the onboarding page
+  // Check onboarding status
   const isOnboardingPage = location.pathname === "/app/onboarding";
   const needsOnboarding = user.organization && !user.organization.onboarding_completed;
 
-  if (needsOnboarding && !isOnboardingPage) {
-    return <Navigate to="/app/onboarding" replace />;
+  if (needsOnboarding) {
+    // Check if user just logged in for this onboarding session
+    const hasOnboardingSession = sessionStorage.getItem(ONBOARDING_SESSION_KEY) === "true";
+
+    if (!hasOnboardingSession) {
+      // Force fresh login for onboarding
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      sessionStorage.setItem(ONBOARDING_SESSION_KEY, "pending");
+      window.location.replace("/login");
+      return (
+        <div className="min-h-screen grid place-items-center">
+          <div className="text-gray-700 dark:text-gray-200">Redirecting to login...</div>
+        </div>
+      );
+    }
+
+    // User just logged in, redirect to onboarding if not already there
+    if (!isOnboardingPage) {
+      return <Navigate to="/app/onboarding" replace />;
+    }
+  } else {
+    // Onboarding complete - clear the session flag
+    sessionStorage.removeItem(ONBOARDING_SESSION_KEY);
   }
 
   return <Outlet />;

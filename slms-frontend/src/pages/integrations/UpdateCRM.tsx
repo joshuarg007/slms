@@ -4,12 +4,7 @@ import { Link } from "react-router-dom";
 import { getApiBase, refresh } from "@/utils/api";
 import { Skeleton } from "@/components/Skeleton";
 
-// Import CRM logos
-import hubspotLogo from "@/assets/hubspot_logo_long.png";
-import pipedriveLogo from "@/assets/pipedrive_logo_long.png";
-import salesforceLogo from "@/assets/salesforce_logo_long.png";
-import nutshellLogo from "@/assets/nutshell_logo_long.png";
-// Zoho logo will be text-based until we add an asset
+// All CRMs use gradient text styling with official brand colors
 
 type CRM = "hubspot" | "pipedrive" | "salesforce" | "nutshell" | "zoho";
 
@@ -39,42 +34,36 @@ const CRM_OPTIONS: {
   label: string;
   description: string;
   gradient: string;
-  logo: string;
 }[] = [
   {
     id: "hubspot",
     label: "HubSpot",
     description: "Lead sync with free tier support",
-    gradient: "from-orange-500 to-red-500",
-    logo: hubspotLogo,
+    gradient: "from-[#FF7A59] to-[#FF5C35]", // Official HubSpot Orange
   },
   {
     id: "pipedrive",
     label: "Pipedrive",
     description: "Full API access, ideal for analytics",
-    gradient: "from-green-500 to-emerald-600",
-    logo: pipedriveLogo,
+    gradient: "from-[#017737] to-[#25D366]", // Official Pipedrive Green
   },
   {
     id: "salesforce",
     label: "Salesforce",
     description: "Enterprise OAuth with advanced reporting",
-    gradient: "from-blue-500 to-cyan-500",
-    logo: salesforceLogo,
+    gradient: "from-[#00A1E0] to-[#032D60]", // Official Salesforce Blue
   },
   {
     id: "nutshell",
     label: "Nutshell",
     description: "Lightweight CRM with full API",
-    gradient: "from-purple-500 to-violet-600",
-    logo: nutshellLogo,
+    gradient: "from-[#F59E0B] to-[#D97706]", // Nutshell Gold/Orange
   },
   {
     id: "zoho",
     label: "Zoho CRM",
     description: "Full-featured CRM with OAuth",
-    gradient: "from-red-500 to-yellow-500",
-    logo: "", // Text-based logo
+    gradient: "from-[#E42527] to-[#F7B500]", // Official Zoho Red to Gold
   },
 ];
 
@@ -690,20 +679,12 @@ export default function UpdateCRM() {
                 </div>
               )}
 
-              {/* Header with Logo */}
+              {/* Header with branded gradient text */}
               <div className="flex items-center justify-between mb-4">
                 <div className="h-8 flex items-center">
-                  {opt.logo ? (
-                    <img
-                      src={opt.logo}
-                      alt={opt.label}
-                      className="h-full w-auto object-contain max-w-[140px] dark:brightness-0 dark:invert"
-                    />
-                  ) : (
-                    <span className={`text-xl font-bold bg-gradient-to-r ${opt.gradient} bg-clip-text text-transparent`}>
-                      {opt.label}
-                    </span>
-                  )}
+                  <span className={`text-xl font-bold bg-gradient-to-r ${opt.gradient} bg-clip-text text-transparent`}>
+                    {opt.label}
+                  </span>
                 </div>
                 {isActive && (
                   <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
@@ -782,7 +763,7 @@ export default function UpdateCRM() {
                       <button
                         onClick={(e) => { e.stopPropagation(); connectSalesforce(); }}
                         disabled={sfBusy}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all disabled:opacity-50"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-[#00A1E0] to-[#032D60] rounded-xl hover:shadow-lg hover:shadow-[#00A1E0]/25 transition-all disabled:opacity-50"
                       >
                         {sfBusy ? (
                           <>
@@ -843,7 +824,7 @@ export default function UpdateCRM() {
                       <button
                         onClick={(e) => { e.stopPropagation(); connectHubspot(); }}
                         disabled={hsOAuthBusy}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-red-500 rounded-xl hover:shadow-lg hover:shadow-orange-500/25 transition-all disabled:opacity-50"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-[#FF7A59] to-[#FF5C35] rounded-xl hover:shadow-lg hover:shadow-[#FF7A59]/25 transition-all disabled:opacity-50"
                       >
                         {hsOAuthBusy ? (
                           <>
@@ -931,7 +912,7 @@ export default function UpdateCRM() {
                       <button
                         onClick={(e) => { e.stopPropagation(); connectPipedrive(); }}
                         disabled={pdOAuthBusy}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl hover:shadow-lg hover:shadow-green-500/25 transition-all disabled:opacity-50"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-[#017737] to-[#25D366] rounded-xl hover:shadow-lg hover:shadow-[#017737]/25 transition-all disabled:opacity-50"
                       >
                         {pdOAuthBusy ? (
                           <>
@@ -1018,7 +999,7 @@ export default function UpdateCRM() {
                       <button
                         onClick={(e) => { e.stopPropagation(); connectZoho(); }}
                         disabled={zohoOAuthBusy}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-yellow-500 rounded-xl hover:shadow-lg hover:shadow-red-500/25 transition-all disabled:opacity-50"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-[#E42527] to-[#F7B500] rounded-xl hover:shadow-lg hover:shadow-[#E42527]/25 transition-all disabled:opacity-50"
                       >
                         {zohoOAuthBusy ? (
                           <>

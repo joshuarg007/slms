@@ -1,10 +1,10 @@
 // src/components/ViewModeSelector.tsx
-// Switch between Manager, Marketer, and Rep views to emphasize relevant metrics
+// Switch between Executive, Sales, and Marketing views to emphasize relevant metrics
 
 import { motion } from "framer-motion";
 import { useGamification } from "@/contexts/GamificationContext";
 
-type ViewMode = "manager" | "marketer" | "rep";
+type ViewMode = "executive" | "sales" | "marketing";
 
 const VIEW_MODES: {
   value: ViewMode;
@@ -14,25 +14,25 @@ const VIEW_MODES: {
   emphasis: string[];
 }[] = [
   {
-    value: "manager",
-    label: "Manager",
-    icon: "👔",
-    description: "Team performance & coaching",
-    emphasis: ["Team KPIs", "Leaderboard", "Coaching Insights"],
+    value: "executive",
+    label: "Executive",
+    icon: "📈",
+    description: "High-level metrics & ROI",
+    emphasis: ["Revenue Impact", "Growth Trends", "Strategic KPIs"],
   },
   {
-    value: "marketer",
-    label: "Marketer",
+    value: "sales",
+    label: "Sales",
+    icon: "🎯",
+    description: "Team performance & pipeline",
+    emphasis: ["Team KPIs", "Pipeline Health", "Conversion Rates"],
+  },
+  {
+    value: "marketing",
+    label: "Marketing",
     icon: "📊",
     description: "Lead quality & campaign ROI",
-    emphasis: ["Lead Sources", "Conversion Rates", "Campaign Performance"],
-  },
-  {
-    value: "rep",
-    label: "Sales Rep",
-    icon: "🎯",
-    description: "Personal pipeline & activities",
-    emphasis: ["My Pipeline", "Daily Activities", "Personal Goals"],
+    emphasis: ["Lead Sources", "Campaign Performance", "Attribution"],
   },
 ];
 
@@ -157,28 +157,28 @@ export default function ViewModeSelector({
 }
 
 // Helper hook to get view-specific content
-export function useViewModeContent<T>(content: { manager: T; marketer: T; rep: T }): T {
+export function useViewModeContent<T>(content: { executive: T; sales: T; marketing: T }): T {
   const { viewMode } = useGamification();
   return content[viewMode];
 }
 
 // Component to conditionally show content based on view mode
 export function ViewModeContent({
-  manager,
-  marketer,
-  rep,
+  executive,
+  sales,
+  marketing,
   children,
 }: {
-  manager?: React.ReactNode;
-  marketer?: React.ReactNode;
-  rep?: React.ReactNode;
+  executive?: React.ReactNode;
+  sales?: React.ReactNode;
+  marketing?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   const { viewMode } = useGamification();
 
-  if (viewMode === "manager" && manager !== undefined) return <>{manager}</>;
-  if (viewMode === "marketer" && marketer !== undefined) return <>{marketer}</>;
-  if (viewMode === "rep" && rep !== undefined) return <>{rep}</>;
+  if (viewMode === "executive" && executive !== undefined) return <>{executive}</>;
+  if (viewMode === "sales" && sales !== undefined) return <>{sales}</>;
+  if (viewMode === "marketing" && marketing !== undefined) return <>{marketing}</>;
   return <>{children}</>;
 }
 
@@ -187,20 +187,20 @@ export function ViewModeInsight({ className = "" }: { className?: string }) {
   const { viewMode } = useGamification();
 
   const insights: Record<ViewMode, { message: string; icon: string; color: string }> = {
-    manager: {
-      message: "Focus on your team's performance. Coach the bottom 20% to lift the whole group.",
-      icon: "👔",
-      color: "from-blue-500 to-indigo-600",
+    executive: {
+      message: "Focus on ROI and strategic growth. Every lead captured is pipeline for tomorrow's revenue.",
+      icon: "📈",
+      color: "from-purple-500 to-indigo-600",
     },
-    marketer: {
+    sales: {
+      message: "Monitor your team's pipeline health. Coach the bottom 20% to lift the whole group.",
+      icon: "🎯",
+      color: "from-blue-500 to-cyan-600",
+    },
+    marketing: {
       message: "Track lead quality by source. The 80/20 rule: 20% of sources bring 80% of revenue.",
       icon: "📊",
       color: "from-emerald-500 to-teal-600",
-    },
-    rep: {
-      message: "Work your pipeline daily. Small consistent actions compound into big results.",
-      icon: "🎯",
-      color: "from-amber-500 to-orange-600",
     },
   };
 

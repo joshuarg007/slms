@@ -49,8 +49,8 @@ interface GamificationState {
   skipTutorial: () => void;
 
   // View mode
-  viewMode: "manager" | "marketer" | "rep";
-  setViewMode: (mode: "manager" | "marketer" | "rep") => void;
+  viewMode: "executive" | "sales" | "marketing";
+  setViewMode: (mode: "executive" | "sales" | "marketing") => void;
 }
 
 const GamificationContext = createContext<GamificationState | undefined>(undefined);
@@ -78,7 +78,7 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
   const [tutorialStep, setTutorialStepState] = useState(0);
 
   // View mode
-  const [viewMode, setViewModeState] = useState<"manager" | "marketer" | "rep">("manager");
+  const [viewMode, setViewModeState] = useState<"executive" | "sales" | "marketing">("executive");
 
   // Load from localStorage
   useEffect(() => {
@@ -99,8 +99,11 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
       }
 
       const storedViewMode = localStorage.getItem(STORAGE_KEYS.viewMode);
-      if (storedViewMode) {
-        setViewModeState(storedViewMode as "manager" | "marketer" | "rep");
+      if (storedViewMode && ["executive", "sales", "marketing"].includes(storedViewMode)) {
+        setViewModeState(storedViewMode as "executive" | "sales" | "marketing");
+      } else if (storedViewMode) {
+        // Clear invalid old values (e.g., "manager", "marketer", "sales_rep")
+        localStorage.removeItem(STORAGE_KEYS.viewMode);
       }
     } catch {
       // Ignore localStorage errors
@@ -135,7 +138,7 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
     } catch { /* ignore */ }
   }, []);
 
-  const setViewMode = useCallback((mode: "manager" | "marketer" | "rep") => {
+  const setViewMode = useCallback((mode: "executive" | "sales" | "marketing") => {
     setViewModeState(mode);
     try {
       localStorage.setItem(STORAGE_KEYS.viewMode, mode);
