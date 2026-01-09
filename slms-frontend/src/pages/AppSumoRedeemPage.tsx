@@ -135,35 +135,35 @@ export default function AppSumoRedeemPage() {
   if (!checking && status?.is_appsumo) {
     return (
       <div className="max-w-2xl mx-auto p-6">
-        <div className="bg-white rounded-lg shadow-sm border p-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8">
           <div className="text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">AppSumo Lifetime License Active</h1>
-            <p className="text-gray-600 mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">AppSumo Lifetime License Active</h1>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
               Your organization already has an active AppSumo lifetime license.
             </p>
 
-            <div className="bg-gray-50 rounded-lg p-4 text-left mb-6">
+            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 text-left mb-6">
               <dl className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Code</dt>
-                  <dd className="font-mono text-gray-900">{status.code_redeemed}</dd>
+                  <dt className="text-gray-500 dark:text-gray-400">Code</dt>
+                  <dd className="font-mono text-gray-900 dark:text-white">{status.code_redeemed}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Addendum Version</dt>
-                  <dd className="text-gray-900">{status.addendum_version}</dd>
+                  <dt className="text-gray-500 dark:text-gray-400">Addendum Version</dt>
+                  <dd className="text-gray-900 dark:text-white">{status.addendum_version}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Accepted By</dt>
-                  <dd className="text-gray-900">{status.accepted_by_email}</dd>
+                  <dt className="text-gray-500 dark:text-gray-400">Accepted By</dt>
+                  <dd className="text-gray-900 dark:text-white">{status.accepted_by_email}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Accepted At</dt>
-                  <dd className="text-gray-900">
+                  <dt className="text-gray-500 dark:text-gray-400">Accepted At</dt>
+                  <dd className="text-gray-900 dark:text-white">
                     {status.accepted_at ? new Date(status.accepted_at).toLocaleDateString() : "—"}
                   </dd>
                 </div>
@@ -186,19 +186,19 @@ export default function AppSumoRedeemPage() {
   if (success) {
     return (
       <div className="max-w-2xl mx-auto p-6">
-        <div className="bg-white rounded-lg shadow-sm border p-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8">
           <div className="text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Lifetime License Activated!</h1>
-            <p className="text-gray-600 mb-6">{success.message}</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Lifetime License Activated!</h1>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">{success.message}</p>
 
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-left mb-6">
-              <h3 className="font-semibold text-green-900 mb-3">Your Plan Includes:</h3>
-              <ul className="space-y-2 text-sm text-green-800">
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-left mb-6">
+              <h3 className="font-semibold text-green-900 dark:text-green-300 mb-3">Your Plan Includes:</h3>
+              <ul className="space-y-2 text-sm text-green-800 dark:text-green-300">
                 <li className="flex items-center gap-2">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -242,7 +242,7 @@ export default function AppSumoRedeemPage() {
   if (checking) {
     return (
       <div className="max-w-2xl mx-auto p-6">
-        <div className="bg-white rounded-lg shadow-sm border p-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8">
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
@@ -254,10 +254,10 @@ export default function AppSumoRedeemPage() {
   // Redemption form
   return (
     <div className="max-w-2xl mx-auto p-6">
-      <div className="bg-white rounded-lg shadow-sm border p-8">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Redeem AppSumo Code</h1>
-          <p className="text-gray-600">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Redeem AppSumo Code</h1>
+          <p className="text-gray-600 dark:text-gray-300">
             Enter your AppSumo code to activate your lifetime license
           </p>
         </div>
@@ -265,7 +265,7 @@ export default function AppSumoRedeemPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Code Input */}
           <div>
-            <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="code" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               AppSumo Code
             </label>
             <input
@@ -274,7 +274,7 @@ export default function AppSumoRedeemPage() {
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               placeholder="XXXXX-XXXXX-XXXXX"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg font-mono text-lg tracking-wider focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg font-mono text-lg tracking-wider focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
               required
               disabled={loading}
             />
@@ -282,12 +282,12 @@ export default function AppSumoRedeemPage() {
 
           {/* Addendum Summary */}
           {addendum && (
-            <div className="bg-gray-50 rounded-lg p-4 border">
-              <h3 className="font-semibold text-gray-900 mb-3">
+            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
                 AppSumo Lifetime License Addendum (v{addendum.version})
               </h3>
 
-              <div className="text-sm text-gray-600 space-y-2 mb-4">
+              <div className="text-sm text-gray-600 dark:text-gray-300 space-y-2 mb-4">
                 <p><strong>License Type:</strong> {addendum.summary.license_type}</p>
                 <p><strong>Leads per Month:</strong> {addendum.summary.leads_per_month.toLocaleString()} (hard cap)</p>
                 <p><strong>Forms:</strong> {addendum.summary.forms}</p>
@@ -303,7 +303,7 @@ export default function AppSumoRedeemPage() {
                 href={addendum.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
               >
                 Read Full Addendum &rarr;
               </a>
@@ -317,17 +317,17 @@ export default function AppSumoRedeemPage() {
               id="accept"
               checked={acceptAddendum}
               onChange={(e) => setAcceptAddendum(e.target.checked)}
-              className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              className="mt-1 h-4 w-4 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 bg-white dark:bg-gray-900"
               required
               disabled={loading}
             />
-            <label htmlFor="accept" className="text-sm text-gray-700">
+            <label htmlFor="accept" className="text-sm text-gray-700 dark:text-gray-300">
               I have read and accept the{" "}
               <a
                 href={addendum?.url || "#"}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 underline"
+                className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 underline"
               >
                 AppSumo Lifetime License Addendum
               </a>
@@ -337,7 +337,7 @@ export default function AppSumoRedeemPage() {
 
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm">
               {error}
             </div>
           )}
@@ -346,7 +346,7 @@ export default function AppSumoRedeemPage() {
           <button
             type="submit"
             disabled={loading || !code.trim() || !acceptAddendum}
-            className="w-full py-3 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+            className="w-full py-3 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
@@ -362,7 +362,7 @@ export default function AppSumoRedeemPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-xs text-gray-500 text-center">
+        <p className="mt-6 text-xs text-gray-500 dark:text-gray-400 text-center">
           By redeeming this code, you agree to the AppSumo Lifetime License Addendum
           and our standard Terms of Service.
         </p>

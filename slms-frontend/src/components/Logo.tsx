@@ -5,9 +5,9 @@ import logoDark from "@/assets/site2crm_logo_dark.png";
 
 // Centralized logo sizing - update here to change everywhere
 const LOGO_SIZES = {
-  sm: "w-40",   // 160px - for footers, sidebars
-  md: "w-52",   // 208px - default
-  lg: "w-64",   // 256px - for hero sections, login pages
+  sm: "w-28",   // 112px - for footers, sidebars
+  md: "w-36",   // 144px - default
+  lg: "w-48",   // 192px - for hero sections, login pages
 } as const;
 
 type LogoSize = keyof typeof LOGO_SIZES;
