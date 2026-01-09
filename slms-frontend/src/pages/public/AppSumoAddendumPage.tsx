@@ -89,7 +89,7 @@ export default function AppSumoAddendumPage() {
                 <tbody className="text-gray-600 dark:text-gray-400">
                   <tr>
                     <td className="border border-gray-300 dark:border-gray-700 px-4 py-2">Leads per calendar month</td>
-                    <td className="border border-gray-300 dark:border-gray-700 px-4 py-2 font-semibold">1,500 (hard cap)</td>
+                    <td className="border border-gray-300 dark:border-gray-700 px-4 py-2 font-semibold">1,000 (hard cap)</td>
                   </tr>
                   <tr className="bg-gray-50 dark:bg-gray-900">
                     <td className="border border-gray-300 dark:border-gray-700 px-4 py-2">Active form configurations</td>

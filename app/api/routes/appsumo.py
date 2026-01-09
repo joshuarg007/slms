@@ -263,7 +263,7 @@ def get_addendum_text():
         "url": "https://site2crm.io/legal/appsumo-addendum",
         "summary": {
             "license_type": "Lifetime, non-transferable",
-            "leads_per_month": 1500,
+            "leads_per_month": 1000,
             "crm_integrations": 2,
             "forms": 2,
             "ai_features": False,

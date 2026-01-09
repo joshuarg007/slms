@@ -304,7 +304,7 @@ FRONTEND_BASE_URL=https://site2crm.io
 |------|---------|--------|----------|
 | Starter | $29 | $290 | 500 leads/mo, 1 CRM |
 | Pro | $79 | $790 | Unlimited leads, all CRMs, AI features |
-| AppSumo Lifetime | $199 one-time | — | 1,500 leads/mo, 2 CRMs, 2 forms (lifetime access) |
+| AppSumo Lifetime | $249 one-time | — | 1,000 leads/mo, 2 CRMs, 2 forms (lifetime access) |
 
 ### AppSumo Integration
 Site2CRM is available on [AppSumo](https://appsumo.com) as a lifetime deal. AppSumo customers redeem codes at `/app/appsumo` and accept the Lifetime License Addendum. Codes are managed via admin endpoints (`/api/appsumo/admin/codes/*`).
