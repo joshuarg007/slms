@@ -68,14 +68,14 @@ export default function AppSumoRedeemPage() {
 
       try {
         // Fetch addendum (public endpoint)
-        const addendumRes = await fetch(`${API}/api/appsumo/addendum`);
+        const addendumRes = await fetch(`${API}/appsumo/addendum`);
         if (addendumRes.ok) {
           setAddendum(await addendumRes.json());
         }
 
         // Fetch current status (requires auth)
         if (token) {
-          const statusRes = await fetch(`${API}/api/appsumo/status`, {
+          const statusRes = await fetch(`${API}/appsumo/status`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (statusRes.ok) {
@@ -105,7 +105,7 @@ export default function AppSumoRedeemPage() {
     }
 
     try {
-      const res = await fetch(`${API}/api/appsumo/redeem`, {
+      const res = await fetch(`${API}/appsumo/redeem`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
