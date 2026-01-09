@@ -5,20 +5,43 @@
 ---
 
 ## SESSION STATE
-**Last Updated:** 2026-01-09
+**Last Updated:** 2026-01-08
 
 ### Where We Left Off:
-- AppSumo lifetime license integration COMPLETE and tested
-- Full redemption flow working in production
-- 110 codes in database (10 test, 100 production)
+- Pre-launch polish COMPLETE
+- GDPR compliance (data export + account deletion) COMPLETE
+- Favicons, OG image, health endpoint all done
+- Ready for UptimeRobot status page setup
 
 ### Immediate Next Steps:
-- Submit AppSumo marketplace application
-- Monitor first AppSumo redemptions
-- GDPR endpoints (data export/deletion)
+1. Set up UptimeRobot status page (see instructions below)
+2. Update footer status link with actual UptimeRobot URL
+3. Set up support@site2crm.io email forwarding
 
 ### Current Blockers:
 - None
+
+### UptimeRobot Setup Instructions:
+1. Sign up at https://uptimerobot.com/signUp
+2. Add monitors:
+   - Site2CRM Website: `https://site2crm.io`
+   - Site2CRM API: `https://api.site2crm.io/health` (keyword: "healthy")
+   - API Docs: `https://api.site2crm.io/docs`
+3. Create public status page
+4. Update `MarketingFooter.tsx` with actual status page URL
+
+### Recent Changes (2026-01-08):
+**Pre-Launch Polish (Complete):**
+- `app/api/routes/users.py` - GDPR endpoints (GET /users/me/export, DELETE /users/me)
+- `app/services/email.py` - Account deletion confirmation email
+- `slms-frontend/src/pages/AccountPage.tsx` - Data Privacy section with export/delete UI
+- `slms-frontend/src/pages/public/HelpPage.tsx` - Added GDPR FAQ items
+- `slms-frontend/public/` - Complete favicon set (ico, 16x16, 32x32, apple-touch, android-chrome)
+- `slms-frontend/public/og-image.png` - Fixed branding (Site2CRM + correct tagline)
+- `slms-frontend/public/site.webmanifest` - PWA manifest
+- `slms-frontend/index.html` - Updated favicon references
+- `app/api/routes/core.py` - Enhanced /health endpoint with DB check
+- `slms-frontend/src/components/marketing/MarketingFooter.tsx` - Status + Email links
 
 ### Recent Changes (2026-01-09):
 **AppSumo Integration (Complete):**
@@ -27,7 +50,7 @@
 - `slms-frontend/src/pages/AppSumoRedeemPage.tsx` - Redemption UI with dark mode
 - `slms-frontend/src/pages/BillingPage.tsx` - Shows AppSumo plan details
 - `app/services/email.py` - AppSumo welcome email template
-- `app/core/plans.py` - AppSumo plan limits (1500 leads, 2 CRMs, 2 forms)
+- `app/core/plans.py` - AppSumo plan limits (1000 leads, 2 CRMs, 2 forms)
 - Created `appsumo_codes` table in production PostgreSQL
 
 **UI Improvements (2026-01-09):**
@@ -213,10 +236,12 @@ ssh -i /home/joshua/AllProjects/slms/site2crm-key.pem ubuntu@34.230.32.54 \
 - [x] **Request Timing Alerts** ✅ COMPLETE (Phase 1)
   - Logging middleware warns for requests > 1 second
   - X-Process-Time header on all responses
-- [ ] **GDPR Compliance**
-  - `DELETE /api/users/{id}` - Account deletion with data anonymization
-  - `GET /api/users/{id}/export` - Data export (JSON download)
-  - Add audit logging for PII access
+- [x] **GDPR Compliance** ✅ COMPLETE (2026-01-08)
+  - `DELETE /api/users/me` - Account deletion with email confirmation
+  - `GET /api/users/me/export` - Data export (JSON download)
+  - Account deletion confirmation email
+  - Data Privacy section in Account page
+  - FAQ updated with GDPR questions
 
 ### Phase 3 - Scaling & Hardening (Target: Month 1)
 - [ ] **Redis-backed Rate Limiting**

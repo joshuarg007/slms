@@ -3,16 +3,26 @@
 This document tracks planned future requirements and their implementation order.
 Development priorities are sequenced for maximum business value and scalability.
 
-**Last Updated:** 2026-01-09
+**Last Updated:** 2026-01-08
 
 ---
 
 ## Recently Completed ✅
 
+### Pre-Launch Polish (2026-01-08)
+- [x] GDPR Compliance (data export + account deletion)
+- [x] Help Center / FAQ page with GDPR info
+- [x] Complete favicon set (ico, png sizes, apple-touch, android-chrome)
+- [x] PWA manifest (site.webmanifest)
+- [x] Fixed OG image (correct branding + tagline)
+- [x] Health endpoint with database check (`/health`, `/healthz`)
+- [x] Status page link in footer (UptimeRobot ready)
+- [x] Contact email in footer (labs@axiondeep.com)
+
 ### AppSumo Lifetime Deal (2026-01-09)
 - [x] AppSumo code redemption system (`/api/appsumo/redeem`)
 - [x] Lifetime License Addendum acceptance flow
-- [x] AppSumo plan limits (1,500 leads, 2 CRMs, 2 forms)
+- [x] AppSumo plan limits (1,000 leads, 2 CRMs, 2 forms)
 - [x] Admin code management endpoints (`/api/appsumo/admin/codes/*`)
 - [x] Welcome email for AppSumo customers
 - [x] Redemption UI with dark mode support
@@ -55,7 +65,7 @@ Development priorities are sequenced for maximum business value and scalability.
 - [ ] Gems/ads gamification for freemium orgs
 - [ ] Referral / invite system (reward orgs for inviting)
 - [x] Public landing page (site2crm.io)
-- [ ] Help center / FAQ page
+- [x] Help center / FAQ page ✅ COMPLETE
 
 ## 4. Billing & Subscription
 - [x] Stripe subscription integration
@@ -66,7 +76,7 @@ Development priorities are sequenced for maximum business value and scalability.
 - [ ] Admin-only subscription view in Settings
 
 ## 5. Compliance & Security
-- [ ] GDPR/CCPA features (right-to-be-forgotten, export, consent management)
+- [x] GDPR/CCPA features (data export, account deletion) ✅ COMPLETE
 - [ ] Audit logs (user actions tracked per org)
 - [ ] Data retention policies (auto-delete stale leads)
 
@@ -80,8 +90,9 @@ Development priorities are sequenced for maximum business value and scalability.
 
 ## 7. Observability & Monitoring
 - [x] Sentry error tracking (frontend + backend)
-- [ ] Google Analytics 4 / Plausible
-- [ ] Status page (UptimeRobot / Betterstack)
+- [x] Google Analytics 4 ✅ COMPLETE
+- [x] Health endpoint (`/health`) with database check ✅ COMPLETE
+- [x] Status page ready (UptimeRobot link in footer) ✅ COMPLETE
 - [ ] APM (Application Performance Monitoring)
 
 ## 8. Marketing & Growth
@@ -94,7 +105,7 @@ Development priorities are sequenced for maximum business value and scalability.
 
 ## Priority Queue (Next Up)
 
-1. **GDPR Compliance** - Data export/deletion endpoints
+1. **Set up UptimeRobot** - Create monitors and status page, update footer URL
 2. **Zoho Integration** - Complete CRM coverage
-3. **Help Center** - Reduce support load
-4. **Redis Rate Limiting** - Enable horizontal scaling
+3. **Redis Rate Limiting** - Enable horizontal scaling
+4. **Audit Logs** - Track user actions per org
