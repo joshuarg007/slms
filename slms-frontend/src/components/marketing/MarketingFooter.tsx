@@ -7,10 +7,12 @@ const FOOTER_LINKS = {
     { to: "/pricing", label: "Pricing" },
     { to: "/help", label: "Help Center" },
     { to: "/contact", label: "Contact Sales" },
+    { href: "https://stats.uptimerobot.com/site2crm", label: "Status", external: true },
   ],
   Company: [
     { to: "/about", label: "About" },
     { to: "/contact", label: "Contact" },
+    { href: "mailto:labs@axiondeep.com", label: "Email Us", external: true },
     { href: "https://axiondeep.com", label: "Axion Deep", external: true },
   ],
   "More Products": [
