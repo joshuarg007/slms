@@ -64,7 +64,7 @@ export default function AppSumoRedeemPage() {
   // Check current AppSumo status and fetch addendum
   useEffect(() => {
     const fetchData = async () => {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
 
       try {
         // Fetch addendum (public endpoint)
@@ -97,7 +97,7 @@ export default function AppSumoRedeemPage() {
     setError(null);
     setLoading(true);
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("access_token");
     if (!token) {
       setError("You must be logged in to redeem a code");
       setLoading(false);
