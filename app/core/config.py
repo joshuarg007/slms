@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     zoho_redirect_uri: str = ""  # e.g. https://api.site2crm.io/api/integrations/zoho/callback
     zoho_accounts_url: str = "https://accounts.zoho.com"  # US datacenter, use .eu/.in/.com.au for others
 
+    # Google OAuth (Social Login)
+    google_client_id: str = ""
+    google_client_secret: str = ""
+
     # Nutshell
     nutshell_username: str = ""   # e.g. your-account@domain.com
     nutshell_api_key: str = ""    # Nutshell API key

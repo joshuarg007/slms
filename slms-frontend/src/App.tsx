@@ -33,6 +33,7 @@ function PageLoader() {
 // Auth pages - keep these sync for fast auth flow
 import LoginPage from "@/pages/LoginPage";
 import SignupPage from "@/pages/SignupPage";
+import GoogleAuthSuccessPage from "@/pages/GoogleAuthSuccessPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import VerifyEmailPage from "@/pages/VerifyEmailPage";
@@ -108,6 +109,7 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/auth/google/success" element={<GoogleAuthSuccessPage />} />
 
           {/* Protected App Routes */}
           <Route path="/app" element={<ProtectedRoute />}>
