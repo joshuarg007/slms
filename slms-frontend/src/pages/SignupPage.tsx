@@ -43,13 +43,13 @@ export default function SignupPage() {
       if (!res.ok) {
         throw new Error(data.detail || `Signup failed: ${res.status}`);
       }
-      // Check if email verification is required
+      // Always redirect to login after signup
       if (data.email_verification_required) {
-        setOk("Account created! Please check your email to verify your account before signing in.");
+        setOk("Account created! Please check your email to verify your account. Redirecting to sign in...");
       } else {
-        setOk("Account created! Redirecting to login...");
-        setTimeout(() => nav("/login", { replace: true }), 1500);
+        setOk("Account created! Redirecting to sign in...");
       }
+      setTimeout(() => nav("/login", { replace: true }), 2000);
     } catch (e: any) {
       setErr(e?.message || "Signup failed");
     } finally {
