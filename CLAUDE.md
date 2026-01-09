@@ -5,19 +5,35 @@
 ---
 
 ## SESSION STATE
-**Last Updated:** 2026-01-08
+**Last Updated:** 2026-01-09
 
 ### Where We Left Off:
-- Completed Phase 1 production readiness (logging, errors, config)
-- Completed Phase 2 (Sentry done by user, automated tests, request timing)
-- Only GDPR compliance remains in Phase 2
+- AppSumo lifetime license integration COMPLETE and tested
+- Full redemption flow working in production
+- 110 codes in database (10 test, 100 production)
 
 ### Immediate Next Steps:
+- Submit AppSumo marketplace application
+- Monitor first AppSumo redemptions
 - GDPR endpoints (data export/deletion)
-- Begin Phase 3 when ready (Redis rate limiting, blue/green deploy)
 
 ### Current Blockers:
 - None
+
+### Recent Changes (2026-01-09):
+**AppSumo Integration (Complete):**
+- `app/api/routes/appsumo.py` - Full AppSumo code redemption system
+- `app/db/models.py` - AppSumoCode model + org fields (appsumo_code, addendum fields)
+- `slms-frontend/src/pages/AppSumoRedeemPage.tsx` - Redemption UI with dark mode
+- `slms-frontend/src/pages/BillingPage.tsx` - Shows AppSumo plan details
+- `app/services/email.py` - AppSumo welcome email template
+- `app/core/plans.py` - AppSumo plan limits (1500 leads, 2 CRMs, 2 forms)
+- Created `appsumo_codes` table in production PostgreSQL
+
+**UI Improvements (2026-01-09):**
+- Reduced logo sizes across app (sm=112px, md=144px, lg=192px)
+- Fixed CRM error messaging with "Connect CRM" buttons
+- StylesPage: Changed save notification from banner to toast
 
 ### Recent Changes (2026-01-08):
 **Phase 1 (Complete):**
@@ -158,6 +174,16 @@ ssh -i /home/joshua/AllProjects/slms/site2crm-key.pem ubuntu@34.230.32.54 \
 |------|---------|--------|-----------|
 | Starter | $29 | $290 | price_1Sm2MgDONWOyN0HvUXfvluYZ (mo), price_1Sm2MgDONWOyN0Hv2KlY3vqs (yr) |
 | Pro | $79 | $790 | price_1Sm2OQDONWOyN0HvC6Wgi0NN (mo), price_1Sm2OQDONWOyN0HvK1JwQasi (yr) |
+| AppSumo | $69 one-time | Lifetime | No Stripe - codes redeemed at `/app/appsumo` |
+
+### AppSumo Plan Limits
+- 1,500 leads/month (hard cap)
+- 2 CRM integrations
+- 2 active forms
+- No AI features
+- No branding removal
+- No priority support
+- Non-transferable, no upgrade path
 
 ---
 
