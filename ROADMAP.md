@@ -101,6 +101,17 @@ Development priorities are sequenced for maximum business value and scalability.
 - [x] API documentation (OpenAPI/Swagger at /docs)
 - [ ] Case studies / testimonials page
 
+## 9. Professional Polish
+- [ ] Social Login (Google, Facebook, Apple)
+- [ ] Two-Factor Authentication (2FA)
+- [ ] Onboarding wizard (guided setup for new users)
+- [ ] API keys for developers (public API access)
+- [ ] Webhooks (send lead data to custom endpoints)
+- [ ] Custom email templates (branded notifications)
+- [ ] SSO / SAML (Enterprise single sign-on)
+- [ ] Audit logs (track user actions per org)
+- [ ] Custom domains (white-label form embeds)
+
 ---
 
 ## Priority Queue (Next Up)
