@@ -216,30 +216,15 @@ export default function SalespeoplePage() {
         <RotatingWisdom />
       </header>
 
-      {/* Error/Warning */}
-      {error && (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/20 px-4 py-4 text-sm">
-          <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      {/* Only show error for auth issues */}
+      {error && error.toLowerCase().includes("not logged in") && (
+        <div className="flex items-start gap-3 rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 px-4 py-4 text-sm">
+          <svg className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <div className="flex-1">
-            <div className="font-medium text-amber-800 dark:text-amber-200">
-              {error.toLowerCase().includes("credentials") || error.toLowerCase().includes("not configured")
-                ? "CRM not connected"
-                : "CRM data unavailable"}
-            </div>
-            <p className="mt-1 text-amber-700 dark:text-amber-300">{error}</p>
-            {(error.toLowerCase().includes("credentials") || error.toLowerCase().includes("integrations")) && (
-              <a
-                href="/app/integrations"
-                className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                </svg>
-                Connect CRM
-              </a>
-            )}
+            <div className="font-medium text-red-800 dark:text-red-200">Authentication required</div>
+            <p className="mt-1 text-red-700 dark:text-red-300">{error}</p>
           </div>
         </div>
       )}
@@ -257,23 +242,32 @@ export default function SalespeoplePage() {
         </div>
       )}
 
-      {/* Empty State */}
-      {!loading && !error && mergedRows.length === 0 && (
+      {/* Empty State - show when no data OR non-auth errors */}
+      {!loading && (mergedRows.length === 0 || (error && !error.toLowerCase().includes("not logged in"))) && (
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg p-12 text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
             <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No salesperson data</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No salesperson data yet</h3>
           <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
             Connect your CRM to see salesperson activity and performance metrics here.
           </p>
+          <a
+            href="/app/integrations"
+            className="inline-flex items-center gap-2 mt-6 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+            Connect CRM
+          </a>
         </div>
       )}
 
-      {/* Content */}
-      {!loading && !error && mergedRows.length > 0 && (
+      {/* Content - show when we have data and no errors */}
+      {!loading && mergedRows.length > 0 && !error && (
         <>
           {viewMode === "scoreboard" ? (
             <SalesScoreboard data={mergedRows} days={days} />
