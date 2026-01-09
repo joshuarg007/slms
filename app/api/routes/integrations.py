@@ -4,9 +4,11 @@ from typing import List, Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.db import models
 from app.api.deps.auth import get_db, get_current_user
+from app.core.plans import get_plan_limits
 
 router = APIRouter(prefix="/integrations", tags=["Integrations"])
 
@@ -74,6 +76,42 @@ def upsert_credential(
     if not org_id:
         raise HTTPException(status_code=403, detail="No organization")
 
+    # Get organization and plan limits
+    org = db.get(models.Organization, org_id)
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    limits = get_plan_limits(org.plan)
+
+    # Check if this is a NEW provider (not updating existing)
+    existing_for_provider = (
+        db.query(models.IntegrationCredential)
+        .filter(
+            models.IntegrationCredential.organization_id == org_id,
+            models.IntegrationCredential.provider == payload.provider,
+        )
+        .first()
+    )
+
+    # If adding a new provider, check CRM integration limit
+    if not existing_for_provider and limits.crm_integrations != -1:
+        # Count distinct active providers for this org
+        active_provider_count = (
+            db.query(func.count(func.distinct(models.IntegrationCredential.provider)))
+            .filter(
+                models.IntegrationCredential.organization_id == org_id,
+                models.IntegrationCredential.is_active == True,  # noqa: E712
+            )
+            .scalar()
+        ) or 0
+
+        if active_provider_count >= limits.crm_integrations:
+            raise HTTPException(
+                status_code=403,
+                detail=f"CRM integration limit reached ({active_provider_count}/{limits.crm_integrations}). "
+                       f"Your plan allows {limits.crm_integrations} CRM integration(s)."
+            )
+
     # Optionally deactivate other credentials for this provider
     if payload.activate:
         db.query(models.IntegrationCredential).filter(
@@ -82,7 +120,7 @@ def upsert_credential(
             models.IntegrationCredential.is_active == True,  # noqa: E712
         ).update({models.IntegrationCredential.is_active: False})
 
-    # Upsert: if there’s already a row with same provider+org+auth_type,
+    # Upsert: if there's already a row with same provider+org+auth_type,
     # update it; else insert a new one.
     existing = (
         db.query(models.IntegrationCredential)

@@ -266,9 +266,20 @@ def get_subscription_status(
     ai_limit = limits.ai_messages_per_month
     ai_remaining = -1 if ai_limit == -1 else max(0, ai_limit - org.ai_messages_this_month) if ai_limit > 0 else 0
 
+    # Calculate usage percentage for in-app meter
+    leads_used_pct = 0
+    if limits.leads_per_month > 0:
+        leads_used_pct = min(100, round((org.leads_this_month / limits.leads_per_month) * 100, 1))
+
+    # Determine if this is an AppSumo lifetime deal
+    plan_source = getattr(org, "plan_source", "stripe")
+    is_lifetime = plan_source == "appsumo" or org.billing_cycle == "lifetime"
+
     return {
         "plan": org.plan,
+        "plan_source": plan_source,
         "billing_cycle": org.billing_cycle,
+        "is_lifetime": is_lifetime,
         "subscription_status": org.subscription_status,
         "current_period_end": org.current_period_end.isoformat() if org.current_period_end else None,
         "trial_ends_at": org.trial_ends_at.isoformat() if org.trial_ends_at else None,
@@ -278,6 +289,7 @@ def get_subscription_status(
             "leads_this_month": org.leads_this_month,
             "leads_limit": limits.leads_per_month,
             "leads_remaining": max(0, limits.leads_per_month - org.leads_this_month) if limits.leads_per_month > 0 else -1,
+            "leads_used_pct": leads_used_pct,
             "ai_messages_this_month": org.ai_messages_this_month,
             "ai_messages_limit": ai_limit,
             "ai_messages_remaining": ai_remaining,

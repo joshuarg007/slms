@@ -270,11 +270,18 @@ def public_create_lead(
         is_new = False
     else:
         # Check lead limit before creating
-        allowed, current_count, limit = lead_crud.check_lead_limit(db, org.id)
+        allowed, current_count, limit, is_hard_limit = lead_crud.check_lead_limit(db, org.id)
         if not allowed:
-            # Soft limit: still accept the lead but flag it
-            # In a hard limit scenario, you could raise an HTTPException here
-            logger.warning(f"Org {org.id} exceeded lead limit ({current_count}/{limit})")
+            if is_hard_limit:
+                # Hard limit (AppSumo): reject with 429 Too Many Requests
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Monthly lead limit reached ({current_count}/{limit}). Limit resets on the 1st of next month.",
+                    headers={"Retry-After": "86400"}  # Suggest retry in 24 hours
+                )
+            else:
+                # Soft limit: accept the lead but log warning
+                logger.warning(f"Org {org.id} exceeded lead limit ({current_count}/{limit})")
 
         # Create new lead with sanitized data
         lead = LeadCreate(**{k: v for k, v in sanitized_data.items() if k in KNOWN_LEAD_FIELDS or k == "organization_id"})

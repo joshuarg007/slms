@@ -60,8 +60,9 @@ class Organization(Base):
 
     stripe_customer_id = Column(String, index=True, nullable=True)
     stripe_subscription_id = Column(String, index=True, nullable=True)
-    plan = Column(String, nullable=False, default="free")  # free, trial, starter, pro, pro_ai, enterprise
-    billing_cycle = Column(String, nullable=False, default="monthly")  # monthly, annual
+    plan = Column(String, nullable=False, default="free")  # free, trial, starter, appsumo, pro, pro_ai, enterprise
+    plan_source = Column(String(20), nullable=False, default="stripe")  # stripe, appsumo, manual
+    billing_cycle = Column(String, nullable=False, default="monthly")  # monthly, annual, lifetime
     subscription_status = Column(String, nullable=False, default="inactive")  # inactive, trialing, active, past_due, canceled
     current_period_end = Column(DateTime, nullable=True)
     trial_ends_at = Column(DateTime, nullable=True)
@@ -71,12 +72,23 @@ class Organization(Base):
     leads_this_month = Column(Integer, nullable=False, default=0)
     leads_month_reset = Column(DateTime, nullable=True)  # When to reset the counter
 
+    # Usage alert tracking (reset monthly with leads_month_reset)
+    usage_alert_80_sent = Column(Boolean, nullable=False, default=False)
+    usage_alert_100_sent = Column(Boolean, nullable=False, default=False)
+
     # AI usage tracking
     ai_messages_this_month = Column(Integer, nullable=False, default=0)
     ai_messages_month_reset = Column(DateTime, nullable=True)
 
     # "hubspot" | "pipedrive" | "salesforce" (stringly-typed; validated at app layer)
     active_crm = Column(String(20), nullable=False, default="hubspot")
+
+    # AppSumo addendum acceptance (organization-level)
+    appsumo_code = Column(String(100), nullable=True, unique=True, index=True)  # The redeemed code
+    appsumo_addendum_accepted = Column(Boolean, nullable=False, default=False)
+    appsumo_addendum_version = Column(String(10), nullable=True)  # e.g., "1.0"
+    appsumo_addendum_accepted_at = Column(DateTime, nullable=True)
+    appsumo_addendum_accepted_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
 
 class Lead(Base):
@@ -154,6 +166,10 @@ class User(Base):
 
     # Cookie consent - tracked per user for compliance
     cookie_consent_at = Column(DateTime, nullable=True)
+
+    # AppSumo addendum acceptance (user-level audit trail)
+    accepted_appsumo_addendum_at = Column(DateTime, nullable=True)
+    accepted_appsumo_addendum_version = Column(String(10), nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -428,3 +444,45 @@ class Salesperson(Base):
 
     user = relationship("User", backref="salesperson_profile")
     organization = relationship("Organization", backref="salespeople")
+
+
+# AppSumo code status constants
+APPSUMO_CODE_UNUSED = "unused"
+APPSUMO_CODE_REDEEMED = "redeemed"
+APPSUMO_CODE_REVOKED = "revoked"
+
+APPSUMO_CODE_STATUSES = [
+    APPSUMO_CODE_UNUSED,
+    APPSUMO_CODE_REDEEMED,
+    APPSUMO_CODE_REVOKED,
+]
+
+
+class AppSumoCode(Base):
+    """AppSumo lifetime license codes."""
+
+    __tablename__ = "appsumo_codes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(100), unique=True, nullable=False, index=True)
+    status = Column(String(20), nullable=False, default=APPSUMO_CODE_UNUSED, index=True)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    redeemed_at = Column(DateTime, nullable=True)
+    revoked_at = Column(DateTime, nullable=True)
+
+    # Redemption tracking
+    redeemed_by_org_id = Column(
+        Integer,
+        ForeignKey("organizations.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    redeemed_by_org = relationship("Organization", backref="appsumo_code_record")
+
+    # Revocation reason (for audit)
+    revoked_reason = Column(String(255), nullable=True)
+
+    # Optional: batch identifier for bulk imports
+    batch_id = Column(String(50), nullable=True, index=True)

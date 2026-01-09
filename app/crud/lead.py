@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import List, Optional, Tuple, Dict, Any
 from sqlalchemy.orm import Session
@@ -6,6 +7,8 @@ from sqlalchemy import func, extract
 from app.db import models
 from app.schemas.lead import LeadCreate, LeadUpdate
 from app.core.plans import get_plan_limits
+
+logger = logging.getLogger(__name__)
 
 
 def get_leads(db: Session, organization_id: Optional[int] = None) -> List[models.Lead]:
@@ -22,15 +25,17 @@ def get_lead(db: Session, lead_id: int) -> Optional[models.Lead]:
     return db.query(models.Lead).filter(models.Lead.id == lead_id).first()
 
 
-def check_lead_limit(db: Session, organization_id: int) -> Tuple[bool, int, int]:
+def check_lead_limit(db: Session, organization_id: int) -> Tuple[bool, int, int, bool]:
     """
     Check if organization can create more leads this month.
-    Returns (allowed, current_count, limit).
+    Returns (allowed, current_count, limit, is_hard_limit).
     Also resets the monthly counter if needed.
+
+    Hard limit plans (appsumo) will return 429; soft limit plans log warning but accept.
     """
     org = db.get(models.Organization, organization_id)
     if not org:
-        return False, 0, 0
+        return False, 0, 0, True
 
     now = datetime.utcnow()
 
@@ -38,24 +43,97 @@ def check_lead_limit(db: Session, organization_id: int) -> Tuple[bool, int, int]
     if org.leads_month_reset is None or org.leads_month_reset.month != now.month or org.leads_month_reset.year != now.year:
         org.leads_this_month = 0
         org.leads_month_reset = now
+        # Also reset usage alert flags for new month
+        org.usage_alert_80_sent = False
+        org.usage_alert_100_sent = False
         db.commit()
 
     limits = get_plan_limits(org.plan)
 
+    # AppSumo plans have hard limits (429 when exceeded)
+    # Other plans have soft limits (warning only)
+    is_hard_limit = org.plan == "appsumo"
+
     # -1 means unlimited
     if limits.leads_per_month == -1:
-        return True, org.leads_this_month, -1
+        return True, org.leads_this_month, -1, False
 
     allowed = org.leads_this_month < limits.leads_per_month
-    return allowed, org.leads_this_month, limits.leads_per_month
+    return allowed, org.leads_this_month, limits.leads_per_month, is_hard_limit
 
 
 def increment_lead_count(db: Session, organization_id: int) -> None:
-    """Increment the lead counter for an organization."""
+    """Increment the lead counter for an organization and check usage thresholds."""
     org = db.get(models.Organization, organization_id)
     if org:
         org.leads_this_month += 1
         db.commit()
+
+        # Check if we need to send usage alerts
+        limits = get_plan_limits(org.plan)
+        if limits.leads_per_month > 0:  # Only for plans with limits
+            check_and_send_usage_alerts(db, org, limits.leads_per_month)
+
+
+def check_and_send_usage_alerts(db: Session, org: models.Organization, limit: int) -> None:
+    """
+    Check usage thresholds and send alert emails if needed.
+    Sends emails at 80% and 100% usage, once per month.
+    """
+    from app.services.email import send_usage_warning_email, send_usage_limit_reached_email
+
+    current = org.leads_this_month
+    percentage = int((current / limit) * 100)
+
+    # Get organization owner/admin emails for notifications
+    admin_emails = _get_org_admin_emails(db, org.id)
+    if not admin_emails:
+        logger.warning(f"No admin emails found for org {org.id}, skipping usage alerts")
+        return
+
+    # Check 100% threshold first (more important)
+    if percentage >= 100 and not getattr(org, 'usage_alert_100_sent', False):
+        try:
+            send_usage_limit_reached_email(
+                recipients=admin_emails,
+                organization_name=org.name,
+                limit=limit,
+            )
+            org.usage_alert_100_sent = True
+            db.commit()
+            logger.info(f"Sent 100% usage alert for org {org.id}")
+        except Exception as e:
+            logger.error(f"Failed to send 100% usage alert for org {org.id}: {e}")
+
+    # Check 80% threshold
+    elif percentage >= 80 and not getattr(org, 'usage_alert_80_sent', False):
+        try:
+            send_usage_warning_email(
+                recipients=admin_emails,
+                organization_name=org.name,
+                current_count=current,
+                limit=limit,
+                percentage=percentage,
+            )
+            org.usage_alert_80_sent = True
+            db.commit()
+            logger.info(f"Sent 80% usage alert for org {org.id}")
+        except Exception as e:
+            logger.error(f"Failed to send 80% usage alert for org {org.id}: {e}")
+
+
+def _get_org_admin_emails(db: Session, organization_id: int) -> List[str]:
+    """Get email addresses for org owners and admins for notifications."""
+    users = (
+        db.query(models.User)
+        .filter(
+            models.User.organization_id == organization_id,
+            models.User.role.in_(["OWNER", "ADMIN"]),
+            models.User.email_verified == True,  # noqa: E712
+        )
+        .all()
+    )
+    return [u.email for u in users if u.email]
 
 
 def create_lead(db: Session, lead_in: LeadCreate, enforce_limit: bool = True) -> models.Lead:

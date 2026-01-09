@@ -46,6 +46,7 @@ from app.api.routes import scoring as scoring_routes
 from app.api.routes import gamification as gamification_routes
 from app.api.routes import automation as automation_routes
 from app.api.routes import support as support_routes
+from app.api.routes import appsumo as appsumo_routes
 
 # Scheduler for digest emails
 from app.services.scheduler import start_scheduler, stop_scheduler
@@ -171,6 +172,7 @@ app.include_router(scoring_routes.router, prefix="/api", tags=["Lead Scoring"])
 app.include_router(gamification_routes.router, prefix="/api", tags=["Gamification"])
 app.include_router(automation_routes.router, prefix="/api", tags=["Automation"])
 app.include_router(support_routes.router, prefix="/api", tags=["Support"])
+app.include_router(appsumo_routes.router, prefix="/api", tags=["AppSumo"])
 
 # DB
 models.Base.metadata.create_all(bind=engine)

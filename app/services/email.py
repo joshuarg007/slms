@@ -1027,6 +1027,153 @@ View all recommendations in your Site2CRM dashboard.
     return send_email(subject, body_text, list(recipients), body_html)
 
 
+def send_usage_warning_email(
+    recipients: Iterable[str],
+    organization_name: Optional[str],
+    current_count: int,
+    limit: int,
+    percentage: int,
+) -> bool:
+    """
+    Send warning email when organization reaches 80% of lead limit.
+    """
+    org_label = organization_name or "Your organization"
+    remaining = limit - current_count
+    subject = f"Usage Alert: {percentage}% of Lead Limit Reached"
+
+    body_text = f"""
+Usage Warning
+
+{org_label} has used {current_count} of {limit} leads this month ({percentage}%).
+
+You have {remaining} leads remaining before reaching your monthly limit.
+
+When you reach the limit, new form submissions will be rejected until the next billing cycle.
+
+To avoid disruption:
+- Review your current lead volume
+- Consider upgrading your plan for higher limits
+- Pause campaigns if needed before hitting the cap
+
+View your usage: https://site2crm.io/app/billing
+
+- The Site2CRM Team
+"""
+
+    content = f"""
+<h1 style="margin: 0 0 16px; font-size: 24px; font-weight: 600; color: #d97706;">
+    Usage Warning
+</h1>
+<p style="margin: 0 0 24px; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+    {org_label} is approaching the monthly lead limit.
+</p>
+
+<div style="margin: 24px 0; padding: 24px; background-color: #fffbeb; border: 1px solid #fcd34d; border-radius: 12px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <span style="font-size: 14px; color: #92400e;">Leads Used</span>
+        <span style="font-size: 24px; font-weight: 700; color: #d97706;">{percentage}%</span>
+    </div>
+    <div style="background-color: #fef3c7; border-radius: 8px; height: 12px; overflow: hidden;">
+        <div style="background-color: #f59e0b; height: 100%; width: {percentage}%; border-radius: 8px;"></div>
+    </div>
+    <p style="margin: 16px 0 0; font-size: 14px; color: #92400e; text-align: center;">
+        <strong>{current_count}</strong> of <strong>{limit}</strong> leads &bull; <strong>{remaining}</strong> remaining
+    </p>
+</div>
+
+<p style="margin: 0 0 16px; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+    When you reach the limit, new form submissions will be <strong>rejected</strong> until the next billing cycle.
+</p>
+
+<h2 style="margin: 24px 0 12px; font-size: 18px; font-weight: 600; color: #18181b;">
+    To avoid disruption:
+</h2>
+<ul style="margin: 0 0 24px; padding-left: 20px; font-size: 16px; color: #3f3f46; line-height: 1.8;">
+    <li>Review your current lead volume</li>
+    <li>Consider upgrading your plan for higher limits</li>
+    <li>Pause campaigns if needed before hitting the cap</li>
+</ul>
+
+{_button_html("View Usage", "https://site2crm.io/app/billing", "#d97706")}
+"""
+
+    body_html = _base_html_template(content, f"You've used {percentage}% of your monthly lead limit")
+
+    return send_email(subject, body_text, list(recipients), body_html)
+
+
+def send_usage_limit_reached_email(
+    recipients: Iterable[str],
+    organization_name: Optional[str],
+    limit: int,
+) -> bool:
+    """
+    Send notification when organization hits 100% of lead limit.
+    """
+    org_label = organization_name or "Your organization"
+    subject = "Lead Limit Reached - Form Submissions Paused"
+
+    body_text = f"""
+Lead Limit Reached
+
+{org_label} has reached the monthly limit of {limit} leads.
+
+New form submissions are now being rejected and will not be captured until your limit resets on the 1st of next month.
+
+What this means:
+- Forms will return an error to visitors
+- No new leads will be stored or synced to your CRM
+- Existing leads are unaffected
+
+To resume capturing leads immediately, upgrade your plan.
+
+View your options: https://site2crm.io/app/billing
+
+- The Site2CRM Team
+"""
+
+    content = f"""
+<h1 style="margin: 0 0 16px; font-size: 24px; font-weight: 600; color: #dc2626;">
+    Lead Limit Reached
+</h1>
+<p style="margin: 0 0 24px; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+    {org_label} has reached the monthly limit of <strong>{limit} leads</strong>.
+</p>
+
+<div style="margin: 24px 0; padding: 24px; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; text-align: center;">
+    <div style="font-size: 48px; margin-bottom: 8px;">&#128683;</div>
+    <p style="margin: 0 0 8px; font-size: 18px; font-weight: 600; color: #dc2626;">
+        Form Submissions Paused
+    </p>
+    <p style="margin: 0; font-size: 14px; color: #991b1b;">
+        New leads will be rejected until limit resets
+    </p>
+</div>
+
+<h2 style="margin: 24px 0 12px; font-size: 18px; font-weight: 600; color: #18181b;">
+    What this means:
+</h2>
+<ul style="margin: 0 0 24px; padding-left: 20px; font-size: 16px; color: #3f3f46; line-height: 1.8;">
+    <li>Forms will return an error to visitors</li>
+    <li>No new leads will be stored or synced to your CRM</li>
+    <li>Existing leads are unaffected</li>
+</ul>
+
+<p style="margin: 0 0 8px; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+    Your limit will reset on the <strong>1st of next month</strong>.
+</p>
+<p style="margin: 0 0 24px; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+    To resume capturing leads immediately, upgrade your plan.
+</p>
+
+{_button_html("Upgrade Plan", "https://site2crm.io/app/billing", "#dc2626")}
+"""
+
+    body_html = _base_html_template(content, f"You've reached your monthly limit of {limit} leads")
+
+    return send_email(subject, body_text, list(recipients), body_html)
+
+
 def send_support_request_notification(
     recipients: Iterable[str],
     issue_type: str,

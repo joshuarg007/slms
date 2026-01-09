@@ -50,6 +50,15 @@ PLAN_LIMITS: Dict[str, PlanLimits] = {
         remove_branding=False,
         priority_support=False,
     ),
+    "appsumo": PlanLimits(
+        leads_per_month=1500,  # Hard cap, 429 after
+        forms=2,
+        crm_integrations=2,  # Max 2 CRM connections
+        ai_messages_per_month=0,  # No AI features
+        ai_features=[],
+        remove_branding=False,  # Branding stays
+        priority_support=False,  # No priority support
+    ),
     "pro": PlanLimits(
         leads_per_month=1000,
         forms=-1,  # Unlimited
