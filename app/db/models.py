@@ -180,7 +180,7 @@ class User(Base):
         index=True,
         nullable=False,
     )
-    organization = relationship("Organization", back_populates="users")
+    organization = relationship("Organization", back_populates="users", foreign_keys=[organization_id])
 
 
 class IntegrationCredential(Base):
