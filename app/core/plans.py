@@ -51,7 +51,7 @@ PLAN_LIMITS: Dict[str, PlanLimits] = {
         priority_support=False,
     ),
     "appsumo": PlanLimits(
-        leads_per_month=1000,  # Hard cap, 429 after
+        leads_per_month=1000,  # Hard cap - submissions blocked after limit
         forms=2,
         crm_integrations=2,  # Max 2 CRM connections
         ai_messages_per_month=0,  # No AI features

@@ -273,10 +273,10 @@ def public_create_lead(
         allowed, current_count, limit, is_hard_limit = lead_crud.check_lead_limit(db, org.id)
         if not allowed:
             if is_hard_limit:
-                # Hard limit (AppSumo): reject with 429 Too Many Requests
+                # Hard limit (AppSumo): reject with friendly user message
                 raise HTTPException(
                     status_code=429,
-                    detail=f"Monthly lead limit reached ({current_count}/{limit}). Limit resets on the 1st of next month.",
+                    detail="You've reached your monthly lead limit. Your limit resets on the 1st of next month. Need more capacity? Contact us to discuss options.",
                     headers={"Retry-After": "86400"}  # Suggest retry in 24 hours
                 )
             else:
