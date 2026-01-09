@@ -174,7 +174,7 @@ ssh -i /home/joshua/AllProjects/slms/site2crm-key.pem ubuntu@34.230.32.54 \
 |------|---------|--------|-----------|
 | Starter | $29 | $290 | price_1Sm2MgDONWOyN0HvUXfvluYZ (mo), price_1Sm2MgDONWOyN0Hv2KlY3vqs (yr) |
 | Pro | $79 | $790 | price_1Sm2OQDONWOyN0HvC6Wgi0NN (mo), price_1Sm2OQDONWOyN0HvK1JwQasi (yr) |
-| AppSumo | $69 one-time | Lifetime | No Stripe - codes redeemed at `/app/appsumo` |
+| AppSumo | $199 one-time | Lifetime | No Stripe - codes redeemed at `/app/appsumo` |
 
 ### AppSumo Plan Limits
 - 1,500 leads/month (hard cap)
