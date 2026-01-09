@@ -142,6 +142,16 @@ const FAQ_CATEGORIES: FAQCategory[] = [
         answer:
           "Never. Your data is yours. We don't sell, share, or monetize customer data in any way.",
       },
+      {
+        question: "How do I export my data?",
+        answer:
+          "Go to Settings > Account and click 'Export My Data'. You'll receive a JSON file containing all your personal data, leads, form configurations, and integration settings (excluding sensitive credentials).",
+      },
+      {
+        question: "How do I delete my account?",
+        answer:
+          "Go to Settings > Account and click 'Delete Account'. You'll need to confirm by typing your email. This permanently deletes your account, all leads, and organization data (if you're the sole member). This action cannot be undone.",
+      },
     ],
   },
 ];

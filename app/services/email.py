@@ -1341,3 +1341,75 @@ Please respond to this request within 24 hours.
     body_html = _base_html_template(content, f"Support request from {user_email}: {issue_label}")
 
     return send_email(subject, body_text, recipients, body_html)
+
+
+def send_account_deletion_email(
+    recipient: str,
+) -> bool:
+    """
+    GDPR: Send confirmation email after account deletion.
+    """
+    subject = "Your Site2CRM Account Has Been Deleted"
+
+    body_text = """
+Account Deletion Confirmation
+
+Your Site2CRM account and all associated data have been permanently deleted.
+
+What was deleted:
+- Your user account and login credentials
+- All leads captured through your forms
+- Form configurations
+- CRM integration settings
+- Organization data (if you were the only member)
+
+This action cannot be undone. If you deleted your account by mistake, you will need to create a new account.
+
+If you did not request this deletion, please contact us immediately at support@site2crm.io
+
+Thank you for using Site2CRM.
+
+- The Site2CRM Team
+"""
+
+    content = """
+<h1 style="margin: 0 0 16px; font-size: 24px; font-weight: 600; color: #18181b;">
+    Account Deleted
+</h1>
+<p style="margin: 0 0 24px; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+    Your Site2CRM account and all associated data have been permanently deleted.
+</p>
+
+<div style="margin: 24px 0; padding: 20px; background-color: #f4f4f5; border-radius: 12px;">
+    <h2 style="margin: 0 0 12px; font-size: 16px; font-weight: 600; color: #18181b;">
+        What was deleted:
+    </h2>
+    <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #52525b; line-height: 1.8;">
+        <li>Your user account and login credentials</li>
+        <li>All leads captured through your forms</li>
+        <li>Form configurations</li>
+        <li>CRM integration settings</li>
+        <li>Organization data (if you were the only member)</li>
+    </ul>
+</div>
+
+<div style="margin: 24px 0; padding: 16px; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;">
+    <p style="margin: 0; font-size: 14px; color: #dc2626; line-height: 1.5;">
+        <strong>This action cannot be undone.</strong> If you deleted your account by mistake,
+        you will need to create a new account.
+    </p>
+</div>
+
+<p style="margin: 0 0 16px; font-size: 14px; color: #71717a; line-height: 1.6;">
+    If you did not request this deletion, please contact us immediately at
+    <a href="mailto:support@site2crm.io" style="color: #dc2626; font-weight: 500;">support@site2crm.io</a>
+</p>
+
+<p style="margin: 0; font-size: 14px; color: #71717a; line-height: 1.6;">
+    Thank you for using Site2CRM.
+</p>
+"""
+
+    body_html = _base_html_template(content, "Your Site2CRM account has been deleted")
+
+    return send_email(subject, body_text, [recipient], body_html)

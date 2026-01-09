@@ -75,6 +75,16 @@ export default function AccountPage() {
     { action: "Account created", timestamp: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), ip: "Initial signup" },
   ]);
 
+  // GDPR - Data Export
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  // GDPR - Account Deletion
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   useEffect(() => {
     // Get browser info
     const getBrowserInfo = () => {
@@ -143,6 +153,67 @@ export default function AccountPage() {
     await new Promise((resolve) => setTimeout(resolve, 500));
     setNotifState("saved");
     setTimeout(() => setNotifState("idle"), 2000);
+  }
+
+  async function handleExportData() {
+    setExporting(true);
+    setExportError(null);
+
+    try {
+      const res = await authFetch(`${getApiBase()}/users/me/export`);
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || "Failed to export data");
+      }
+
+      // Get the JSON data
+      const data = await res.json();
+
+      // Create and download the file
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `site2crm_data_export_${new Date().toISOString().split("T")[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e: unknown) {
+      setExportError(e instanceof Error ? e.message : "Failed to export data");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (deleteConfirmEmail.toLowerCase() !== currentUserEmail.toLowerCase()) {
+      setDeleteError("Email does not match your account email");
+      return;
+    }
+
+    setDeleting(true);
+    setDeleteError(null);
+
+    try {
+      const res = await authFetch(`${getApiBase()}/users/me`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm_email: deleteConfirmEmail }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || "Failed to delete account");
+      }
+
+      // Account deleted - log out and redirect
+      logout();
+    } catch (e: unknown) {
+      setDeleteError(e instanceof Error ? e.message : "Failed to delete account");
+      setDeleting(false);
+    }
   }
 
   const passwordStrength = (password: string) => {
@@ -488,6 +559,66 @@ export default function AccountPage() {
         </div>
       </section>
 
+      {/* Data Privacy (GDPR) */}
+      <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+              <svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Data Privacy</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Manage your personal data (GDPR)</p>
+            </div>
+          </div>
+        </div>
+        <div className="p-6 space-y-4">
+          {exportError && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 text-sm text-red-700 dark:text-red-300">
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {exportError}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
+            <div>
+              <div className="font-medium text-gray-900 dark:text-white">Export My Data</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Download all your personal data as JSON</div>
+            </div>
+            <button
+              onClick={handleExportData}
+              disabled={exporting}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            >
+              {exporting ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Export Data
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            Your export will include: profile information, organization data, leads, form configurations, and integration settings (excluding sensitive credentials).
+          </div>
+        </div>
+      </section>
+
       {/* Danger Zone */}
       <section className="bg-white dark:bg-gray-800 rounded-2xl border border-red-200 dark:border-red-800/50 shadow-lg overflow-hidden">
         <div className="px-6 py-5 border-b border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20">
@@ -503,22 +634,142 @@ export default function AccountPage() {
             </div>
           </div>
         </div>
-        <div className="p-6 flex items-center justify-between">
-          <div>
-            <div className="font-medium text-gray-900 dark:text-white">Sign Out</div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">End your current session</div>
+        <div className="p-6 space-y-4">
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
+            <div>
+              <div className="font-medium text-gray-900 dark:text-white">Sign Out</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">End your current session</div>
+            </div>
+            <button
+              onClick={logout}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-600 text-white text-sm font-medium hover:bg-gray-700 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Sign Out
+            </button>
           </div>
-          <button
-            onClick={logout}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            Sign Out
-          </button>
+
+          <div className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800/50">
+            <div>
+              <div className="font-medium text-red-700 dark:text-red-300">Delete Account</div>
+              <div className="text-sm text-red-600 dark:text-red-400">Permanently delete your account and all data</div>
+            </div>
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Delete Account
+            </button>
+          </div>
         </div>
       </section>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/50 transition-opacity" onClick={() => setShowDeleteModal(false)} />
+            <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
+                  <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Delete Account</h3>
+              </div>
+
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                This action is <strong className="text-red-600 dark:text-red-400">permanent and cannot be undone</strong>.
+                All your data will be deleted, including:
+              </p>
+
+              <ul className="mb-4 text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                <li className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Your user account and login credentials
+                </li>
+                <li className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  All leads captured through your forms
+                </li>
+                <li className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Form configurations and integrations
+                </li>
+                <li className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Organization data (if you're the only member)
+                </li>
+              </ul>
+
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                To confirm, type your email: <strong>{currentUserEmail}</strong>
+              </p>
+
+              {deleteError && (
+                <div className="flex items-center gap-2 p-3 mb-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 text-sm text-red-700 dark:text-red-300">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {deleteError}
+                </div>
+              )}
+
+              <input
+                type="email"
+                value={deleteConfirmEmail}
+                onChange={(e) => setDeleteConfirmEmail(e.target.value)}
+                placeholder="Type your email to confirm"
+                className="w-full px-4 py-2.5 mb-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500"
+              />
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeleteConfirmEmail("");
+                    setDeleteError(null);
+                  }}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleting || deleteConfirmEmail.toLowerCase() !== currentUserEmail.toLowerCase()}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                >
+                  {deleting ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete My Account"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
