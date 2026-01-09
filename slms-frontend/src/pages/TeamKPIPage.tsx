@@ -360,13 +360,28 @@ export default function TeamKPIPage() {
   }
 
   if (error || !data) {
+    const isCrmError = error?.toLowerCase().includes("credentials") || error?.toLowerCase().includes("integrations") || error?.toLowerCase().includes("not configured");
     return (
-      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-6 text-red-700 dark:text-red-400">
-        <div className="flex items-center gap-3">
-          <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className={`${isCrmError ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400" : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400"} border rounded-2xl p-6`}>
+        <div className="flex items-start gap-3">
+          <svg className="w-6 h-6 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <span>{error || "No data available"}</span>
+          <div>
+            <div className="font-medium">{isCrmError ? "CRM not connected" : "Unable to load team data"}</div>
+            <p className="mt-1">{error || "No data available"}</p>
+            {isCrmError && (
+              <a
+                href="/app/integrations"
+                className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                Connect CRM
+              </a>
+            )}
+          </div>
         </div>
       </div>
     );

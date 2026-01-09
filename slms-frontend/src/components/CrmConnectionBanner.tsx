@@ -138,7 +138,7 @@ export default function CrmConnectionBanner() {
 
         <button
           type="button"
-          onClick={() => navigate("/integrations")}
+          onClick={() => navigate("/app/integrations")}
           className="mt-3 inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
         >
           Open Integrations
