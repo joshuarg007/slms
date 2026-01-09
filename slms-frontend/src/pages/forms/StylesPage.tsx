@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Link } from "react-router-dom";
+import { useNotifications } from "@/contexts/NotificationContext";
 
 type FormStyle = "inline" | "wizard" | "modal" | "drawer";
 
@@ -66,6 +67,7 @@ async function authFetch(url: string, init: RequestInit = {}): Promise<Response>
 
 export default function StylesPage() {
   useDocumentTitle("Form Styles");
+  const { showToast } = useNotifications();
   const [formConfig, setFormConfig] = useState<FormConfig | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<FormStyle>("inline");
   const [styling, setStyling] = useState<StylingConfig>({
@@ -82,7 +84,6 @@ export default function StylesPage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
 
   const applyPreset = (preset: ThemePreset) => {
@@ -120,7 +121,6 @@ export default function StylesPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    setMessage(null);
     try {
       const payload = {
         form_style: selectedStyle,
@@ -137,9 +137,9 @@ export default function StylesPage() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Failed to save");
-      setMessage({ type: "success", text: "Style settings saved!" });
-    } catch (err) {
-      setMessage({ type: "error", text: "Failed to save. Please try again." });
+      showToast({ type: "success", title: "Style settings saved!" });
+    } catch {
+      showToast({ type: "error", title: "Failed to save", message: "Please try again." });
     } finally {
       setSaving(false);
     }
@@ -178,19 +178,6 @@ export default function StylesPage() {
           </Link>
         </div>
       </header>
-
-      {/* Message */}
-      {message && (
-        <div
-          className={`rounded-lg border px-4 py-3 text-sm ${
-            message.type === "success"
-              ? "border-green-200 bg-green-50 text-green-700 dark:border-green-900/40 dark:bg-green-950/40 dark:text-green-200"
-              : "border-red-200 bg-red-50 text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200"
-          }`}
-        >
-          {message.text}
-        </div>
-      )}
 
       {/* Branding & Text */}
       <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4">
