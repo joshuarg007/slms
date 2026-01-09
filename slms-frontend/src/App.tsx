@@ -72,6 +72,7 @@ const LeadScoringPage = lazy(() => import("@/pages/LeadScoringPage"));
 const LeaderboardPage = lazy(() => import("@/pages/LeaderboardPage"));
 const AutomationPage = lazy(() => import("@/pages/AutomationPage"));
 const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
+const AppSumoRedeemPage = lazy(() => import("@/pages/AppSumoRedeemPage"));
 
 export default function App() {
   return (
@@ -134,6 +135,7 @@ export default function App() {
               <Route path="lead-scoring" element={<LeadScoringPage />} />
               <Route path="leaderboard" element={<LeaderboardPage />} />
               <Route path="automation" element={<AutomationPage />} />
+              <Route path="appsumo" element={<AppSumoRedeemPage />} />
             </Route>
           </Route>
 

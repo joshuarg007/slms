@@ -361,6 +361,7 @@ export default function BillingPage() {
   const isActive = subscription?.subscription_status === "active" || subscription?.subscription_status === "canceling";
   const isTrial = subscription?.is_trial_active;
   const isPaid = isActive && !isTrial;
+  const isAppSumo = subscription?.plan === "appsumo";
 
   function formatCurrency(amount: number, currency: string) {
     return new Intl.NumberFormat("en-US", {
@@ -475,15 +476,21 @@ export default function BillingPage() {
                 </p>
               </div>
               <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                isAppSumo ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" :
                 subscription?.subscription_status === "canceling" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
                 isPaid ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
                 isTrial ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
                 "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
               }`}>
-                {subscription?.subscription_status === "canceling" ? "Canceling" : isPaid ? "Active" : isTrial ? "Trial" : "Free"}
+                {isAppSumo ? "Lifetime" : subscription?.subscription_status === "canceling" ? "Canceling" : isPaid ? "Active" : isTrial ? "Trial" : "Free"}
               </div>
             </div>
-            {isPaid && subscription?.current_period_end && (
+            {isAppSumo && (
+              <p className="mt-4 text-sm text-purple-600 dark:text-purple-400">
+                Lifetime access via AppSumo — no recurring fees
+              </p>
+            )}
+            {isPaid && !isAppSumo && subscription?.current_period_end && (
               <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
                 {subscription?.subscription_status === "canceling" ? "Ends" : "Renews"} {new Date(subscription.current_period_end).toLocaleDateString()}
                 <span className="ml-2 text-gray-400">({subscription.billing_cycle})</span>
@@ -526,8 +533,8 @@ export default function BillingPage() {
           </div>
         </div>
 
-        {/* Payment Method */}
-        {isPaid && (
+        {/* Payment Method - not shown for AppSumo lifetime plans */}
+        {isPaid && !isAppSumo && (
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Payment Method</h3>
 
@@ -576,7 +583,24 @@ export default function BillingPage() {
           </div>
         )}
 
-        {/* Plan Selection */}
+        {/* Plan Selection - hidden for AppSumo users */}
+        {isAppSumo ? (
+          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-2xl border border-purple-200 dark:border-purple-800 p-6 text-center">
+            <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-2">
+              AppSumo Lifetime License
+            </h3>
+            <p className="text-purple-700 dark:text-purple-300 text-sm mb-4">
+              You have a lifetime license with no recurring fees. This plan has fixed limits and no upgrade path.
+              To access higher-tier features, you would need to forfeit this license and subscribe to a paid plan.
+            </p>
+            <Link
+              to="/app/appsumo"
+              className="text-purple-600 dark:text-purple-400 hover:underline text-sm font-medium"
+            >
+              View license details
+            </Link>
+          </div>
+        ) : (
         <>
           {/* Billing Toggle */}
           <div className="flex items-center justify-center gap-4">
@@ -599,7 +623,7 @@ export default function BillingPage() {
 
           {/* Start Trial CTA */}
           {!isTrial && !isPaid && !subscription?.trial_ends_at && (
-            <div className="text-center">
+            <div className="text-center space-y-2">
               <button
                 onClick={startTrial}
                 disabled={busy}
@@ -607,6 +631,14 @@ export default function BillingPage() {
               >
                 Or start a 14-day free trial
               </button>
+              <div>
+                <Link
+                  to="/app/appsumo"
+                  className="text-purple-600 dark:text-purple-400 hover:underline text-sm"
+                >
+                  Have an AppSumo code? Redeem it here
+                </Link>
+              </div>
             </div>
           )}
 
@@ -697,9 +729,10 @@ export default function BillingPage() {
             })}
           </div>
         </>
+        )}
 
-        {/* Manage Subscription (for paid users) */}
-        {isPaid && subscription?.subscription_status !== "canceling" && (
+        {/* Manage Subscription (for paid users, not AppSumo) */}
+        {isPaid && !isAppSumo && subscription?.subscription_status !== "canceling" && (
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Cancel Subscription</h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
