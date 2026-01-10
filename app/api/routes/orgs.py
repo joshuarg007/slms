@@ -9,7 +9,7 @@ from app.api.routes.auth import get_current_user
 from app.db.session import SessionLocal
 from app.db import models
 from app.schemas.user import UserCreate
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, create_access_token, create_refresh_token
 from app.core.rate_limit import check_rate_limit
 from app.services.email import send_email_verification
 from uuid import uuid4
@@ -273,10 +273,17 @@ def complete_onboarding(
     company_name: str = Body(...),
     crm: str = Body(...),
     team_size: str = Body(...),
+    form_theme: str = Body(None),
+    form_fields: list = Body(None),
+    custom_color: str = Body(None),
+    custom_border: bool = Body(None),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Complete onboarding for the current user's organization."""
+    import json
+    from datetime import datetime as dt
+
     org = db.query(models.Organization).filter(
         models.Organization.id == current_user.organization_id
     ).first()
@@ -285,7 +292,7 @@ def complete_onboarding(
         raise HTTPException(status_code=404, detail="Organization not found")
 
     # Validate CRM choice
-    valid_crms = ["hubspot", "salesforce", "pipedrive", "nutshell", "none"]
+    valid_crms = ["hubspot", "salesforce", "pipedrive", "nutshell", "zoho", "none"]
     if crm.lower() not in valid_crms:
         raise HTTPException(status_code=400, detail=f"Invalid CRM. Must be one of: {', '.join(valid_crms)}")
 
@@ -298,9 +305,88 @@ def complete_onboarding(
     org.active_crm = crm.lower() if crm.lower() != "none" else "hubspot"
     org.team_size = team_size
     org.onboarding_completed = True
+
+    # Save form configuration if provided
+    if form_theme or form_fields:
+        # Theme to color mapping
+        theme_colors = {
+            "modern": "#4F46E5",
+            "minimal": "#18181B",
+            "bold": "#DC2626",
+            "ocean": "#0891B2",
+            "forest": "#059669",
+            "purple": "#7C3AED",
+        }
+
+        # Build fields config
+        default_fields = {
+            "name": {"key": "name", "label": "Full Name", "field_type": "text", "placeholder": "Ada Lovelace"},
+            "email": {"key": "email", "label": "Email", "field_type": "email", "placeholder": "you@domain.com"},
+            "phone": {"key": "phone", "label": "Phone", "field_type": "tel", "placeholder": "+1 555 555 5555"},
+            "company": {"key": "company", "label": "Company", "field_type": "text", "placeholder": "Acme Inc."},
+            "job_title": {"key": "job_title", "label": "Job Title", "field_type": "text", "placeholder": "Sales Manager"},
+            "message": {"key": "message", "label": "Message", "field_type": "textarea", "placeholder": "How can we help?"},
+        }
+
+        fields_config = []
+        enabled_fields = form_fields or ["name", "email", "phone", "company"]
+        for field_id in enabled_fields:
+            if field_id in default_fields:
+                field = default_fields[field_id].copy()
+                field["enabled"] = True
+                field["required"] = field_id == "email"
+                fields_config.append(field)
+
+        config_data = {
+            "fields": fields_config,
+            "styling": {
+                "primaryColor": theme_colors.get(form_theme, "#4F46E5"),
+                "borderRadius": "10px",
+                "fontFamily": "system-ui",
+            },
+            "wizard": {"showProgressBar": True, "showSummary": True, "animationDuration": 300},
+            "modal": {"triggerButtonText": "Contact Us", "triggerPosition": "bottom-right"},
+            "drawer": {"position": "right", "triggerButtonText": "Get in Touch"},
+            "branding": {
+                "showPoweredBy": True,
+                "headerText": "Contact Us",
+                "subheaderText": "Fill out the form below",
+                "submitButtonText": "Submit",
+                "successMessage": "Thanks! We'll be in touch.",
+            },
+        }
+
+        # Check for existing config
+        form_config = db.query(models.FormConfig).filter(
+            models.FormConfig.organization_id == org.id
+        ).first()
+
+        now = dt.utcnow()
+        if form_config:
+            form_config.config_json = json.dumps(config_data)
+            form_config.updated_at = now
+        else:
+            form_config = models.FormConfig(
+                organization_id=org.id,
+                form_style="inline",
+                config_json=json.dumps(config_data),
+                created_at=now,
+                updated_at=now,
+            )
+            db.add(form_config)
+
     db.commit()
 
-    return {"status": "ok", "message": "Onboarding completed successfully"}
+    # Issue a fresh token after onboarding completes (security best practice)
+    new_access_token = create_access_token(current_user.email)
+    new_refresh_token = create_refresh_token(current_user.email)
+
+    return {
+        "status": "ok",
+        "message": "Onboarding completed successfully",
+        "access_token": new_access_token,
+        "refresh_token": new_refresh_token,
+    }
 
 
 @router.get("/users/pending")

@@ -32,6 +32,47 @@ interface FormConfig {
     submitButtonText: string;
     successMessage: string;
   };
+  // A/B test tracking
+  variant_id?: number | null;
+}
+
+// Lead source tracking data
+interface SourceTracking {
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_term?: string;
+  utm_content?: string;
+  referrer_url?: string;
+  landing_page_url?: string;
+}
+
+// Extract UTM params from current URL
+function getUTMParams(): SourceTracking {
+  const params = new URLSearchParams(window.location.search);
+  const tracking: SourceTracking = {};
+
+  const utm_source = params.get("utm_source");
+  const utm_medium = params.get("utm_medium");
+  const utm_campaign = params.get("utm_campaign");
+  const utm_term = params.get("utm_term");
+  const utm_content = params.get("utm_content");
+
+  if (utm_source) tracking.utm_source = utm_source;
+  if (utm_medium) tracking.utm_medium = utm_medium;
+  if (utm_campaign) tracking.utm_campaign = utm_campaign;
+  if (utm_term) tracking.utm_term = utm_term;
+  if (utm_content) tracking.utm_content = utm_content;
+
+  // Capture referrer (the page that linked to this one)
+  if (document.referrer) {
+    tracking.referrer_url = document.referrer.substring(0, 2048);
+  }
+
+  // Capture landing page URL (current page)
+  tracking.landing_page_url = window.location.href.substring(0, 2048);
+
+  return tracking;
 }
 
 // Find the script tag and extract config
@@ -79,22 +120,29 @@ async function fetchFormConfig(apiBase: string, orgKey: string): Promise<FormCon
   return res.json();
 }
 
-// Submit lead
+// Submit lead with UTM tracking and A/B test variant
 async function submitLead(
   apiBase: string,
   orgKey: string,
   data: Record<string, string>,
-  source: string
+  source: string,
+  tracking: SourceTracking,
+  variantId?: number | null
 ): Promise<{ success: boolean; message?: string }> {
   const url = `${apiBase}/api/public/leads`;
   try {
+    const payload: Record<string, unknown> = { ...data, source, ...tracking };
+    if (variantId) {
+      payload.form_variant_id = variantId;
+    }
+
     const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-Org-Key": orgKey,
       },
-      body: JSON.stringify({ ...data, source }),
+      body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
@@ -110,8 +158,11 @@ async function submitLead(
 
 // Main widget component
 function Widget({ config, apiBase, orgKey, source }: { config: FormConfig; apiBase: string; orgKey: string; source: string }) {
+  // Capture UTM params on initial load (before user might navigate away)
+  const tracking = getUTMParams();
+
   const handleSubmit = async (data: Record<string, string>) => {
-    return submitLead(apiBase, orgKey, data, source);
+    return submitLead(apiBase, orgKey, data, source, tracking, config.variant_id);
   };
 
   const commonProps = {

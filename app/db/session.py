@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 # Read from DATABASE_URL env var, fallback to SQLite for local dev
-SQLALCHEMY_DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./test.db")
+SQLALCHEMY_DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./site2crm.db")
 
 # SQLite needs check_same_thread=False, PostgreSQL needs connection pooling
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):

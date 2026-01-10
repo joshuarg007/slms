@@ -129,6 +129,15 @@ class DashboardMetrics(BaseModel):
     top_performers: list[SalespersonKPI]
 
 
+class UTMBreakdown(BaseModel):
+    """UTM parameter breakdown for source tracking analytics."""
+    utm_sources: list[dict]  # [{name: str, count: int}]
+    utm_mediums: list[dict]  # [{name: str, count: int}]
+    utm_campaigns: list[dict]  # [{name: str, count: int}]
+    total_with_utm: int
+    total_leads: int
+
+
 class RecommendationItem(BaseModel):
     category: str  # "sales", "marketing", "pipeline", "coaching"
     priority: str  # "high", "medium", "low"
@@ -745,3 +754,78 @@ def get_salesperson_detail(
             return kpi
 
     raise HTTPException(status_code=404, detail="Salesperson KPIs not found")
+
+
+@router.get("/utm-breakdown", response_model=UTMBreakdown)
+def get_utm_breakdown(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+    days: int = Query(default=90, ge=7, le=365, description="Number of days to analyze"),
+):
+    """Get breakdown of leads by UTM source, medium, and campaign."""
+
+    org_id = user.organization_id
+    end_date = datetime.utcnow()
+    start_date = end_date - timedelta(days=days)
+
+    # Base query for date range
+    base_filter = and_(
+        models.Lead.organization_id == org_id,
+        models.Lead.created_at >= start_date,
+        models.Lead.created_at <= end_date,
+    )
+
+    # Total leads in period
+    total_leads = db.query(func.count(models.Lead.id)).filter(base_filter).scalar() or 0
+
+    # Count by UTM source
+    utm_sources_query = db.query(
+        models.Lead.utm_source,
+        func.count(models.Lead.id).label("count")
+    ).filter(
+        base_filter,
+        models.Lead.utm_source.isnot(None),
+        models.Lead.utm_source != "",
+    ).group_by(models.Lead.utm_source).order_by(func.count(models.Lead.id).desc()).limit(10).all()
+
+    utm_sources = [{"name": s[0], "count": s[1]} for s in utm_sources_query]
+
+    # Count by UTM medium
+    utm_mediums_query = db.query(
+        models.Lead.utm_medium,
+        func.count(models.Lead.id).label("count")
+    ).filter(
+        base_filter,
+        models.Lead.utm_medium.isnot(None),
+        models.Lead.utm_medium != "",
+    ).group_by(models.Lead.utm_medium).order_by(func.count(models.Lead.id).desc()).limit(10).all()
+
+    utm_mediums = [{"name": m[0], "count": m[1]} for m in utm_mediums_query]
+
+    # Count by UTM campaign
+    utm_campaigns_query = db.query(
+        models.Lead.utm_campaign,
+        func.count(models.Lead.id).label("count")
+    ).filter(
+        base_filter,
+        models.Lead.utm_campaign.isnot(None),
+        models.Lead.utm_campaign != "",
+    ).group_by(models.Lead.utm_campaign).order_by(func.count(models.Lead.id).desc()).limit(10).all()
+
+    utm_campaigns = [{"name": c[0], "count": c[1]} for c in utm_campaigns_query]
+
+    # Count leads with any UTM data
+    total_with_utm = db.query(func.count(models.Lead.id)).filter(
+        base_filter,
+        (models.Lead.utm_source.isnot(None) & (models.Lead.utm_source != "")) |
+        (models.Lead.utm_medium.isnot(None) & (models.Lead.utm_medium != "")) |
+        (models.Lead.utm_campaign.isnot(None) & (models.Lead.utm_campaign != ""))
+    ).scalar() or 0
+
+    return UTMBreakdown(
+        utm_sources=utm_sources,
+        utm_mediums=utm_mediums,
+        utm_campaigns=utm_campaigns,
+        total_with_utm=total_with_utm,
+        total_leads=total_leads,
+    )

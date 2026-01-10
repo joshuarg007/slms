@@ -151,6 +151,16 @@ def create_lead(db: Session, lead_in: LeadCreate, enforce_limit: bool = True) ->
         notes=lead_in.notes,
         source=lead_in.source,
         organization_id=lead_in.organization_id,
+        # UTM tracking fields
+        utm_source=lead_in.utm_source,
+        utm_medium=lead_in.utm_medium,
+        utm_campaign=lead_in.utm_campaign,
+        utm_term=lead_in.utm_term,
+        utm_content=lead_in.utm_content,
+        referrer_url=lead_in.referrer_url,
+        landing_page_url=lead_in.landing_page_url,
+        # A/B test tracking
+        form_variant_id=lead_in.form_variant_id,
     )
     db.add(obj)
     db.commit()
@@ -159,6 +169,15 @@ def create_lead(db: Session, lead_in: LeadCreate, enforce_limit: bool = True) ->
     # Increment the monthly lead counter
     if enforce_limit and lead_in.organization_id:
         increment_lead_count(db, lead_in.organization_id)
+
+    # Track A/B test conversion
+    if lead_in.form_variant_id:
+        variant = db.query(models.FormVariant).filter(
+            models.FormVariant.id == lead_in.form_variant_id
+        ).first()
+        if variant:
+            variant.conversions += 1
+            db.commit()
 
     return obj
 

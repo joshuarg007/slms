@@ -1,6 +1,6 @@
 // src/pages/DashboardPage.tsx
 import { useEffect, useState } from "react";
-import { api, type DashboardMetrics } from "@/utils/api";
+import { api, type DashboardMetrics, type UTMBreakdown } from "@/utils/api";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Link } from "react-router-dom";
 import ViewModeSelector, { ViewModeInsight } from "@/components/ViewModeSelector";
@@ -11,6 +11,7 @@ import { StatTooltip, InfoTooltip } from "@/components/ui/Tooltip";
 export default function DashboardPage() {
   useDocumentTitle("Dashboard");
   const [data, setData] = useState<DashboardMetrics | null>(null);
+  const [utmData, setUtmData] = useState<UTMBreakdown | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -18,8 +19,12 @@ export default function DashboardPage() {
     setLoading(true);
     setErr(null);
     try {
-      const d = await api.getDashboardMetrics();
+      const [d, utm] = await Promise.all([
+        api.getDashboardMetrics(),
+        api.getUTMBreakdown(90).catch(() => null), // Don't fail if UTM endpoint errors
+      ]);
       setData(d);
+      setUtmData(utm);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Failed to load dashboard metrics";
       setErr(message);
@@ -285,6 +290,140 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* UTM Source Tracking */}
+      {utmData && (utmData.utm_sources.length > 0 || utmData.utm_mediums.length > 0 || utmData.utm_campaigns.length > 0) && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Lead Source Tracking</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                  UTM parameter breakdown (last 90 days)
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-500 dark:text-gray-400">
+                  {utmData.total_with_utm.toLocaleString()} of {utmData.total_leads.toLocaleString()} leads with tracking data
+                </span>
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                  {utmData.total_leads > 0 ? Math.round((utmData.total_with_utm / utmData.total_leads) * 100) : 0}% tracked
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* UTM Source */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                By Source
+              </h3>
+              {utmData.utm_sources.length > 0 ? (
+                <div className="space-y-2">
+                  {utmData.utm_sources.slice(0, 5).map((item) => {
+                    const maxCount = utmData.utm_sources[0]?.count || 1;
+                    const percentage = (item.count / maxCount) * 100;
+                    return (
+                      <div key={item.name} className="group">
+                        <div className="flex items-center justify-between text-sm mb-1">
+                          <span className="text-gray-600 dark:text-gray-400 truncate max-w-[120px]" title={item.name}>
+                            {item.name}
+                          </span>
+                          <span className="font-medium text-gray-900 dark:text-white">{item.count.toLocaleString()}</span>
+                        </div>
+                        <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-indigo-500 to-indigo-400 rounded-full transition-all duration-500"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 dark:text-gray-500 italic">No source data yet</p>
+              )}
+            </div>
+
+            {/* UTM Medium */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                By Medium
+              </h3>
+              {utmData.utm_mediums.length > 0 ? (
+                <div className="space-y-2">
+                  {utmData.utm_mediums.slice(0, 5).map((item) => {
+                    const maxCount = utmData.utm_mediums[0]?.count || 1;
+                    const percentage = (item.count / maxCount) * 100;
+                    return (
+                      <div key={item.name} className="group">
+                        <div className="flex items-center justify-between text-sm mb-1">
+                          <span className="text-gray-600 dark:text-gray-400 truncate max-w-[120px]" title={item.name}>
+                            {item.name}
+                          </span>
+                          <span className="font-medium text-gray-900 dark:text-white">{item.count.toLocaleString()}</span>
+                        </div>
+                        <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 dark:text-gray-500 italic">No medium data yet</p>
+              )}
+            </div>
+
+            {/* UTM Campaign */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                </svg>
+                By Campaign
+              </h3>
+              {utmData.utm_campaigns.length > 0 ? (
+                <div className="space-y-2">
+                  {utmData.utm_campaigns.slice(0, 5).map((item) => {
+                    const maxCount = utmData.utm_campaigns[0]?.count || 1;
+                    const percentage = (item.count / maxCount) * 100;
+                    return (
+                      <div key={item.name} className="group">
+                        <div className="flex items-center justify-between text-sm mb-1">
+                          <span className="text-gray-600 dark:text-gray-400 truncate max-w-[120px]" title={item.name}>
+                            {item.name}
+                          </span>
+                          <span className="font-medium text-gray-900 dark:text-white">{item.count.toLocaleString()}</span>
+                        </div>
+                        <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all duration-500"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 dark:text-gray-500 italic">No campaign data yet</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

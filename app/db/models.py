@@ -103,6 +103,24 @@ class Lead(Base):
     company = Column(String, nullable=True)
     notes = Column(Text, nullable=True)
     source = Column(String, nullable=True)
+
+    # Lead source tracking (UTM params, referrer, landing page)
+    utm_source = Column(String(100), nullable=True, index=True)  # e.g., google, facebook, newsletter
+    utm_medium = Column(String(100), nullable=True, index=True)  # e.g., cpc, email, social
+    utm_campaign = Column(String(255), nullable=True)  # e.g., spring_sale, product_launch
+    utm_term = Column(String(255), nullable=True)  # Paid search keyword
+    utm_content = Column(String(255), nullable=True)  # A/B test or ad variant
+    referrer_url = Column(String(2048), nullable=True)  # Full referrer URL
+    landing_page_url = Column(String(2048), nullable=True)  # URL where form was submitted
+
+    # A/B test tracking
+    form_variant_id = Column(
+        Integer,
+        ForeignKey("form_variants.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True,
+    )
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -172,6 +190,12 @@ class User(Base):
     accepted_appsumo_addendum_version = Column(String(10), nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Security: Account lockout after failed attempts
+    failed_login_attempts = Column(Integer, nullable=False, default=0)
+    locked_until = Column(DateTime, nullable=True)
+    last_login_at = Column(DateTime, nullable=True)
+    last_login_ip = Column(String(45), nullable=True)  # IPv6 max length
 
     # Enforce tenancy at the model level too
     organization_id = Column(
@@ -486,3 +510,81 @@ class AppSumoCode(Base):
 
     # Optional: batch identifier for bulk imports
     batch_id = Column(String(50), nullable=True, index=True)
+
+
+# A/B Test status constants
+AB_TEST_STATUS_DRAFT = "draft"
+AB_TEST_STATUS_RUNNING = "running"
+AB_TEST_STATUS_PAUSED = "paused"
+AB_TEST_STATUS_COMPLETED = "completed"
+
+AB_TEST_STATUSES = [
+    AB_TEST_STATUS_DRAFT,
+    AB_TEST_STATUS_RUNNING,
+    AB_TEST_STATUS_PAUSED,
+    AB_TEST_STATUS_COMPLETED,
+]
+
+
+class ABTest(Base):
+    """A/B test for form variants."""
+
+    __tablename__ = "ab_tests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    status = Column(String(20), nullable=False, default=AB_TEST_STATUS_DRAFT, index=True)
+
+    # Test period
+    started_at = Column(DateTime, nullable=True)
+    ended_at = Column(DateTime, nullable=True)
+
+    # Goal tracking
+    goal_type = Column(String(20), nullable=False, default="conversions")  # conversions, impressions
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    organization = relationship("Organization", backref="ab_tests")
+    variants = relationship("FormVariant", back_populates="ab_test", cascade="all, delete-orphan")
+
+
+class FormVariant(Base):
+    """A variant in an A/B test with config overrides."""
+
+    __tablename__ = "form_variants"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ab_test_id = Column(
+        Integer,
+        ForeignKey("ab_tests.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+
+    name = Column(String(50), nullable=False)  # e.g., "Control", "Variant A"
+    is_control = Column(Boolean, nullable=False, default=False)
+
+    # Traffic weight (percentage, 0-100)
+    weight = Column(Integer, nullable=False, default=50)
+
+    # Config overrides (JSON) - only the fields that differ from base config
+    # e.g., {"branding": {"headerText": "Get Started Today!"}}
+    config_overrides = Column(Text, nullable=False, default="{}")
+
+    # Performance metrics (denormalized for fast reads)
+    impressions = Column(Integer, nullable=False, default=0)
+    conversions = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    ab_test = relationship("ABTest", back_populates="variants")

@@ -119,6 +119,16 @@ const icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
     </svg>
   ),
+  abTesting: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+    </svg>
+  ),
+  support: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+    </svg>
+  ),
 };
 
 interface NavItemProps {
@@ -433,6 +443,7 @@ export default function AppLayout() {
                 <NavItem to="/app/forms/fields" icon={icons.fields} label="Fields" />
                 <NavItem to="/app/forms/styles" icon={icons.styles} label="Styles" />
                 <NavItem to="/app/forms/embed" icon={icons.embed} label="Embed Code" />
+                <NavItem to="/app/forms/ab-testing" icon={icons.abTesting} label="A/B Testing" />
               </div>
             </div>
 
@@ -454,6 +465,7 @@ export default function AppLayout() {
                 <NavItem to="/app/users" icon={icons.users} label="Users" />
                 <NavItem to="/app/billing" icon={icons.billing} label="Billing" />
                 <NavItem to="/app/settings" icon={icons.settings} label="Settings" />
+                <NavItem to="/app/support" icon={icons.support} label="Help & Support" />
               </div>
             </div>
           </nav>

@@ -282,9 +282,15 @@ export async function getLeads(params: {
   dir?: SortDir;
   page?: number;
   page_size?: number;
+  utm_source?: string;
+  utm_medium?: string;
 } = {}): Promise<LeadsResponse> {
   const url = `${baseUrl}/leads${toQuery(params)}`;
   return fetchJSON<LeadsResponse>(url);
+}
+
+export async function getLeadFilters(): Promise<{ utm_sources: string[]; utm_mediums: string[] }> {
+  return fetchJSON<{ utm_sources: string[]; utm_mediums: string[] }>(`${baseUrl}/leads/filters`);
 }
 
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
@@ -560,6 +566,19 @@ export async function getSalespersonKPI(userId: number, days = 30): Promise<Sale
   return fetchJSON<SalespersonKPI>(`${baseUrl}/analytics/salesperson/${userId}${toQuery({ days })}`);
 }
 
+// UTM Breakdown types
+export interface UTMBreakdown {
+  utm_sources: { name: string; count: number }[];
+  utm_mediums: { name: string; count: number }[];
+  utm_campaigns: { name: string; count: number }[];
+  total_with_utm: number;
+  total_leads: number;
+}
+
+export async function getUTMBreakdown(days = 90): Promise<UTMBreakdown> {
+  return fetchJSON<UTMBreakdown>(`${baseUrl}/analytics/utm-breakdown${toQuery({ days })}`);
+}
+
 // Lead Scoring types
 export interface LeadScoreResponse {
   lead_id: number;
@@ -794,6 +813,129 @@ export async function submitSupportRequest(request: SupportRequest): Promise<{ m
   });
 }
 
+// A/B Testing types
+export interface FormVariant {
+  id: number;
+  ab_test_id: number;
+  name: string;
+  is_control: boolean;
+  weight: number;
+  config_overrides: Record<string, unknown>;
+  impressions: number;
+  conversions: number;
+  conversion_rate: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ABTest {
+  id: number;
+  organization_id: number;
+  name: string;
+  description: string | null;
+  status: "draft" | "running" | "paused" | "completed";
+  goal_type: string;
+  started_at: string | null;
+  ended_at: string | null;
+  created_at: string;
+  updated_at: string;
+  variants: FormVariant[];
+  total_impressions: number;
+  total_conversions: number;
+  overall_conversion_rate: number;
+}
+
+export interface ABTestListItem {
+  id: number;
+  name: string;
+  status: string;
+  variants_count: number;
+  total_impressions: number;
+  total_conversions: number;
+  conversion_rate: number;
+  created_at: string;
+}
+
+export interface ABTestResults {
+  test: ABTest;
+  winner: FormVariant | null;
+  statistical_significance: number | null;
+  recommendation: string;
+}
+
+export interface ABTestCreate {
+  name: string;
+  description?: string;
+  variants?: { name: string; is_control: boolean; weight: number; config_overrides: Record<string, unknown> }[];
+}
+
+export interface ABTestUpdate {
+  name?: string;
+  description?: string;
+  status?: "draft" | "running" | "paused" | "completed";
+}
+
+// A/B Testing API functions
+export async function listABTests(status?: string): Promise<ABTestListItem[]> {
+  const query = status ? `?status=${status}` : "";
+  return fetchJSON<ABTestListItem[]>(`${baseUrl}/ab-tests${query}`);
+}
+
+export async function getABTest(testId: number): Promise<ABTest> {
+  return fetchJSON<ABTest>(`${baseUrl}/ab-tests/${testId}`);
+}
+
+export async function createABTest(data: ABTestCreate): Promise<ABTest> {
+  return fetchJSON<ABTest>(`${baseUrl}/ab-tests`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateABTest(testId: number, data: ABTestUpdate): Promise<ABTest> {
+  return fetchJSON<ABTest>(`${baseUrl}/ab-tests/${testId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteABTest(testId: number): Promise<void> {
+  await fetchJSON<{ message: string }>(`${baseUrl}/ab-tests/${testId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function getABTestResults(testId: number): Promise<ABTestResults> {
+  return fetchJSON<ABTestResults>(`${baseUrl}/ab-tests/${testId}/results`);
+}
+
+export async function addVariant(
+  testId: number,
+  data: { name: string; is_control?: boolean; weight?: number; config_overrides?: Record<string, unknown> }
+): Promise<FormVariant> {
+  return fetchJSON<FormVariant>(`${baseUrl}/ab-tests/${testId}/variants`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateVariant(
+  testId: number,
+  variantId: number,
+  data: { name?: string; weight?: number; config_overrides?: Record<string, unknown> }
+): Promise<FormVariant> {
+  return fetchJSON<FormVariant>(`${baseUrl}/ab-tests/${testId}/variants/${variantId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteVariant(testId: number, variantId: number): Promise<void> {
+  await fetchJSON<{ message: string }>(`${baseUrl}/ab-tests/${testId}/variants/${variantId}`, {
+    method: "DELETE",
+  });
+}
+
 // Named plus default export
 export const api = {
   login,
@@ -805,6 +947,7 @@ export const api = {
   createPublicLead,
   createLead,
   getLeads,
+  getLeadFilters,
   getDashboardMetrics,
   listIntegrationCredentials,
   saveIntegrationCredential,
@@ -822,6 +965,7 @@ export const api = {
   getSalesDashboard,
   getRecommendations,
   getSalespersonKPI,
+  getUTMBreakdown,
   // Lead Scoring
   getLeadScore,
   getScoredLeads,
@@ -843,6 +987,16 @@ export const api = {
   getAutomationStats,
   // Support
   submitSupportRequest,
+  // A/B Testing
+  listABTests,
+  getABTest,
+  createABTest,
+  updateABTest,
+  deleteABTest,
+  getABTestResults,
+  addVariant,
+  updateVariant,
+  deleteVariant,
 };
 
 export default api;

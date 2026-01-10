@@ -1,5 +1,6 @@
 // src/components/SupportModal.tsx
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "@/utils/api";
 
 interface SupportModalProps {
@@ -76,8 +77,8 @@ export default function SupportModal({ isOpen, onClose }: SupportModalProps) {
               </svg>
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Get Support</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">We're here to help</p>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Quick Support</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Send us a message directly</p>
             </div>
           </div>
           <button
@@ -196,6 +197,20 @@ export default function SupportModal({ isOpen, onClose }: SupportModalProps) {
                   "Submit Support Request"
                 )}
               </button>
+
+              {/* Help Center Link */}
+              <div className="text-center pt-2">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Looking for FAQs or self-service tools?{" "}
+                  <Link
+                    to="/app/support"
+                    onClick={handleClose}
+                    className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline"
+                  >
+                    Visit Help Center
+                  </Link>
+                </p>
+              </div>
             </form>
           )}
         </div>

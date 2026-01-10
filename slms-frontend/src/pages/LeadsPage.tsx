@@ -18,6 +18,14 @@ type Lead = {
   created_at?: string | null;
   crm_source?: string | null;  // "local", "hubspot", etc.
   is_crm_only?: boolean;       // true if only exists in CRM
+  // UTM tracking fields
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
+  utm_term?: string | null;
+  utm_content?: string | null;
+  referrer_url?: string | null;
+  landing_page_url?: string | null;
 };
 
 type Duplicate = {
@@ -53,11 +61,22 @@ const LeadsPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(25);
 
+  // UTM filters
+  const [utmSource, setUtmSource] = useState<string>("");
+  const [utmMedium, setUtmMedium] = useState<string>("");
+  const [filterOptions, setFilterOptions] = useState<{ utm_sources: string[]; utm_mediums: string[] }>({ utm_sources: [], utm_mediums: [] });
+
   const [data, setData] = useState<ApiResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load filter options on mount
+  useEffect(() => {
+    api.getLeadFilters().then(setFilterOptions).catch(() => {});
+  }, []);
 
   const fullName = (l: Lead) =>
     (l.name ||
@@ -74,6 +93,8 @@ const LeadsPage: React.FC = () => {
         dir,
         page,
         page_size: pageSize,
+        utm_source: utmSource || undefined,
+        utm_medium: utmMedium || undefined,
       });
       setData(json as unknown as ApiResult);
     } catch (e: unknown) {
@@ -92,9 +113,9 @@ const LeadsPage: React.FC = () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, sort, dir, page, pageSize]);
+  }, [q, sort, dir, page, pageSize, utmSource, utmMedium]);
 
-  useEffect(() => setPage(1), [q, sort, dir]);
+  useEffect(() => setPage(1), [q, sort, dir, utmSource, utmMedium]);
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
@@ -161,51 +182,105 @@ const LeadsPage: React.FC = () => {
       </header>
 
       {/* Controls */}
-      <div className="flex flex-col md:flex-row md:items-center gap-4">
-        <div className="relative flex-1 max-w-md">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by name, email, company, source..."
-            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-          />
-        </div>
-
-        <div className="flex items-center gap-3">
-          <label className="text-sm text-gray-600 dark:text-gray-400">Show:</label>
-          <select
-            value={pageSize}
-            onChange={(e) => setPageSize(Number(e.target.value))}
-            className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-          >
-            {PAGE_SIZES.map((n) => (
-              <option key={n} value={n}>
-                {n} rows
-              </option>
-            ))}
-          </select>
-
-          {/* Export CSV */}
-          {items.length > 0 && (
-            <ExportCsvButton
-              rows={items.map(lead => ({
-                Name: fullName(lead) || "",
-                Email: lead.email || "",
-                Phone: lead.phone || "",
-                Company: lead.company || "",
-                Source: lead.source || "",
-                "CRM Source": lead.crm_source || "",
-                Notes: lead.notes || "",
-                "Created At": lead.created_at || "",
-              }))}
-              filename={`leads-export-${new Date().toISOString().split("T")[0]}.csv`}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <div className="relative flex-1 max-w-md">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search by name, email, company, source..."
+              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
             />
-          )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <label className="text-sm text-gray-600 dark:text-gray-400">Show:</label>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+            >
+              {PAGE_SIZES.map((n) => (
+                <option key={n} value={n}>
+                  {n} rows
+                </option>
+              ))}
+            </select>
+
+            {/* Export CSV */}
+            {items.length > 0 && (
+              <ExportCsvButton
+                rows={items.map(lead => ({
+                  Name: fullName(lead) || "",
+                  Email: lead.email || "",
+                  Phone: lead.phone || "",
+                  Company: lead.company || "",
+                  Source: lead.source || "",
+                  "UTM Source": lead.utm_source || "",
+                  "UTM Medium": lead.utm_medium || "",
+                  "UTM Campaign": lead.utm_campaign || "",
+                  "Referrer": lead.referrer_url || "",
+                  "Landing Page": lead.landing_page_url || "",
+                  "CRM Source": lead.crm_source || "",
+                  Notes: lead.notes || "",
+                  "Created At": lead.created_at || "",
+                }))}
+                filename={`leads-export-${new Date().toISOString().split("T")[0]}.csv`}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              />
+            )}
+          </div>
         </div>
+
+        {/* UTM Filters */}
+        {(filterOptions.utm_sources.length > 0 || filterOptions.utm_mediums.length > 0) && (
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              Filters:
+            </span>
+
+            {filterOptions.utm_sources.length > 0 && (
+              <select
+                value={utmSource}
+                onChange={(e) => setUtmSource(e.target.value)}
+                className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+              >
+                <option value="">All Sources</option>
+                {filterOptions.utm_sources.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            )}
+
+            {filterOptions.utm_mediums.length > 0 && (
+              <select
+                value={utmMedium}
+                onChange={(e) => setUtmMedium(e.target.value)}
+                className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+              >
+                <option value="">All Mediums</option>
+                {filterOptions.utm_mediums.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            )}
+
+            {(utmSource || utmMedium) && (
+              <button
+                onClick={() => { setUtmSource(""); setUtmMedium(""); }}
+                className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
 
@@ -325,7 +400,8 @@ const LeadsPage: React.FC = () => {
                 items.map((l) => (
                   <tr
                     key={l.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                    onClick={() => setSelectedLead(l)}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
                   >
                     <td className="px-3 sm:px-5 py-3 sm:py-4">
                       <span className="font-medium text-gray-900 dark:text-white truncate block">
@@ -413,9 +489,153 @@ const LeadsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Lead Detail Modal */}
+      {selectedLead && (
+        <LeadDetailModal lead={selectedLead} onClose={() => setSelectedLead(null)} />
+      )}
     </div>
   );
 };
+
+// Lead Detail Modal Component
+function LeadDetailModal({ lead, onClose }: { lead: Lead; onClose: () => void }) {
+  const fullName = lead.name || [lead.first_name, lead.last_name].filter(Boolean).join(" ").trim() || lead.email;
+
+  const hasUtmData = lead.utm_source || lead.utm_medium || lead.utm_campaign || lead.utm_term || lead.utm_content;
+  const hasReferrerData = lead.referrer_url || lead.landing_page_url;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Modal */}
+      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{fullName}</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{lead.email}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)] space-y-6">
+          {/* Basic Info */}
+          <section>
+            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Contact Info</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <InfoItem label="Phone" value={lead.phone} />
+              <InfoItem label="Company" value={lead.company} />
+              <InfoItem label="Source" value={lead.source} />
+              <InfoItem label="Created" value={lead.created_at ? formatDate(lead.created_at) : null} />
+            </div>
+            {lead.notes && (
+              <div className="mt-4">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Notes</span>
+                <p className="mt-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{lead.notes}</p>
+              </div>
+            )}
+          </section>
+
+          {/* UTM Tracking */}
+          {(hasUtmData || hasReferrerData) && (
+            <section>
+              <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Lead Source Tracking
+              </h3>
+
+              {hasUtmData && (
+                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 mb-4">
+                  <h4 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-3">UTM Parameters</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <UtmBadge label="Source" value={lead.utm_source} color="indigo" />
+                    <UtmBadge label="Medium" value={lead.utm_medium} color="purple" />
+                    <UtmBadge label="Campaign" value={lead.utm_campaign} color="blue" />
+                    <UtmBadge label="Term" value={lead.utm_term} color="green" />
+                    <UtmBadge label="Content" value={lead.utm_content} color="amber" />
+                  </div>
+                </div>
+              )}
+
+              {hasReferrerData && (
+                <div className="space-y-3">
+                  {lead.referrer_url && (
+                    <div>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">Referrer URL</span>
+                      <p className="mt-1 text-sm text-gray-700 dark:text-gray-300 break-all font-mono bg-gray-50 dark:bg-gray-800/50 rounded-lg px-3 py-2">
+                        {lead.referrer_url}
+                      </p>
+                    </div>
+                  )}
+                  {lead.landing_page_url && (
+                    <div>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">Landing Page</span>
+                      <p className="mt-1 text-sm text-gray-700 dark:text-gray-300 break-all font-mono bg-gray-50 dark:bg-gray-800/50 rounded-lg px-3 py-2">
+                        {lead.landing_page_url}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* No tracking data message */}
+          {!hasUtmData && !hasReferrerData && (
+            <section className="text-center py-6 text-gray-500 dark:text-gray-400">
+              <svg className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <p className="text-sm">No source tracking data available for this lead.</p>
+              <p className="text-xs mt-1 text-gray-400">UTM params are captured automatically for new leads.</p>
+            </section>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InfoItem({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div>
+      <span className="text-xs text-gray-500 dark:text-gray-400">{label}</span>
+      <p className="mt-0.5 text-sm text-gray-900 dark:text-white">{value || "—"}</p>
+    </div>
+  );
+}
+
+function UtmBadge({ label, value, color }: { label: string; value?: string | null; color: string }) {
+  if (!value) return null;
+
+  const colors: Record<string, string> = {
+    indigo: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300",
+    purple: "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300",
+    blue: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
+    green: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300",
+    amber: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300",
+  };
+
+  return (
+    <div className={`px-3 py-2 rounded-lg ${colors[color] || colors.indigo}`}>
+      <span className="text-xs opacity-75">{label}</span>
+      <p className="font-medium text-sm truncate">{value}</p>
+    </div>
+  );
+}
 
 function formatDate(iso?: string | null) {
   if (!iso) return "—";

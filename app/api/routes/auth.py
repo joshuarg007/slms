@@ -1,3 +1,5 @@
+import logging
+from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie, Request
@@ -10,6 +12,12 @@ from app.db import models
 from app.schemas.token import Token
 from app.core import security
 from app.core.rate_limit import check_rate_limit
+
+logger = logging.getLogger(__name__)
+
+# Security constants
+MAX_FAILED_ATTEMPTS = 5
+LOCKOUT_DURATION_MINUTES = 15
 
 router = APIRouter()
 
@@ -24,11 +32,56 @@ def get_db():
 # Bearer fallback
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 
+def get_client_ip(request: Request) -> str:
+    """Extract client IP, handling proxies."""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
 def authenticate_user(db: Session, email: str, password: str):
     user = db.query(models.User).filter(models.User.email == email).first()
     if not user or not security.verify_password(password, user.hashed_password):
         return None
     return user
+
+
+def check_account_lockout(user: models.User) -> tuple[bool, int]:
+    """Check if account is locked. Returns (is_locked, seconds_remaining)."""
+    if not user.locked_until:
+        return False, 0
+
+    now = datetime.utcnow()
+    if user.locked_until > now:
+        remaining = int((user.locked_until - now).total_seconds())
+        return True, remaining
+    return False, 0
+
+
+def record_failed_login(db: Session, user: models.User, ip: str):
+    """Record a failed login attempt and potentially lock the account."""
+    user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+
+    if user.failed_login_attempts >= MAX_FAILED_ATTEMPTS:
+        user.locked_until = datetime.utcnow() + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
+        logger.warning(
+            f"Account locked: email={user.email}, ip={ip}, "
+            f"attempts={user.failed_login_attempts}, locked_for={LOCKOUT_DURATION_MINUTES}min"
+        )
+
+    db.commit()
+    logger.info(f"Failed login: email={user.email}, ip={ip}, attempts={user.failed_login_attempts}")
+
+
+def record_successful_login(db: Session, user: models.User, ip: str):
+    """Record a successful login, reset failed attempts."""
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    user.last_login_at = datetime.utcnow()
+    user.last_login_ip = ip
+    db.commit()
+    logger.info(f"Successful login: email={user.email}, ip={ip}")
 
 def get_current_user(
     db: Session = Depends(get_db),
@@ -62,22 +115,49 @@ def login(
     # Rate limit: 10 attempts per 5 minutes per IP
     check_rate_limit(request, "login")
 
-    user = authenticate_user(db, form_data.username, form_data.password)
-    if not user:
+    client_ip = get_client_ip(request)
+
+    # First check if user exists (for lockout check)
+    user = db.query(models.User).filter(models.User.email == form_data.username).first()
+
+    # Check account lockout before attempting authentication
+    if user:
+        is_locked, seconds_remaining = check_account_lockout(user)
+        if is_locked:
+            minutes_remaining = (seconds_remaining // 60) + 1
+            logger.warning(f"Login attempt on locked account: email={user.email}, ip={client_ip}")
+            raise HTTPException(
+                status_code=status.HTTP_423_LOCKED,
+                detail=f"Account temporarily locked due to too many failed attempts. Try again in {minutes_remaining} minutes."
+            )
+
+    # Attempt authentication
+    authenticated_user = authenticate_user(db, form_data.username, form_data.password)
+
+    if not authenticated_user:
+        # Log failed attempt
+        if user:
+            record_failed_login(db, user, client_ip)
+        else:
+            logger.info(f"Failed login (unknown user): email={form_data.username}, ip={client_ip}")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
-    if user.organization_id is None:
+
+    if authenticated_user.organization_id is None:
         raise HTTPException(status_code=403, detail="No organization assigned to this user")
 
     # Check email verification
-    email_verified = getattr(user, "email_verified", True)  # Default to True for existing users
+    email_verified = getattr(authenticated_user, "email_verified", True)
     if not email_verified:
         raise HTTPException(
             status_code=403,
             detail="Please verify your email address before logging in. Check your inbox for the verification link."
         )
 
-    access = security.create_access_token(user.email)
-    refresh = security.create_refresh_token(user.email)
+    # Record successful login
+    record_successful_login(db, authenticated_user, client_ip)
+
+    access = security.create_access_token(authenticated_user.email)
+    refresh = security.create_refresh_token(authenticated_user.email)
     security.set_auth_cookies(response, access, refresh)
     return {"access_token": access, "token_type": "bearer"}
 

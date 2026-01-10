@@ -66,6 +66,7 @@ const Notifications = lazy(() => import("@/pages/integrations/Notifications"));
 const FieldsPage = lazy(() => import("@/pages/forms/FieldsPage"));
 const StylesPage = lazy(() => import("@/pages/forms/StylesPage"));
 const EmbedPage = lazy(() => import("@/pages/forms/EmbedPage"));
+const ABTestingPage = lazy(() => import("@/pages/ABTestingPage"));
 // const ChatPage = lazy(() => import("@/pages/ChatPage")); // AI features disabled
 const SalesDashboardPage = lazy(() => import("@/pages/SalesDashboardPage"));
 const TeamKPIPage = lazy(() => import("@/pages/TeamKPIPage"));
@@ -73,8 +74,9 @@ const RecommendationsPage = lazy(() => import("@/pages/RecommendationsPage"));
 const LeadScoringPage = lazy(() => import("@/pages/LeadScoringPage"));
 const LeaderboardPage = lazy(() => import("@/pages/LeaderboardPage"));
 const AutomationPage = lazy(() => import("@/pages/AutomationPage"));
-const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
+const OnboardingWizard = lazy(() => import("@/pages/OnboardingWizard"));
 const AppSumoRedeemPage = lazy(() => import("@/pages/AppSumoRedeemPage"));
+const SupportPage = lazy(() => import("@/pages/SupportPage"));
 
 export default function App() {
   return (
@@ -114,7 +116,7 @@ export default function App() {
           {/* Protected App Routes */}
           <Route path="/app" element={<ProtectedRoute />}>
             {/* Onboarding page - outside AppLayout */}
-            <Route path="onboarding" element={<OnboardingPage />} />
+            <Route path="onboarding" element={<OnboardingWizard />} />
 
             <Route element={<TutorialProvider><TutorialKeyboardHandler /><AppLayout /></TutorialProvider>}>
               <Route index element={<DashboardPage />} />
@@ -132,6 +134,7 @@ export default function App() {
               <Route path="forms/fields" element={<FieldsPage />} />
               <Route path="forms/styles" element={<StylesPage />} />
               <Route path="forms/embed" element={<EmbedPage />} />
+              <Route path="forms/ab-testing" element={<ABTestingPage />} />
               {/* <Route path="chat" element={<ChatPage />} /> AI features disabled */}
               <Route path="sales-dashboard" element={<SalesDashboardPage />} />
               <Route path="team-kpi" element={<TeamKPIPage />} />
@@ -140,6 +143,7 @@ export default function App() {
               <Route path="leaderboard" element={<LeaderboardPage />} />
               <Route path="automation" element={<AutomationPage />} />
               <Route path="appsumo" element={<AppSumoRedeemPage />} />
+              <Route path="support" element={<SupportPage />} />
             </Route>
           </Route>
 

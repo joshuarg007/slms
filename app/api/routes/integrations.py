@@ -169,6 +169,7 @@ CRMProvider = Literal["hubspot", "pipedrive", "salesforce", "nutshell", "zoho"]
 
 class ActiveCRMOut(BaseModel):
     provider: CRMProvider
+    has_token: bool = False
 
 
 class ActiveCRMIn(BaseModel):
@@ -184,7 +185,16 @@ def get_active_crm(
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
     provider = (org.active_crm or "hubspot")  # type: ignore[assignment]
-    return ActiveCRMOut(provider=provider)  # type: ignore[arg-type]
+
+    # Check if there's an active credential for this provider
+    credential = db.query(models.IntegrationCredential).filter(
+        models.IntegrationCredential.organization_id == org.id,
+        models.IntegrationCredential.provider == provider,
+        models.IntegrationCredential.is_active == True,
+    ).first()
+    has_token = credential is not None and credential.access_token is not None
+
+    return ActiveCRMOut(provider=provider, has_token=has_token)  # type: ignore[arg-type]
 
 
 @router.post("/crm/active", response_model=ActiveCRMOut)

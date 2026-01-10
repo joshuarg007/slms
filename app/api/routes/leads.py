@@ -210,7 +210,14 @@ def get_db():
 
 # ---- Public lead intake ----
 # Known fields that map to Lead model columns
-KNOWN_LEAD_FIELDS = {"name", "email", "phone", "company", "notes", "source", "first_name", "last_name"}
+KNOWN_LEAD_FIELDS = {
+    "name", "email", "phone", "company", "notes", "source", "first_name", "last_name",
+    # UTM tracking fields
+    "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content",
+    "referrer_url", "landing_page_url",
+    # A/B test tracking
+    "form_variant_id",
+}
 
 @router.post("/public/leads", response_model=dict)
 def public_create_lead(
@@ -448,6 +455,14 @@ def _lead_to_dict(l, crm_source: Optional[str] = None, is_crm_only: bool = False
         "created_at": getattr(l, "created_at", None).isoformat() if getattr(l, "created_at", None) else None,
         "crm_source": crm_source,
         "is_crm_only": False,
+        # UTM tracking fields
+        "utm_source": getattr(l, "utm_source", None),
+        "utm_medium": getattr(l, "utm_medium", None),
+        "utm_campaign": getattr(l, "utm_campaign", None),
+        "utm_term": getattr(l, "utm_term", None),
+        "utm_content": getattr(l, "utm_content", None),
+        "referrer_url": getattr(l, "referrer_url", None),
+        "landing_page_url": getattr(l, "landing_page_url", None),
     }
 
 
@@ -510,6 +525,8 @@ async def get_leads(
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=200),
     include_crm: bool = Query(True, description="Include leads from connected CRM"),
+    utm_source: Optional[str] = Query(None, description="Filter by UTM source"),
+    utm_medium: Optional[str] = Query(None, description="Filter by UTM medium"),
 ):
     """
     Get leads with optional CRM sync.
@@ -569,6 +586,14 @@ async def get_leads(
 
         items = [i for i in items if _hit(i)]
 
+    # UTM source filter
+    if utm_source:
+        items = [i for i in items if (i.get("utm_source") or "").lower() == utm_source.lower()]
+
+    # UTM medium filter
+    if utm_medium:
+        items = [i for i in items if (i.get("utm_medium") or "").lower() == utm_medium.lower()]
+
     # Sort
     reverse = dir.lower() == "desc"
 
@@ -604,6 +629,41 @@ async def get_leads(
         "crm_synced": active_crm if include_crm and crm_leads else None,
         "crm_error": crm_error,
         "duplicates": duplicates if duplicates else None,
+    }
+
+
+# ---- UTM filter options ----
+@router.get("/leads/filters")
+def get_lead_filters(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get unique UTM source and medium values for filter dropdowns."""
+    org_id = current_user.organization_id
+    if org_id is None:
+        raise HTTPException(status_code=403, detail="No organization assigned")
+
+    # Get unique utm_source values
+    utm_sources = (
+        db.query(models.Lead.utm_source)
+        .filter(models.Lead.organization_id == org_id)
+        .filter(models.Lead.utm_source.isnot(None))
+        .distinct()
+        .all()
+    )
+
+    # Get unique utm_medium values
+    utm_mediums = (
+        db.query(models.Lead.utm_medium)
+        .filter(models.Lead.organization_id == org_id)
+        .filter(models.Lead.utm_medium.isnot(None))
+        .distinct()
+        .all()
+    )
+
+    return {
+        "utm_sources": sorted([s[0] for s in utm_sources if s[0]]),
+        "utm_mediums": sorted([m[0] for m in utm_mediums if m[0]]),
     }
 
 

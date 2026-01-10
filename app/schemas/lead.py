@@ -13,6 +13,18 @@ class LeadBase(BaseModel):
     source: Optional[str] = Field(None, max_length=100)
     organization_id: Optional[int] = None
 
+    # Lead source tracking
+    utm_source: Optional[str] = Field(None, max_length=100)
+    utm_medium: Optional[str] = Field(None, max_length=100)
+    utm_campaign: Optional[str] = Field(None, max_length=255)
+    utm_term: Optional[str] = Field(None, max_length=255)
+    utm_content: Optional[str] = Field(None, max_length=255)
+    referrer_url: Optional[str] = Field(None, max_length=2048)
+    landing_page_url: Optional[str] = Field(None, max_length=2048)
+
+    # A/B test tracking
+    form_variant_id: Optional[int] = None
+
 class LeadCreate(LeadBase):
     pass
 
@@ -26,6 +38,15 @@ class LeadUpdate(BaseModel):
     source: Optional[str] = Field(None, max_length=100)
     organization_id: Optional[int] = None
     email: Optional[EmailStr] = None
+
+    # Lead source tracking
+    utm_source: Optional[str] = Field(None, max_length=100)
+    utm_medium: Optional[str] = Field(None, max_length=100)
+    utm_campaign: Optional[str] = Field(None, max_length=255)
+    utm_term: Optional[str] = Field(None, max_length=255)
+    utm_content: Optional[str] = Field(None, max_length=255)
+    referrer_url: Optional[str] = Field(None, max_length=2048)
+    landing_page_url: Optional[str] = Field(None, max_length=2048)
 
 class LeadRead(LeadBase):
     id: int

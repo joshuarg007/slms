@@ -1,5 +1,6 @@
 // src/pages/SettingsPage.tsx
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { applyTheme, getSavedTheme, type Theme } from "@/utils/theme";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { getApiBase, refresh } from "@/utils/api";
@@ -914,6 +915,27 @@ export default function SettingsPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Need Help? */}
+      <section className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg overflow-hidden">
+        <div className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-center sm:text-left">
+            <h2 className="text-lg font-semibold text-white">Need Help?</h2>
+            <p className="text-indigo-100 text-sm mt-1">
+              Search FAQs, run diagnostics, or contact our support team.
+            </p>
+          </div>
+          <Link
+            to="/app/support"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-indigo-600 font-medium rounded-xl hover:bg-indigo-50 hover:shadow-lg transition-all"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            Help & Support
+          </Link>
         </div>
       </section>
 
