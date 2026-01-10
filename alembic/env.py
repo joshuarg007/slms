@@ -2,6 +2,10 @@ import os
 import sys
 from logging.config import fileConfig
 
+# Load .env file before any other imports that use env vars
+from dotenv import load_dotenv
+load_dotenv()
+
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
