@@ -1,25 +1,34 @@
 // src/pages/GoogleAuthSuccessPage.tsx
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "@/context/AuthProvider";
 
 export default function GoogleAuthSuccessPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
 
   useEffect(() => {
-    const token = searchParams.get("token");
+    const handleAuth = async () => {
+      const token = searchParams.get("token");
 
-    if (token) {
-      // Store the token
-      localStorage.setItem("access_token", token);
+      if (token) {
+        // Store the token
+        localStorage.setItem("access_token", token);
 
-      // Redirect to dashboard
-      navigate("/app", { replace: true });
-    } else {
-      // No token, redirect to login with error
-      navigate("/login?error=google_no_token", { replace: true });
-    }
-  }, [searchParams, navigate]);
+        // Refresh auth context so ProtectedRoute knows we're logged in
+        await refreshUser();
+
+        // Redirect to dashboard
+        navigate("/app", { replace: true });
+      } else {
+        // No token, redirect to login with error
+        navigate("/login?error=google_no_token", { replace: true });
+      }
+    };
+
+    handleAuth();
+  }, [searchParams, navigate, refreshUser]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
