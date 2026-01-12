@@ -14,7 +14,7 @@ export default function GoogleAuthSuccessPage() {
       localStorage.setItem("access_token", token);
 
       // Redirect to dashboard
-      navigate("/app/dashboard", { replace: true });
+      navigate("/app", { replace: true });
     } else {
       // No token, redirect to login with error
       navigate("/login?error=google_no_token", { replace: true });
