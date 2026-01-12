@@ -2,6 +2,7 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthProvider";
+import api from "@/utils/api";
 
 export default function GoogleAuthSuccessPage() {
   const [searchParams] = useSearchParams();
@@ -13,8 +14,8 @@ export default function GoogleAuthSuccessPage() {
       const token = searchParams.get("token");
 
       if (token) {
-        // Store the token
-        localStorage.setItem("access_token", token);
+        // Store the token using api.setToken to update both localStorage AND the module variable
+        api.setToken(token);
 
         // Refresh auth context so ProtectedRoute knows we're logged in
         await refreshUser();

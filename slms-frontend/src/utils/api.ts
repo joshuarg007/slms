@@ -942,6 +942,7 @@ export const api = {
   refresh,
   logout,
   clearToken,
+  setToken,
   me,
   setCookieConsent,
   createPublicLead,
