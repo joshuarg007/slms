@@ -60,8 +60,9 @@ class Organization(Base):
 
     stripe_customer_id = Column(String, index=True, nullable=True)
     stripe_subscription_id = Column(String, index=True, nullable=True)
+    paypal_subscription_id = Column(String, index=True, nullable=True)
     plan = Column(String, nullable=False, default="free")  # free, trial, starter, appsumo, pro, pro_ai, enterprise
-    plan_source = Column(String(20), nullable=False, default="stripe")  # stripe, appsumo, manual
+    plan_source = Column(String(20), nullable=False, default="stripe")  # stripe, paypal, appsumo, manual
     billing_cycle = Column(String, nullable=False, default="monthly")  # monthly, annual, lifetime
     subscription_status = Column(String, nullable=False, default="inactive")  # inactive, trialing, active, past_due, canceled
     current_period_end = Column(DateTime, nullable=True)

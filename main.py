@@ -38,6 +38,7 @@ from app.api.routes import leads as leads_routes
 from app.api.routes import auth as auth_routes
 from app.api.routes import google_auth as google_auth_routes
 from app.api.routes import billing as billing_routes
+from app.api.routes import paypal as paypal_routes
 from app.api.routes import users as users_routes
 from app.api.routes import contact as contact_routes
 from app.api.routes import password_reset as password_reset_routes
@@ -145,6 +146,7 @@ logger.info("Application initialized", extra={
 # Routers
 
 app.include_router(billing_routes.router, prefix="/api", tags=["Billing"])
+app.include_router(paypal_routes.router, prefix="/api", tags=["PayPal Billing"])
 app.include_router(core_routes.router)
 app.include_router(orgs_routes.router, prefix="/api", tags=["Orgs"])
 app.include_router(leads_routes.router, prefix="/api", tags=["Leads"])

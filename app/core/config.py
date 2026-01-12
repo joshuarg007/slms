@@ -53,6 +53,17 @@ class Settings(BaseSettings):
     stripe_price_pro_ai_monthly: str = ""
     stripe_price_pro_ai_annual: str = ""
 
+    # PayPal
+    paypal_client_id: str = ""
+    paypal_client_secret: str = ""
+    paypal_webhook_id: str = ""
+    paypal_mode: str = "sandbox"  # sandbox or live
+    # PayPal Plan IDs (created via scripts/setup_paypal_plans.py)
+    paypal_plan_starter_monthly: str = ""
+    paypal_plan_starter_annual: str = ""
+    paypal_plan_pro_monthly: str = ""
+    paypal_plan_pro_annual: str = ""
+
     # AI Lead Consultant (Anthropic)
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-4-20250514"
