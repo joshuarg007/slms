@@ -180,7 +180,7 @@ async def google_callback(
                 db.commit()
 
         # Create JWT token
-        jwt_token = create_access_token(data={"sub": user.email})
+        jwt_token = create_access_token(sub=user.email)
 
         # Redirect to frontend with token
         frontend_url = settings.frontend_base_url or "https://site2crm.io"
