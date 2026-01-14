@@ -50,6 +50,7 @@ export const GRADIENTS = {
   purple: { start: '#8b5cf6', end: '#7c3aed' },
   pink: { start: '#ec4899', end: '#db2777' },
   cyan: { start: '#06b6d4', end: '#0891b2' },
+  blue: { start: '#3b82f6', end: '#2563eb' },
   emerald: { start: '#10b981', end: '#059669' },
   amber: { start: '#f59e0b', end: '#d97706' },
   rose: { start: '#f43f5e', end: '#e11d48' },
