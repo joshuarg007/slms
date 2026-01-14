@@ -1,18 +1,24 @@
 # app/api/routes/salesforce.py
 from __future__ import annotations
 
+import base64
 import json
+import logging
 import os
+import secrets
 from typing import Optional, Dict, Any
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Cookie
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps.auth import get_db, get_current_user
+from app.core.security import COOKIE_SECURE, COOKIE_SAMESITE, COOKIE_DOMAIN
 from app.db import models
+
+logger = logging.getLogger(__name__)
 
 # Try to use your shared settings object (like billing.py). Fallback to envs if missing.
 try:
@@ -28,6 +34,21 @@ except Exception:  # pragma: no cover
         salesforce_login_base: str = os.getenv("SALESFORCE_LOGIN_BASE", "https://login.salesforce.com")
         frontend_base_url: str = os.getenv("FRONTEND_BASE_URL", "http://127.0.0.1:5173")
     settings = _S()  # type: ignore
+
+
+def _encode_state(data: dict) -> str:
+    """Encode state as URL-safe base64 (more reliable than raw JSON)."""
+    json_str = json.dumps(data)
+    return base64.urlsafe_b64encode(json_str.encode()).decode()
+
+
+def _decode_state(state: str) -> dict:
+    """Decode base64-encoded state back to dict."""
+    try:
+        json_str = base64.urlsafe_b64decode(state.encode()).decode()
+        return json.loads(json_str)
+    except Exception:
+        return {}
 
 router = APIRouter(prefix="/integrations/salesforce", tags=["Integrations: Salesforce"])
 
@@ -68,7 +89,13 @@ def sf_auth_start(
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    state = json.dumps({"org_id": org.id})
+    # Generate a random nonce and store org_id in state
+    nonce = secrets.token_urlsafe(16)
+    state_data = {"org_id": org.id, "user_id": user.id, "nonce": nonce}
+    state = _encode_state(state_data)
+
+    logger.info(f"Salesforce OAuth started: org_id={org.id}, user_id={user.id}")
+
     params = {
         "response_type": "code",
         "client_id": settings.salesforce_client_id,
@@ -77,10 +104,25 @@ def sf_auth_start(
         "scope": "api refresh_token openid",
         "state": state,
         # NOTE: We are NOT using PKCE here because your External Client App accepted the web-server flow.
-        # If your app enforces PKCE, you’d add code_challenge & code_challenge_method here.
+        # If your app enforces PKCE, you'd add code_challenge & code_challenge_method here.
     }
     url = f"{AUTH_URL}?{urlencode(params)}"
-    return RedirectResponse(url, status_code=307)
+
+    response = RedirectResponse(url, status_code=307)
+
+    # Store state in cookie as fallback
+    cookie_kwargs = {
+        "httponly": True,
+        "secure": COOKIE_SECURE,
+        "samesite": COOKIE_SAMESITE,
+        "max_age": 600,  # 10 minutes
+        "path": "/",
+    }
+    if COOKIE_DOMAIN:
+        cookie_kwargs["domain"] = COOKIE_DOMAIN
+    response.set_cookie(key="salesforce_oauth_state", value=state, **cookie_kwargs)
+
+    return response
 
 
 @router.get("/callback")
@@ -90,6 +132,7 @@ async def sf_auth_callback(
     error: Optional[str] = Query(None),
     error_description: Optional[str] = Query(None),
     state: Optional[str] = Query(None),
+    salesforce_oauth_state: Optional[str] = Cookie(None),
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
@@ -101,22 +144,37 @@ async def sf_auth_callback(
 
     # Early error from SF
     if error:
+        logger.warning(f"Salesforce OAuth error: {error} - {error_description}")
         # missing code_challenge etc. would come here if PKCE required
         return RedirectResponse(_error_redirect(error), status_code=307)
 
     if not code:
+        logger.warning("Salesforce OAuth callback missing code")
         return RedirectResponse(_error_redirect("missing_code"), status_code=307)
 
-    # Parse state (org_id)
-    try:
-        parsed: Dict[str, Any] = json.loads(state or "{}")
-        org_id = int(parsed.get("org_id", 0))
-    except Exception:
-        org_id = 0
+    # Try URL state first, fall back to cookie
+    effective_state = state or salesforce_oauth_state
+    logger.info(f"Salesforce OAuth callback: state_from_url={bool(state)}, state_from_cookie={bool(salesforce_oauth_state)}")
 
-    # Resolve org based on current user when state is missing/invalid
+    # Parse state to get org_id (supports both base64 and raw JSON for backwards compat)
+    org_id = 0
+    if effective_state:
+        # Try base64 decode first (new format)
+        parsed = _decode_state(effective_state)
+        if parsed:
+            org_id = int(parsed.get("org_id", 0))
+        else:
+            # Fall back to raw JSON (old format)
+            try:
+                parsed = json.loads(effective_state)
+                org_id = int(parsed.get("org_id", 0))
+            except Exception:
+                pass
+
+    # Resolve org based on current user when state is missing/invalid (Salesforce has this fallback)
     org = db.get(models.Organization, org_id or user.organization_id)
     if not org:
+        logger.error(f"Salesforce OAuth unknown org: state={state!r}, org_id={org_id}, user.org_id={user.organization_id}")
         return RedirectResponse(_error_redirect("unknown_org"), status_code=307)
 
     # Exchange authorization code for tokens
@@ -236,7 +294,7 @@ async def sf_auth_callback(
         db.commit()
         db.refresh(cred)
 
-    # Optionally switch org’s active CRM to Salesforce automatically (skip if you prefer manual)
+    # Optionally switch org's active CRM to Salesforce automatically (skip if you prefer manual)
     try:
         if (org.active_crm or "").lower() != "salesforce":
             org.active_crm = "salesforce"
@@ -245,5 +303,12 @@ async def sf_auth_callback(
     except Exception:
         db.rollback()
 
-    # Back to Integrations page (your UI watches ?salesforce=connected to show a toast)
-    return RedirectResponse(_success_redirect(), status_code=307)
+    logger.info(f"Salesforce OAuth completed: org_id={org.id}")
+
+    # Clear the state cookie and redirect
+    response = RedirectResponse(_success_redirect(), status_code=307)
+    cookie_kwargs = {"path": "/"}
+    if COOKIE_DOMAIN:
+        cookie_kwargs["domain"] = COOKIE_DOMAIN
+    response.delete_cookie("salesforce_oauth_state", **cookie_kwargs)
+    return response

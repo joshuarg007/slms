@@ -9,18 +9,24 @@ Flow:
 """
 from __future__ import annotations
 
+import base64
 import json
+import logging
+import secrets
 from typing import Optional, Dict, Any
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Cookie, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps.auth import get_db, get_current_user
 from app.core.config import settings
+from app.core.security import COOKIE_SECURE, COOKIE_SAMESITE, COOKIE_DOMAIN
 from app.db import models
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/integrations/hubspot", tags=["Integrations: HubSpot"])
 
@@ -71,6 +77,21 @@ def _error_redirect(code: str, message: str = "") -> str:
     return f"{base}/app/integrations?{urlencode(params)}"
 
 
+def _encode_state(data: dict) -> str:
+    """Encode state as URL-safe base64 (more reliable than raw JSON)."""
+    json_str = json.dumps(data)
+    return base64.urlsafe_b64encode(json_str.encode()).decode()
+
+
+def _decode_state(state: str) -> dict:
+    """Decode base64-encoded state back to dict."""
+    try:
+        json_str = base64.urlsafe_b64decode(state.encode()).decode()
+        return json.loads(json_str)
+    except Exception:
+        return {}
+
+
 @router.get("/auth")
 def hubspot_auth_start(
     db: Session = Depends(get_db),
@@ -87,8 +108,12 @@ def hubspot_auth_start(
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    # Store org_id in state for callback
-    state = json.dumps({"org_id": org.id, "user_id": user.id})
+    # Generate a random nonce and store org_id in state
+    nonce = secrets.token_urlsafe(16)
+    state_data = {"org_id": org.id, "user_id": user.id, "nonce": nonce}
+    state = _encode_state(state_data)
+
+    logger.info(f"HubSpot OAuth started: org_id={org.id}, user_id={user.id}")
 
     params = {
         "client_id": settings.hubspot_client_id,
@@ -97,15 +122,32 @@ def hubspot_auth_start(
         "state": state,
     }
     url = f"{HUBSPOT_AUTH_URL}?{urlencode(params)}"
-    return RedirectResponse(url, status_code=307)
+
+    response = RedirectResponse(url, status_code=307)
+
+    # Store state in cookie as fallback (like Google OAuth)
+    cookie_kwargs = {
+        "httponly": True,
+        "secure": COOKIE_SECURE,
+        "samesite": COOKIE_SAMESITE,
+        "max_age": 600,  # 10 minutes
+        "path": "/",
+    }
+    if COOKIE_DOMAIN:
+        cookie_kwargs["domain"] = COOKIE_DOMAIN
+    response.set_cookie(key="hubspot_oauth_state", value=state, **cookie_kwargs)
+
+    return response
 
 
 @router.get("/callback")
 async def hubspot_auth_callback(
+    request: Request,
     code: Optional[str] = Query(None),
     error: Optional[str] = Query(None),
     error_description: Optional[str] = Query(None),
     state: Optional[str] = Query(None),
+    hubspot_oauth_state: Optional[str] = Cookie(None),
     db: Session = Depends(get_db),
 ):
     """
@@ -116,25 +158,40 @@ async def hubspot_auth_callback(
 
     # Handle errors from HubSpot
     if error:
+        logger.warning(f"HubSpot OAuth error: {error} - {error_description}")
         return RedirectResponse(
             _error_redirect(error, error_description or ""),
             status_code=307
         )
 
     if not code:
+        logger.warning("HubSpot OAuth callback missing code")
         return RedirectResponse(
             _error_redirect("missing_code", "No authorization code received"),
             status_code=307
         )
 
-    # Parse state to get org_id
-    try:
-        parsed: Dict[str, Any] = json.loads(state or "{}")
-        org_id = int(parsed.get("org_id", 0))
-    except Exception:
-        org_id = 0
+    # Try URL state first, fall back to cookie
+    effective_state = state or hubspot_oauth_state
+    logger.info(f"HubSpot OAuth callback: state_from_url={bool(state)}, state_from_cookie={bool(hubspot_oauth_state)}")
+
+    # Parse state to get org_id (supports both base64 and raw JSON for backwards compat)
+    org_id = 0
+    if effective_state:
+        # Try base64 decode first (new format)
+        parsed = _decode_state(effective_state)
+        if parsed:
+            org_id = int(parsed.get("org_id", 0))
+        else:
+            # Fall back to raw JSON (old format)
+            try:
+                parsed = json.loads(effective_state)
+                org_id = int(parsed.get("org_id", 0))
+            except Exception:
+                pass
 
     if not org_id:
+        logger.error(f"HubSpot OAuth invalid state: state={state!r}, cookie={hubspot_oauth_state!r}")
         return RedirectResponse(
             _error_redirect("invalid_state", "Could not determine organization"),
             status_code=307
@@ -240,7 +297,15 @@ async def hubspot_auth_callback(
     except Exception:
         db.rollback()
 
-    return RedirectResponse(_success_redirect(), status_code=307)
+    logger.info(f"HubSpot OAuth completed: org_id={org.id}")
+
+    # Clear the state cookie and redirect
+    response = RedirectResponse(_success_redirect(), status_code=307)
+    cookie_kwargs = {"path": "/"}
+    if COOKIE_DOMAIN:
+        cookie_kwargs["domain"] = COOKIE_DOMAIN
+    response.delete_cookie("hubspot_oauth_state", **cookie_kwargs)
+    return response
 
 
 @router.post("/refresh")

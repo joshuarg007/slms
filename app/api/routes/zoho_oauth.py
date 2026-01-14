@@ -12,18 +12,24 @@ Default is US (.com), configurable via ZOHO_ACCOUNTS_URL
 """
 from __future__ import annotations
 
+import base64
 import json
+import logging
+import secrets
 from typing import Optional, Dict, Any
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Cookie, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps.auth import get_db, get_current_user
 from app.core.config import settings
+from app.core.security import COOKIE_SECURE, COOKIE_SAMESITE, COOKIE_DOMAIN
 from app.db import models
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/integrations/zoho", tags=["Integrations: Zoho"])
 
@@ -76,6 +82,21 @@ def _error_redirect(code: str, message: str = "") -> str:
     return f"{base}/app/integrations?{urlencode(params)}"
 
 
+def _encode_state(data: dict) -> str:
+    """Encode state as URL-safe base64 (more reliable than raw JSON)."""
+    json_str = json.dumps(data)
+    return base64.urlsafe_b64encode(json_str.encode()).decode()
+
+
+def _decode_state(state: str) -> dict:
+    """Decode base64-encoded state back to dict."""
+    try:
+        json_str = base64.urlsafe_b64decode(state.encode()).decode()
+        return json.loads(json_str)
+    except Exception:
+        return {}
+
+
 @router.get("/auth")
 def zoho_auth_start(
     db: Session = Depends(get_db),
@@ -91,7 +112,12 @@ def zoho_auth_start(
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    state = json.dumps({"org_id": org.id, "user_id": user.id})
+    # Generate a random nonce and store org_id in state
+    nonce = secrets.token_urlsafe(16)
+    state_data = {"org_id": org.id, "user_id": user.id, "nonce": nonce}
+    state = _encode_state(state_data)
+
+    logger.info(f"Zoho OAuth started: org_id={org.id}, user_id={user.id}")
 
     params = {
         "client_id": settings.zoho_client_id,
@@ -103,15 +129,32 @@ def zoho_auth_start(
         "prompt": "consent",  # Force consent to always get refresh_token
     }
     url = f"{_zoho_auth_url()}?{urlencode(params)}"
-    return RedirectResponse(url, status_code=307)
+
+    response = RedirectResponse(url, status_code=307)
+
+    # Store state in cookie as fallback
+    cookie_kwargs = {
+        "httponly": True,
+        "secure": COOKIE_SECURE,
+        "samesite": COOKIE_SAMESITE,
+        "max_age": 600,  # 10 minutes
+        "path": "/",
+    }
+    if COOKIE_DOMAIN:
+        cookie_kwargs["domain"] = COOKIE_DOMAIN
+    response.set_cookie(key="zoho_oauth_state", value=state, **cookie_kwargs)
+
+    return response
 
 
 @router.get("/callback")
 async def zoho_auth_callback(
+    request: Request,
     code: Optional[str] = Query(None),
     error: Optional[str] = Query(None),
     state: Optional[str] = Query(None),
     location: Optional[str] = Query(None),  # Zoho returns user's datacenter location
+    zoho_oauth_state: Optional[str] = Cookie(None),
     db: Session = Depends(get_db),
 ):
     """
@@ -121,25 +164,40 @@ async def zoho_auth_callback(
     _require_zoho_env()
 
     if error:
+        logger.warning(f"Zoho OAuth error: {error}")
         return RedirectResponse(
             _error_redirect(error, "Authorization denied"),
             status_code=307
         )
 
     if not code:
+        logger.warning("Zoho OAuth callback missing code")
         return RedirectResponse(
             _error_redirect("missing_code", "No authorization code received"),
             status_code=307
         )
 
-    # Parse state to get org_id
-    try:
-        parsed: Dict[str, Any] = json.loads(state or "{}")
-        org_id = int(parsed.get("org_id", 0))
-    except Exception:
-        org_id = 0
+    # Try URL state first, fall back to cookie
+    effective_state = state or zoho_oauth_state
+    logger.info(f"Zoho OAuth callback: state_from_url={bool(state)}, state_from_cookie={bool(zoho_oauth_state)}")
+
+    # Parse state to get org_id (supports both base64 and raw JSON for backwards compat)
+    org_id = 0
+    if effective_state:
+        # Try base64 decode first (new format)
+        parsed = _decode_state(effective_state)
+        if parsed:
+            org_id = int(parsed.get("org_id", 0))
+        else:
+            # Fall back to raw JSON (old format)
+            try:
+                parsed = json.loads(effective_state)
+                org_id = int(parsed.get("org_id", 0))
+            except Exception:
+                pass
 
     if not org_id:
+        logger.error(f"Zoho OAuth invalid state: state={state!r}, cookie={zoho_oauth_state!r}")
         return RedirectResponse(
             _error_redirect("invalid_state", "Could not determine organization"),
             status_code=307
@@ -249,7 +307,15 @@ async def zoho_auth_callback(
     except Exception:
         db.rollback()
 
-    return RedirectResponse(_success_redirect(), status_code=307)
+    logger.info(f"Zoho OAuth completed: org_id={org.id}")
+
+    # Clear the state cookie and redirect
+    response = RedirectResponse(_success_redirect(), status_code=307)
+    cookie_kwargs = {"path": "/"}
+    if COOKIE_DOMAIN:
+        cookie_kwargs["domain"] = COOKIE_DOMAIN
+    response.delete_cookie("zoho_oauth_state", **cookie_kwargs)
+    return response
 
 
 @router.post("/refresh")
