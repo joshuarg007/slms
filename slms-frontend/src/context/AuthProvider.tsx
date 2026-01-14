@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // ✅ Set user immediately after login so ProtectedRoute can proceed
+  // Set user immediately after login so ProtectedRoute can proceed
   const login = async (email: string, password: string) => {
     // 1) exchange creds for token (also sets localStorage in api.login)
     await api.login(email, password);
@@ -64,11 +64,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 2) fetch full user data including org
     const u = await api.me();
     setUser(u);
-
-    // 3) If onboarding session was pending, mark as active (fresh login completed)
-    if (sessionStorage.getItem("site2crm.onboarding_session") === "pending") {
-      sessionStorage.setItem("site2crm.onboarding_session", "true");
-    }
   };
 
   // Clear both cookies/token and in-memory user

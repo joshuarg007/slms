@@ -213,10 +213,15 @@ export default function OnboardingWizard() {
     ));
   }
 
-  async function handleCrmConnect(crm: string) {
+  function selectCrm(crm: string) {
     setSelectedCrm(crm);
-    // Redirect to CRM OAuth flow
-    window.location.href = `${getApiBase()}/integrations/${crm}/auth`;
+  }
+
+  function connectSelectedCrm() {
+    if (selectedCrm) {
+      // Redirect to CRM OAuth flow
+      window.location.href = `${getApiBase()}/integrations/${selectedCrm}/auth`;
+    }
   }
 
   async function completeOnboarding() {
@@ -384,25 +389,49 @@ export default function OnboardingWizard() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {CRM_OPTIONS.map((crm) => (
-                  <Tooltip key={crm.value} text={crm.tooltip}>
-                    <button
-                      type="button"
-                      onClick={() => handleCrmConnect(crm.value)}
-                      className="w-full p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500 flex flex-col items-center gap-2 transition-all group hover:shadow-lg hover:scale-[1.02]"
-                    >
-                      <div
-                        className="w-14 h-14 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-md group-hover:shadow-lg transition-shadow"
-                        style={{ backgroundColor: crm.color }}
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {CRM_OPTIONS.map((crm) => (
+                    <Tooltip key={crm.value} text={crm.tooltip}>
+                      <button
+                        type="button"
+                        onClick={() => selectCrm(crm.value)}
+                        className={`w-full p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all group hover:shadow-lg hover:scale-[1.02] ${
+                          selectedCrm === crm.value
+                            ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 shadow-md"
+                            : "border-gray-200 dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500"
+                        }`}
                       >
-                        {crm.label.charAt(0)}
-                      </div>
-                      <div className="font-semibold text-gray-900 dark:text-white">{crm.label}</div>
-                    </button>
-                  </Tooltip>
-                ))}
-              </div>
+                        <div
+                          className="w-14 h-14 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-md group-hover:shadow-lg transition-shadow"
+                          style={{ backgroundColor: crm.color }}
+                        >
+                          {crm.label.charAt(0)}
+                        </div>
+                        <div className="font-semibold text-gray-900 dark:text-white">{crm.label}</div>
+                        {selectedCrm === crm.value && (
+                          <svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </button>
+                    </Tooltip>
+                  ))}
+                </div>
+
+                {selectedCrm && (
+                  <button
+                    type="button"
+                    onClick={connectSelectedCrm}
+                    className="w-full mt-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 transition-all"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    Connect {CRM_OPTIONS.find(c => c.value === selectedCrm)?.label}
+                  </button>
+                )}
+              </>
             )}
 
             <Tooltip
