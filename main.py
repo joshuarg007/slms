@@ -4,6 +4,10 @@ import os
 import logging
 from contextlib import asynccontextmanager
 
+# Load .env FIRST before any other imports that might need env vars
+from dotenv import load_dotenv
+load_dotenv()
+
 sys.path.append(os.path.dirname(__file__))
 
 # Configure logging FIRST before any other imports

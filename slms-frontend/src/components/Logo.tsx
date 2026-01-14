@@ -1,13 +1,13 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import logoLight from "@/assets/site2crm_logo.png";
-import logoDark from "@/assets/site2crm_logo_dark.png";
+import logoLight from "@/assets/site2crm_logo_vector.svg";
+import logoDark from "@/assets/site2crm_logo_vector_dark.svg";
 
 // Centralized logo sizing - update here to change everywhere
 const LOGO_SIZES = {
-  sm: "w-28",   // 112px - for footers, sidebars
-  md: "w-36",   // 144px - default
-  lg: "w-48",   // 192px - for hero sections, login pages
+  sm: "w-32",   // 128px - for footers, sidebars
+  md: "w-40",   // 160px - default
+  lg: "w-56",   // 224px - for hero sections, login pages
 } as const;
 
 type LogoSize = keyof typeof LOGO_SIZES;

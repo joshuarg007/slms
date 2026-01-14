@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100" fill="none">
+  <defs>
+    <!-- Icon gradients -->
+    <linearGradient id="iconBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00d4ff"/>
+      <stop offset="100%" stop-color="#0099ff"/>
+    </linearGradient>
+    <linearGradient id="iconPurple" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <linearGradient id="iconMixed" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00d4ff"/>
+      <stop offset="50%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <linearGradient id="centerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#818cf8"/>
+    </linearGradient>
+    <!-- Text gradient for "2" - purple/cyan CRM colors -->
+    <linearGradient id="twoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="50%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Icon: Orbital/Atomic design -->
+  <g transform="translate(8, 8)">
+    <!-- Outer orbital ring (cyan/blue) - top arc -->
+    <path d="M42 8 Q70 8 78 35 Q82 55 65 70"
+          stroke="url(#iconBlue)" stroke-width="5" fill="none" stroke-linecap="round"/>
+
+    <!-- Outer orbital ring (purple) - bottom arc -->
+    <path d="M8 58 Q8 30 30 15"
+          stroke="url(#iconPurple)" stroke-width="5" fill="none" stroke-linecap="round"/>
+
+    <!-- Inner swoosh (cyan) - top -->
+    <path d="M25 22 Q42 18 58 28"
+          stroke="url(#iconBlue)" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+    <!-- Inner swoosh (purple) - bottom -->
+    <path d="M22 62 Q42 72 62 58"
+          stroke="url(#iconPurple)" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+    <!-- Center rounded square -->
+    <rect x="28" y="30" width="28" height="28" rx="6" fill="url(#centerGradient)"/>
+
+    <!-- Orbital dots -->
+    <circle cx="12" cy="62" r="8" fill="url(#iconBlue)"/>
+    <circle cx="72" cy="22" r="6" fill="url(#iconBlue)"/>
+    <circle cx="28" cy="14" r="5" fill="url(#iconMixed)"/>
+    <circle cx="58" cy="72" r="7" fill="url(#iconPurple)"/>
+    <circle cx="68" cy="52" r="4" fill="url(#iconPurple)"/>
+  </g>
+
+  <!-- Text: "Site" in dark navy -->
+  <text x="105" y="66" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-size="46" font-weight="700" fill="#0f172a" letter-spacing="-1">Site</text>
+
+  <!-- Text: "2" in gradient purple/cyan - larger -->
+  <text x="196" y="68" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-size="52" font-weight="800" fill="url(#twoGradient)" letter-spacing="-1">2</text>
+
+  <!-- Text: "CRM" in dark navy -->
+  <text x="230" y="66" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-size="46" font-weight="700" fill="#0f172a" letter-spacing="-1">CRM</text>
+</svg>
