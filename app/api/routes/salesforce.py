@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import logging
 import os
@@ -19,6 +20,16 @@ from app.core.security import COOKIE_SECURE, COOKIE_SAMESITE, COOKIE_DOMAIN
 from app.db import models
 
 logger = logging.getLogger(__name__)
+
+
+def _generate_pkce() -> tuple[str, str]:
+    """Generate PKCE code_verifier and code_challenge for OAuth 2.0."""
+    # code_verifier: 43-128 character random string
+    code_verifier = secrets.token_urlsafe(64)  # 86 characters
+    # code_challenge: base64url(sha256(code_verifier))
+    digest = hashlib.sha256(code_verifier.encode()).digest()
+    code_challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
+    return code_verifier, code_challenge
 
 # Try to use your shared settings object (like billing.py). Fallback to envs if missing.
 try:
@@ -80,7 +91,7 @@ def sf_auth_start(
     user: models.User = Depends(get_current_user),
 ):
     """
-    Kick off OAuth. We store org_id in state (JWT not needed; we validate user again in callback).
+    Kick off OAuth with PKCE. We store org_id and code_verifier in state.
     """
     _require_sf_env()
 
@@ -89,9 +100,17 @@ def sf_auth_start(
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    # Generate a random nonce and store org_id in state
+    # Generate PKCE code_verifier and code_challenge
+    code_verifier, code_challenge = _generate_pkce()
+
+    # Generate a random nonce and store org_id + code_verifier in state
     nonce = secrets.token_urlsafe(16)
-    state_data = {"org_id": org.id, "user_id": user.id, "nonce": nonce}
+    state_data = {
+        "org_id": org.id,
+        "user_id": user.id,
+        "nonce": nonce,
+        "code_verifier": code_verifier,
+    }
     state = _encode_state(state_data)
 
     logger.info(f"Salesforce OAuth started: org_id={org.id}, user_id={user.id}")
@@ -103,8 +122,9 @@ def sf_auth_start(
         # Minimal scopes needed for APIs + refresh
         "scope": "api refresh_token openid",
         "state": state,
-        # NOTE: We are NOT using PKCE here because your External Client App accepted the web-server flow.
-        # If your app enforces PKCE, you'd add code_challenge & code_challenge_method here.
+        # PKCE parameters (required by Salesforce Connected App)
+        "code_challenge": code_challenge,
+        "code_challenge_method": "S256",
     }
     url = f"{AUTH_URL}?{urlencode(params)}"
 
@@ -156,18 +176,22 @@ async def sf_auth_callback(
     effective_state = state or salesforce_oauth_state
     logger.info(f"Salesforce OAuth callback: state_from_url={bool(state)}, state_from_cookie={bool(salesforce_oauth_state)}")
 
-    # Parse state to get org_id (supports both base64 and raw JSON for backwards compat)
+    # Parse state to get org_id and code_verifier (supports both base64 and raw JSON for backwards compat)
     org_id = 0
+    code_verifier = None
+    parsed = {}
     if effective_state:
         # Try base64 decode first (new format)
         parsed = _decode_state(effective_state)
         if parsed:
             org_id = int(parsed.get("org_id", 0))
+            code_verifier = parsed.get("code_verifier")
         else:
             # Fall back to raw JSON (old format)
             try:
                 parsed = json.loads(effective_state)
                 org_id = int(parsed.get("org_id", 0))
+                code_verifier = parsed.get("code_verifier")
             except Exception:
                 pass
 
@@ -177,7 +201,7 @@ async def sf_auth_callback(
         logger.error(f"Salesforce OAuth unknown org: state={state!r}, org_id={org_id}, user.org_id={user.organization_id}")
         return RedirectResponse(_error_redirect("unknown_org"), status_code=307)
 
-    # Exchange authorization code for tokens
+    # Exchange authorization code for tokens (with PKCE code_verifier)
     data = {
         "grant_type": "authorization_code",
         "code": code,
@@ -185,6 +209,9 @@ async def sf_auth_callback(
         "client_secret": settings.salesforce_client_secret,
         "redirect_uri": settings.salesforce_redirect_uri,
     }
+    # Add code_verifier for PKCE (required by Salesforce)
+    if code_verifier:
+        data["code_verifier"] = code_verifier
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.post(TOKEN_URL, data=data)
