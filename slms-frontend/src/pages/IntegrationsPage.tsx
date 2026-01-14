@@ -14,7 +14,7 @@ import {
   GRADIENTS,
 } from "../components/charts";
 
-type CRM = "hubspot" | "pipedrive" | "salesforce" | "nutshell";
+type CRM = "hubspot" | "pipedrive" | "salesforce" | "nutshell" | "zoho";
 type TabType = "command" | "activity" | "mapping" | "analytics";
 
 const CRM_OPTIONS: {
@@ -61,6 +61,15 @@ const CRM_OPTIONS: {
     gradient: "linear-gradient(135deg, #a855f7 0%, #ec4899 100%)",
     description: "SMB-friendly CRM",
     tagline: "Simple & Powerful",
+  },
+  {
+    id: "zoho",
+    label: "Zoho CRM",
+    icon: "Z",
+    color: "from-red-500 to-yellow-500",
+    gradient: "linear-gradient(135deg, #ef4444 0%, #eab308 100%)",
+    description: "All-in-one business platform",
+    tagline: "Complete Business Suite",
   },
 ];
 
