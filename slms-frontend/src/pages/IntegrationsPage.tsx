@@ -196,6 +196,11 @@ export default function IntegrationsPage() {
   const [hsOAuthConnected, setHsOAuthConnected] = useState(false);
   const [hsOAuthBusy, setHsOAuthBusy] = useState(false);
 
+  // Quick action states
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [testResult, setTestResult] = useState<{ status: "success" | "error"; message: string } | null>(null);
+  const [syncing, setSyncing] = useState(false);
+
   // Real-time stats
   const [stats, setStats] = useState({
     syncedToday: 847,
@@ -293,6 +298,50 @@ export default function IntegrationsPage() {
       }
     } catch { /* ignore */ }
     setTokenBusy(null);
+  }
+
+  // Test connection to active CRM
+  async function testConnection() {
+    if (!activeCRM) return;
+    setTestingConnection(true);
+    setTestResult(null);
+    try {
+      const endpoint = `${getApiBase()}/integrations/${activeCRM}/salespeople`;
+      const res = await authFetch(endpoint);
+      if (res.ok) {
+        setTestResult({ status: "success", message: "Connection verified!" });
+        setMsg("Connection test passed!");
+      } else {
+        const errorText = await res.text().catch(() => "Connection failed");
+        setTestResult({ status: "error", message: errorText.slice(0, 100) });
+        setMsg("Connection test failed");
+      }
+    } catch (e: any) {
+      setTestResult({ status: "error", message: e?.message || "Connection test failed" });
+      setMsg("Connection test failed");
+    } finally {
+      setTestingConnection(false);
+      setTimeout(() => setTestResult(null), 5000);
+    }
+  }
+
+  // Refresh credentials/sync status
+  async function syncNow() {
+    setSyncing(true);
+    try {
+      const res = await authFetch(`${getApiBase()}/integrations/credentials`);
+      if (res.ok) {
+        const items = (await res.json()) as CredentialSummary[];
+        setCreds(items || []);
+        setSfConnected(items?.some((c) => c.provider === "salesforce" && c.is_active) || false);
+        setHsOAuthConnected(items?.some((c) => c.provider === "hubspot" && c.auth_type === "oauth" && c.is_active) || false);
+        setMsg("Sync complete!");
+      }
+    } catch {
+      setMsg("Sync failed");
+    } finally {
+      setSyncing(false);
+    }
   }
 
   const getCredential = (provider: CRM) => creds.find((c) => c.provider === provider && c.is_active);
@@ -739,24 +788,63 @@ function CommandCenterTab({
         >
           <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
           <div className="space-y-2">
-            {[
-              { label: "Test Connection", icon: "M13 10V3L4 14h7v7l9-11h-7z", color: "from-amber-500 to-orange-500" },
-              { label: "Sync Now", icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15", color: "from-blue-500 to-cyan-500" },
-              { label: "View Logs", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z", color: "from-gray-500 to-gray-600" },
-            ].map((action) => (
-              <motion.button
-                key={action.label}
-                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left"
-                whileHover={{ x: 4 }}
-              >
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center`}>
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={action.icon} />
+            {/* Test Connection */}
+            <motion.button
+              onClick={testConnection}
+              disabled={testingConnection || !isConnected}
+              className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left disabled:opacity-50"
+              whileHover={{ x: 4 }}
+            >
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                {testingConnection ? (
+                  <svg className="w-5 h-5 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                </div>
-                <span className="font-medium text-gray-900 dark:text-white">{action.label}</span>
-              </motion.button>
-            ))}
+                ) : (
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                )}
+              </div>
+              <div className="flex-1">
+                <span className="font-medium text-gray-900 dark:text-white">{testingConnection ? "Testing..." : "Test Connection"}</span>
+                {testResult && (
+                  <span className={`block text-xs ${testResult.status === "success" ? "text-emerald-600" : "text-red-500"}`}>
+                    {testResult.message}
+                  </span>
+                )}
+              </div>
+            </motion.button>
+
+            {/* Sync Now */}
+            <motion.button
+              onClick={syncNow}
+              disabled={syncing}
+              className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left disabled:opacity-50"
+              whileHover={{ x: 4 }}
+            >
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                <svg className={`w-5 h-5 text-white ${syncing ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </div>
+              <span className="font-medium text-gray-900 dark:text-white">{syncing ? "Syncing..." : "Sync Now"}</span>
+            </motion.button>
+
+            {/* View Activity */}
+            <motion.button
+              onClick={() => setActiveTab("activity")}
+              className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left"
+              whileHover={{ x: 4 }}
+            >
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <span className="font-medium text-gray-900 dark:text-white">View Activity</span>
+            </motion.button>
           </div>
         </motion.div>
       </div>

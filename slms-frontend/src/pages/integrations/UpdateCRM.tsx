@@ -1,8 +1,8 @@
 // src/pages/integrations/UpdateCRM.tsx
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { getApiBase, refresh } from "@/utils/api";
 import { Skeleton } from "@/components/Skeleton";
+import CrmCapabilityChips from "@/components/CRMCapabilityChips";
 
 // All CRMs use gradient text styling with official brand colors
 
@@ -565,12 +565,6 @@ export default function UpdateCRM() {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            <Link
-              to="/app/integrations/current"
-              className="px-4 py-2 text-sm font-medium text-center text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              View Current
-            </Link>
             <button
               onClick={onSave}
               disabled={saving || editing === activeCRM}
@@ -1106,6 +1100,23 @@ export default function UpdateCRM() {
       </div>
       )}
 
+      {/* Capabilities section for selected CRM */}
+      {editing && (
+        <div className="mt-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+              {labelOf(editing)} Capabilities
+            </h2>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              What this CRM supports
+            </span>
+          </div>
+          <div className="p-5">
+            <CrmCapabilityChips items={capabilityItemsFor(editing)} />
+          </div>
+        </div>
+      )}
+
       {/* Help section */}
       <div className="mt-8 p-5 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
         <div className="flex items-start gap-4">
@@ -1165,4 +1176,45 @@ export default function UpdateCRM() {
 
 function labelOf(id: CRM) {
   return CRM_OPTIONS.find((o) => o.id === id)?.label || id;
+}
+
+function capabilityItemsFor(crm: CRM) {
+  if (crm === "hubspot") {
+    return [
+      { id: "hubspot-leads", label: "Lead capture", level: "full" as const, tooltip: "Push new leads and contacts into HubSpot." },
+      { id: "hubspot-owners", label: "Owner lookup", level: "partial" as const, tooltip: "Requires owner scopes on a paid HubSpot plan or private app token." },
+      { id: "hubspot-analytics", label: "Sales analytics", level: "limited" as const, tooltip: "Full salesperson stats require a HubSpot Professional tier portal." },
+    ];
+  }
+
+  if (crm === "pipedrive") {
+    return [
+      { id: "pd-leads", label: "Lead capture", level: "full" as const, tooltip: "Create and update leads in Pipedrive." },
+      { id: "pd-owners", label: "Owner and activity stats", level: "full" as const, tooltip: "Owners and activities are fully supported through the Pipedrive API." },
+      { id: "pd-analytics", label: "Sales analytics", level: "full" as const, tooltip: "Salesperson stats and dashboards are first class with Pipedrive." },
+    ];
+  }
+
+  if (crm === "salesforce") {
+    return [
+      { id: "sf-leads", label: "Lead capture", level: "full" as const, tooltip: "Create leads and contacts inside Salesforce." },
+      { id: "sf-owners", label: "Owner and pipeline data", level: "full" as const, tooltip: "Standard Salesforce objects power salesperson and pipeline stats." },
+      { id: "sf-analytics", label: "Sales analytics", level: "full" as const, tooltip: "Ideal for advanced analytics and enterprise reporting requirements." },
+    ];
+  }
+
+  if (crm === "zoho") {
+    return [
+      { id: "zoho-leads", label: "Lead capture", level: "full" as const, tooltip: "Create leads and contacts in Zoho CRM." },
+      { id: "zoho-owners", label: "Owner lookup", level: "full" as const, tooltip: "Zoho CRM exposes owners and user data via API." },
+      { id: "zoho-analytics", label: "Sales analytics", level: "full" as const, tooltip: "Full analytics support with Zoho CRM integration." },
+    ];
+  }
+
+  // nutshell
+  return [
+    { id: "nutshell-leads", label: "Lead capture", level: "full" as const, tooltip: "Create and sync leads into Nutshell." },
+    { id: "nutshell-owners", label: "Owner and activity stats", level: "full" as const, tooltip: "Nutshell APIs expose owners, pipelines, and activities for stats." },
+    { id: "nutshell-analytics", label: "Sales analytics", level: "full" as const, tooltip: "Full salesperson analytics available once an API key is connected." },
+  ];
 }

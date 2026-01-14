@@ -1,6 +1,6 @@
 // src/App.tsx
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
 import MarketingLayout from "@/components/marketing/MarketingLayout";
@@ -60,7 +60,6 @@ const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
 const AccountPage = lazy(() => import("@/pages/AccountPage"));
 const UsersPage = lazy(() => import("@/pages/UsersPage"));
 const BillingPage = lazy(() => import("@/pages/BillingPage"));
-const CurrentCRM = lazy(() => import("@/pages/integrations/CurrentCRM"));
 const UpdateCRM = lazy(() => import("@/pages/integrations/UpdateCRM"));
 const Notifications = lazy(() => import("@/pages/integrations/Notifications"));
 const FieldsPage = lazy(() => import("@/pages/forms/FieldsPage"));
@@ -128,7 +127,7 @@ export default function App() {
               <Route path="account" element={<AccountPage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="billing" element={<BillingPage />} />
-              <Route path="integrations/current" element={<CurrentCRM />} />
+              <Route path="integrations/current" element={<Navigate to="/app/integrations/update" replace />} />
               <Route path="integrations/update" element={<UpdateCRM />} />
               <Route path="integrations/notifications" element={<Notifications />} />
               <Route path="forms/fields" element={<FieldsPage />} />

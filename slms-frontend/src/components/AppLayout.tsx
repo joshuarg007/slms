@@ -451,8 +451,7 @@ export default function AppLayout() {
             <div>
               <SectionLabel>Integrations</SectionLabel>
               <div className="space-y-1">
-                <NavItem to="/app/integrations/current" icon={icons.crm} label="Current CRM" />
-                <NavItem to="/app/integrations/update" icon={icons.crm} label="Update CRM" indent />
+                <NavItem to="/app/integrations/update" icon={icons.crm} label="CRM Integrations" />
                 <NavItem to="/app/integrations/notifications" icon={icons.notifications} label="Notifications" indent />
               </div>
             </div>
