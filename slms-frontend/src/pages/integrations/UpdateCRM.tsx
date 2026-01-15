@@ -1,5 +1,6 @@
 // src/pages/integrations/UpdateCRM.tsx
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { getApiBase, refresh } from "@/utils/api";
 import { Skeleton } from "@/components/Skeleton";
 import CrmCapabilityChips from "@/components/CRMCapabilityChips";

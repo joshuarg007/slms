@@ -500,6 +500,12 @@ export default function IntegrationsPage() {
               hsOAuthConnected={hsOAuthConnected}
               hsOAuthBusy={hsOAuthBusy}
               setHsOAuthBusy={setHsOAuthBusy}
+              testConnection={testConnection}
+              testingConnection={testingConnection}
+              testResult={testResult}
+              syncNow={syncNow}
+              syncing={syncing}
+              setActiveTab={setActiveTab}
             />
           )}
 
@@ -544,6 +550,12 @@ function CommandCenterTab({
   hsOAuthConnected,
   hsOAuthBusy,
   setHsOAuthBusy,
+  testConnection,
+  testingConnection,
+  testResult,
+  syncNow,
+  syncing,
+  setActiveTab,
 }: any) {
   const getCredential = (provider: CRM) => creds.find((c: any) => c.provider === provider && c.is_active);
 
