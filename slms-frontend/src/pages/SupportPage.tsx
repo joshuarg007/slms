@@ -300,10 +300,8 @@ const FAQ_DATA: FAQItem[] = [
 // =============================================================================
 
 const VIDEO_TUTORIALS = [
-  { id: "connect-crm", title: "Connect Your CRM", duration: "1:30", thumbnail: "crm" },
-  { id: "create-form", title: "Create Your First Form", duration: "2:00", thumbnail: "form" },
-  { id: "embed-widget", title: "Embed on Your Website", duration: "1:15", thumbnail: "embed" },
-  { id: "view-analytics", title: "Understanding Analytics", duration: "2:30", thumbnail: "analytics" },
+  { id: "connect-crm", title: "Connect Your CRM", duration: "0:53", thumbnail: "crm", url: "https://site2crm.io/media/connect-crm.mp4" },
+  { id: "create-form", title: "Create Your First Form", duration: "0:59", thumbnail: "form", url: "https://site2crm.io/media/create-form.mp4" },
 ];
 
 // =============================================================================
@@ -1084,8 +1082,11 @@ export default function SupportPage() {
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {VIDEO_TUTORIALS.map((video) => (
-            <button
+            <a
               key={video.id}
+              href={video.url}
+              target="_blank"
+              rel="noopener noreferrer"
               className="group relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 aspect-video hover:shadow-lg transition-all"
             >
               <div className="absolute inset-0 flex items-center justify-center">
@@ -1097,7 +1098,7 @@ export default function SupportPage() {
                 <p className="text-xs font-medium text-white">{video.title}</p>
                 <p className="text-xs text-white/70">{video.duration}</p>
               </div>
-            </button>
+            </a>
           ))}
         </div>
       </div>
