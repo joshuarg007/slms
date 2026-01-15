@@ -5,30 +5,25 @@
 ---
 
 ## SESSION STATE
-**Last Updated:** 2026-01-08
+**Last Updated:** 2026-01-15
 
 ### Where We Left Off:
-- Pre-launch polish COMPLETE
-- GDPR compliance (data export + account deletion) COMPLETE
-- Favicons, OG image, health endpoint all done
-- Ready for UptimeRobot status page setup
+- UptimeRobot status page COMPLETE
+- EC2 upgraded to t3.small with Elastic IP (3.91.211.77)
+- Email forwarding (support@site2crm.io -> labs@axiondeep.com) COMPLETE
+- Security headers added to CloudFront
+- All systems operational
 
 ### Immediate Next Steps:
-1. Set up UptimeRobot status page (see instructions below)
-2. Update footer status link with actual UptimeRobot URL
-3. Set up support@site2crm.io email forwarding
+- None - production ready
 
 ### Current Blockers:
 - None
 
-### UptimeRobot Setup Instructions:
-1. Sign up at https://uptimerobot.com/signUp
-2. Add monitors:
-   - Site2CRM Website: `https://site2crm.io`
-   - Site2CRM API: `https://api.site2crm.io/health` (keyword: "healthy")
-   - API Docs: `https://api.site2crm.io/docs`
-3. Create public status page
-4. Update `MarketingFooter.tsx` with actual status page URL
+### Infrastructure Summary:
+- **Elastic IP**: 3.91.211.77 (permanent)
+- **Status Page**: https://stats.uptimerobot.com/lXaVgFmahF
+- **Support Email**: support@site2crm.io (forwards to labs@axiondeep.com via ImprovMX)
 
 ### Recent Changes (2026-01-08):
 **Pre-Launch Polish (Complete):**
@@ -135,7 +130,7 @@ site2crm/
 | Env | Backend | Frontend | Database |
 |-----|---------|----------|----------|
 | Local | localhost:8000 | localhost:5173 | SQLite |
-| Production | EC2 (34.230.32.54) | CloudFront | PostgreSQL (RDS) |
+| Production | EC2 (3.91.211.77 - Elastic IP) | CloudFront | PostgreSQL (RDS) |
 
 ---
 
@@ -165,11 +160,11 @@ Workflow files: `.github/workflows/`
 
 ## Credentials (Production)
 
-**SSH Key Location**: `/home/joshua/AllProjects/slms/site2crm-key.pem`
+**SSH Key Location**: `/home/joshua/projects/slms/site2crm-key.pem`
 
 **SSH Command**:
 ```bash
-ssh -i /home/joshua/AllProjects/slms/site2crm-key.pem ubuntu@34.230.32.54
+ssh -i /home/joshua/projects/slms/site2crm-key.pem ubuntu@3.91.211.77
 ```
 
 **Server Paths**:
@@ -180,7 +175,7 @@ ssh -i /home/joshua/AllProjects/slms/site2crm-key.pem ubuntu@34.230.32.54
 **Deploy Commands**:
 ```bash
 # SSH and deploy
-ssh -i /home/joshua/AllProjects/slms/site2crm-key.pem ubuntu@34.230.32.54 \
+ssh -i /home/joshua/projects/slms/site2crm-key.pem ubuntu@3.91.211.77 \
   "cd /opt/site2crm && sudo git pull && sudo .venv/bin/python -m alembic upgrade head && sudo systemctl restart site2crm"
 ```
 

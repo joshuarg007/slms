@@ -7,7 +7,7 @@ const FOOTER_LINKS = {
     { to: "/pricing", label: "Pricing" },
     { to: "/help", label: "Help Center" },
     { to: "/contact", label: "Contact Sales" },
-    { href: "https://stats.uptimerobot.com/site2crm", label: "Status", external: true },
+    { href: "https://stats.uptimerobot.com/lXaVgFmahF", label: "Status", external: true },
   ],
   Company: [
     { to: "/about", label: "About" },
