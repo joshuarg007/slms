@@ -18,6 +18,10 @@ Allow: /privacy
 Disallow: /app
 Disallow: /app/
 
+# Disallow media assets (unlisted)
+Disallow: /media
+Disallow: /media/
+
 # Disallow password reset pages (no SEO value)
 Disallow: /forgot-password
 Disallow: /reset-password
