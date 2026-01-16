@@ -1,66 +1,45 @@
 #!/usr/bin/env python3
-"""
-Seed script for Site2CRM demo data.
+"""Seed demo data for G2 screenshots."""
 
-Generates realistic sales data including:
-- 1200+ leads across multiple industries
-- 9 lead sources with realistic distribution
-- Configurable number of salespeople (default 6)
-- Lead activities (calls, emails, meetings)
-- Realistic performance patterns per salesperson
-- Time range configurable (default 18 months)
-
-Usage:
-    python scripts/seed_demo_data.py [--leads 1200] [--salespeople 6] [--months 18] [--org-id 1]
-"""
-
-import argparse
 import random
-import sys
 from datetime import datetime, timedelta
 from decimal import Decimal
-from pathlib import Path
 
-# Add project root to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add parent to path for imports
+import sys
+import os
 
-from sqlalchemy.orm import Session
-from app.db.session import SessionLocal, engine, Base
+# Detect if we're on production or local
+if os.path.exists("/opt/site2crm"):
+    sys.path.insert(0, "/opt/site2crm")
+else:
+    sys.path.insert(0, "/home/joshua/projects/slms")
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
 from app.db.models import (
     Organization,
-    User,
     Lead,
+    User,
     LeadActivity,
-    Salesperson,
+    LEAD_STATUSES,
     LEAD_STATUS_NEW,
-    LEAD_STATUS_CONTACTED,
-    LEAD_STATUS_QUALIFIED,
-    LEAD_STATUS_PROPOSAL,
-    LEAD_STATUS_NEGOTIATION,
     LEAD_STATUS_WON,
     LEAD_STATUS_LOST,
-    ACTIVITY_CALL,
-    ACTIVITY_EMAIL,
-    ACTIVITY_MEETING,
-    ACTIVITY_NOTE,
+    ACTIVITY_TYPES,
 )
-from app.core.security import get_password_hash
 
-# ============================================================================
-# REALISTIC DATA POOLS
-# ============================================================================
-
+# Demo data pools
 FIRST_NAMES = [
     "James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", "Linda",
     "William", "Elizabeth", "David", "Barbara", "Richard", "Susan", "Joseph", "Jessica",
-    "Thomas", "Sarah", "Charles", "Karen", "Christopher", "Nancy", "Daniel", "Lisa",
+    "Thomas", "Sarah", "Charles", "Karen", "Christopher", "Lisa", "Daniel", "Nancy",
     "Matthew", "Betty", "Anthony", "Margaret", "Mark", "Sandra", "Donald", "Ashley",
     "Steven", "Kimberly", "Paul", "Emily", "Andrew", "Donna", "Joshua", "Michelle",
     "Kenneth", "Dorothy", "Kevin", "Carol", "Brian", "Amanda", "George", "Melissa",
     "Timothy", "Deborah", "Ronald", "Stephanie", "Edward", "Rebecca", "Jason", "Sharon",
     "Jeffrey", "Laura", "Ryan", "Cynthia", "Jacob", "Kathleen", "Gary", "Amy",
-    "Nicholas", "Angela", "Eric", "Shirley", "Jonathan", "Anna", "Stephen", "Brenda",
-    "Larry", "Pamela", "Justin", "Emma", "Scott", "Nicole", "Brandon", "Helen",
 ]
 
 LAST_NAMES = [
@@ -68,526 +47,268 @@ LAST_NAMES = [
     "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson",
     "Thomas", "Taylor", "Moore", "Jackson", "Martin", "Lee", "Perez", "Thompson",
     "White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson", "Walker",
-    "Young", "Allen", "King", "Wright", "Scott", "Torres", "Nguyen", "Hill",
-    "Flores", "Green", "Adams", "Nelson", "Baker", "Hall", "Rivera", "Campbell",
-    "Mitchell", "Carter", "Roberts", "Gomez", "Phillips", "Evans", "Turner", "Diaz",
-    "Parker", "Cruz", "Edwards", "Collins", "Reyes", "Stewart", "Morris", "Morales",
-    "Murphy", "Cook", "Rogers", "Gutierrez", "Ortiz", "Morgan", "Cooper", "Peterson",
+    "Young", "Allen", "King", "Wright", "Scott", "Torres", "Nguyen", "Hill", "Flores",
+    "Green", "Adams", "Nelson", "Baker", "Hall", "Rivera", "Campbell", "Mitchell",
+    "Carter", "Roberts", "Chen", "Kim", "Patel", "Kumar", "Singh", "Park", "Wang",
 ]
 
-# Multi-industry company names (Site2CRM target market)
-COMPANY_PREFIXES = [
-    "Acme", "Atlas", "Beacon", "Blue", "Bright", "Capital", "Cascade", "Cloud",
-    "Coastal", "Core", "Digital", "Dynamic", "Eagle", "Edge", "Elite", "Ember",
-    "Empire", "Fusion", "Global", "Golden", "Green", "Harbor", "Horizon", "Impact",
-    "Insight", "Iron", "Keystone", "Legacy", "Liberty", "Lunar", "Metro", "Modern",
-    "Nexus", "Noble", "North", "Nova", "Oak", "Omega", "Onyx", "Pacific",
-    "Peak", "Phoenix", "Pine", "Pioneer", "Platinum", "Prime", "Pulse", "Quest",
-    "Rapid", "Red", "Sage", "Silver", "Sky", "Solar", "Spark", "Spectrum",
-    "Spring", "Star", "Sterling", "Stone", "Storm", "Summit", "Swift", "Titan",
-    "True", "United", "Urban", "Valley", "Vector", "Venture", "Vista", "Wave",
+COMPANIES = [
+    "Acme Corp", "TechStart Inc", "Global Solutions", "Prime Industries", "NextGen Systems",
+    "Innovate Labs", "Summit Partners", "Velocity Group", "Apex Technologies", "Horizon Digital",
+    "Atlas Consulting", "Pinnacle Software", "Bridge Ventures", "Core Dynamics", "Fusion Media",
+    "Quantum Analytics", "Stellar Networks", "Vanguard Tech", "Zenith Solutions", "Alpha Industries",
+    "Beta Systems", "Gamma Technologies", "Delta Enterprises", "Omega Corp", "Sigma Partners",
+    "Phoenix Digital", "Titan Software", "Neptune Analytics", "Jupiter Systems", "Mercury Labs",
+    "Solar Innovations", "Lunar Tech", "Comet Data", "Nova Solutions", "Orbit Media",
+    "Rocket Startups", "Galaxy Group", "Cosmos Inc", "Nebula Networks", "Pulsar Technologies",
 ]
 
-COMPANY_SUFFIXES = [
-    "Solutions", "Technologies", "Systems", "Group", "Partners", "Consulting",
-    "Services", "Industries", "Labs", "Digital", "Media", "Studios", "Agency",
-    "Corp", "Co", "Inc", "LLC", "Enterprises", "Holdings", "Ventures",
-    "Capital", "Dynamics", "Innovations", "Networks", "Software", "Tech",
+SOURCES = [
+    "Website Form", "Google Ads", "LinkedIn", "Facebook Ads", "Referral", "Cold Call",
+    "Trade Show", "Webinar", "Email Campaign", "Partner", "Organic Search", "Direct",
 ]
 
-INDUSTRIES = [
-    "Software", "Marketing", "Healthcare", "Finance", "Real Estate", "Manufacturing",
-    "Retail", "Professional Services", "Construction", "Education", "Hospitality",
-]
-
-# 9 Lead sources with realistic distribution weights
-LEAD_SOURCES = {
-    "Website Form": 0.25,       # 25% - Primary source
-    "Google Ads": 0.18,         # 18%
-    "LinkedIn": 0.12,           # 12%
-    "Referral": 0.12,           # 12%
-    "Facebook Ads": 0.10,       # 10%
-    "Organic Search": 0.08,     # 8%
-    "Trade Show": 0.06,         # 6%
-    "Cold Outreach": 0.05,      # 5%
-    "Partner": 0.04,            # 4%
-}
-
-# Salesperson archetypes with performance multipliers
-SALESPERSON_ARCHETYPES = [
-    {"name": "Top Performer", "close_rate": 0.35, "activity_mult": 1.3, "avg_deal_mult": 1.2},
-    {"name": "Solid Performer", "close_rate": 0.28, "activity_mult": 1.1, "avg_deal_mult": 1.0},
-    {"name": "Consistent", "close_rate": 0.24, "activity_mult": 1.0, "avg_deal_mult": 0.95},
-    {"name": "Developing", "close_rate": 0.20, "activity_mult": 0.9, "avg_deal_mult": 0.85},
-    {"name": "New Hire", "close_rate": 0.15, "activity_mult": 0.7, "avg_deal_mult": 0.75},
-    {"name": "Veteran", "close_rate": 0.30, "activity_mult": 0.85, "avg_deal_mult": 1.15},
-]
-
-SALESPERSON_NAMES = [
-    "Alex Chen", "Jordan Rivera", "Taylor Morgan", "Casey Williams", "Morgan Davis",
-    "Riley Thompson", "Avery Martinez", "Quinn Johnson", "Jamie Anderson", "Drew Wilson",
-    "Sam Parker", "Cameron Lee", "Blake Roberts", "Reese Garcia", "Skyler Brown",
-]
-
-# Activity outcomes
-CALL_OUTCOMES = ["completed", "no_answer", "voicemail", "callback_scheduled", "not_interested"]
-EMAIL_OUTCOMES = ["sent", "opened", "replied", "bounced"]
-MEETING_OUTCOMES = ["completed", "cancelled", "rescheduled", "no_show"]
-
-# Deal value ranges by industry (min, max in dollars)
-DEAL_VALUE_RANGES = {
-    "Software": (5000, 150000),
-    "Marketing": (2000, 50000),
-    "Healthcare": (10000, 200000),
-    "Finance": (15000, 300000),
-    "Real Estate": (5000, 100000),
-    "Manufacturing": (20000, 500000),
-    "Retail": (1000, 30000),
-    "Professional Services": (3000, 75000),
-    "Construction": (25000, 400000),
-    "Education": (2000, 40000),
-    "Hospitality": (1500, 25000),
-}
-
-
-# ============================================================================
-# HELPER FUNCTIONS
-# ============================================================================
-
-def random_date(start: datetime, end: datetime) -> datetime:
-    """Generate random datetime between start and end."""
-    delta = end - start
-    random_days = random.random() * delta.days
-    return start + timedelta(days=random_days)
-
-
-def weighted_choice(choices: dict) -> str:
-    """Select from dict with weighted probabilities."""
-    items = list(choices.keys())
-    weights = list(choices.values())
-    return random.choices(items, weights=weights, k=1)[0]
+UTM_SOURCES = ["google", "facebook", "linkedin", "twitter", "email", "referral", None]
+UTM_MEDIUMS = ["cpc", "social", "email", "organic", "referral", None]
+UTM_CAMPAIGNS = ["spring_sale", "product_launch", "brand_awareness", "retargeting", None]
 
 
 def generate_email(first_name: str, last_name: str, company: str) -> str:
-    """Generate realistic business email."""
-    domain = company.lower().replace(" ", "").replace(",", "")[:20]
+    """Generate a realistic email."""
+    domain = company.lower().replace(" ", "").replace(".", "")[:12] + ".com"
     formats = [
-        f"{first_name.lower()}.{last_name.lower()}@{domain}.com",
-        f"{first_name.lower()[0]}{last_name.lower()}@{domain}.com",
-        f"{first_name.lower()}@{domain}.com",
-        f"{last_name.lower()}.{first_name.lower()[0]}@{domain}.com",
+        f"{first_name.lower()}.{last_name.lower()}@{domain}",
+        f"{first_name[0].lower()}{last_name.lower()}@{domain}",
+        f"{first_name.lower()}@{domain}",
     ]
     return random.choice(formats)
 
 
 def generate_phone() -> str:
-    """Generate US phone number."""
+    """Generate a realistic US phone number."""
     area = random.randint(200, 999)
     prefix = random.randint(200, 999)
     line = random.randint(1000, 9999)
     return f"({area}) {prefix}-{line}"
 
 
-def generate_company() -> str:
-    """Generate company name."""
-    prefix = random.choice(COMPANY_PREFIXES)
-    suffix = random.choice(COMPANY_SUFFIXES)
-    return f"{prefix} {suffix}"
+def random_date_in_range(start_days_ago: int, end_days_ago: int) -> datetime:
+    """Generate random datetime within range."""
+    days_ago = random.randint(end_days_ago, start_days_ago)
+    hours_ago = random.randint(0, 23)
+    minutes_ago = random.randint(0, 59)
+    return datetime.utcnow() - timedelta(days=days_ago, hours=hours_ago, minutes=minutes_ago)
 
 
-# ============================================================================
-# SEED FUNCTIONS
-# ============================================================================
+def seed_leads(session, org_id: int, user_id: int, count: int = 150):
+    """Seed demo leads."""
+    leads = []
 
-def create_or_get_demo_org(db: Session, org_id: int = None) -> Organization:
-    """Create or get demo organization."""
-    if org_id:
-        org = db.query(Organization).filter(Organization.id == org_id).first()
-        if org:
-            return org
-
-    # Check for existing demo org
-    org = db.query(Organization).filter(Organization.domain == "demo.site2crm.com").first()
-    if org:
-        return org
-
-    # Create new demo org
-    org = Organization(
-        name="Site2CRM Demo",
-        domain="demo.site2crm.com",
-        api_key="demo_api_key_" + "".join(random.choices("abcdef0123456789", k=32)),
-        plan="enterprise",
-        subscription_status="active",
-    )
-    db.add(org)
-    db.commit()
-    db.refresh(org)
-    print(f"Created demo organization: {org.name} (ID: {org.id})")
-    return org
-
-
-def create_salespeople(db: Session, org: Organization, count: int) -> list[tuple[User, Salesperson]]:
-    """Create salesperson users and profiles."""
-    salespeople = []
+    # Status distribution (realistic funnel)
+    status_weights = {
+        "new": 35,
+        "contacted": 25,
+        "qualified": 15,
+        "proposal": 10,
+        "negotiation": 8,
+        "won": 5,
+        "lost": 2,
+    }
 
     for i in range(count):
-        name = SALESPERSON_NAMES[i % len(SALESPERSON_NAMES)]
-        archetype = SALESPERSON_ARCHETYPES[i % len(SALESPERSON_ARCHETYPES)]
-
-        first, last = name.split(" ", 1)
-        email = f"{first.lower()}.{last.lower()}@demo.site2crm.com"
-
-        # Check if user exists
-        user = db.query(User).filter(User.email == email).first()
-        if not user:
-            user = User(
-                email=email,
-                hashed_password=get_password_hash("demo123!"),
-                role="USER",
-                organization_id=org.id,
-                email_verified=True,
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-
-        # Check if salesperson profile exists
-        sp = db.query(Salesperson).filter(Salesperson.user_id == user.id).first()
-        if not sp:
-            # Monthly quota based on archetype
-            base_quota = Decimal("50000")
-            quota = base_quota * Decimal(str(archetype["avg_deal_mult"]))
-
-            sp = Salesperson(
-                user_id=user.id,
-                organization_id=org.id,
-                display_name=name,
-                monthly_quota=quota,
-                monthly_lead_target=random.randint(15, 30),
-                hire_date=datetime.now().date() - timedelta(days=random.randint(90, 730)),
-                is_active=True,
-            )
-            db.add(sp)
-            db.commit()
-            db.refresh(sp)
-
-        salespeople.append((user, sp, archetype))
-        print(f"  Created salesperson: {name} ({archetype['name']})")
-
-    return salespeople
-
-
-def create_leads(
-    db: Session,
-    org: Organization,
-    salespeople: list,
-    lead_count: int,
-    months: int,
-) -> list[Lead]:
-    """Create leads with realistic distribution."""
-    leads = []
-    end_date = datetime.utcnow()
-    start_date = end_date - timedelta(days=months * 30)
-
-    # Pre-generate industry for each company to keep consistent deal values
-    company_industries = {}
-
-    for i in range(lead_count):
         first_name = random.choice(FIRST_NAMES)
         last_name = random.choice(LAST_NAMES)
-        company = generate_company()
+        company = random.choice(COMPANIES)
 
-        # Assign industry to company
-        if company not in company_industries:
-            company_industries[company] = random.choice(INDUSTRIES)
-        industry = company_industries[company]
-
-        # Lead source
-        source = weighted_choice(LEAD_SOURCES)
-
-        # Create date with slight seasonal pattern (more leads in Q1/Q4)
-        created_at = random_date(start_date, end_date)
-        month = created_at.month
-        if month in [1, 2, 3, 10, 11, 12]:  # Q1 and Q4
-            if random.random() < 0.3:  # 30% chance to shift to busier period
-                created_at = random_date(start_date, end_date)
-
-        # Assign salesperson (weighted by activity multiplier)
-        user, sp, archetype = random.choices(
-            salespeople,
-            weights=[a["activity_mult"] for _, _, a in salespeople],
-            k=1
+        # Weighted random status
+        status = random.choices(
+            list(status_weights.keys()),
+            weights=list(status_weights.values())
         )[0]
 
-        # Determine lead status based on archetype close rate and time
-        days_old = (end_date - created_at).days
+        # Generate realistic scores
+        base_score = random.randint(20, 95)
+        score_engagement = random.randint(10, 100)
+        score_source = random.randint(10, 100)
+        score_value = random.randint(10, 100)
+        score_velocity = random.randint(10, 100)
+        score_fit = random.randint(10, 100)
 
-        # Leads progress through pipeline over time
-        if days_old < 7:
-            status = random.choice([LEAD_STATUS_NEW, LEAD_STATUS_CONTACTED])
-        elif days_old < 21:
-            status = random.choice([LEAD_STATUS_CONTACTED, LEAD_STATUS_QUALIFIED, LEAD_STATUS_NEW])
-        elif days_old < 45:
-            status = random.choice([
-                LEAD_STATUS_QUALIFIED, LEAD_STATUS_PROPOSAL,
-                LEAD_STATUS_CONTACTED, LEAD_STATUS_WON, LEAD_STATUS_LOST
-            ])
-        else:
-            # Older leads should be mostly closed
-            if random.random() < archetype["close_rate"]:
-                status = LEAD_STATUS_WON
-            elif random.random() < 0.5:
-                status = LEAD_STATUS_LOST
-            else:
-                status = random.choice([
-                    LEAD_STATUS_PROPOSAL, LEAD_STATUS_NEGOTIATION,
-                    LEAD_STATUS_QUALIFIED
-                ])
+        # Higher scores for further pipeline stages
+        if status in ["qualified", "proposal", "negotiation", "won"]:
+            base_score = random.randint(60, 98)
 
-        # Deal value based on industry
-        min_val, max_val = DEAL_VALUE_RANGES.get(industry, (5000, 50000))
-        base_value = random.uniform(min_val, max_val)
-        deal_value = Decimal(str(round(base_value * archetype["avg_deal_mult"], 2)))
+        # Deal value based on status
+        deal_value = None
+        if status in ["qualified", "proposal", "negotiation", "won", "lost"]:
+            deal_value = Decimal(random.choice([
+                1500, 2500, 5000, 7500, 10000, 15000, 25000, 50000, 75000, 100000
+            ]))
 
-        # Closed date if won/lost
+        # Created date - spread over last 90 days
+        created_at = random_date_in_range(90, 0)
+
+        # Closed date for won/lost
         closed_at = None
-        if status in [LEAD_STATUS_WON, LEAD_STATUS_LOST]:
-            # Close 14-60 days after creation
-            days_to_close = random.randint(14, min(60, days_old))
-            closed_at = created_at + timedelta(days=days_to_close)
-
-        # Notes
-        notes_options = [
-            None,
-            f"Interested in {industry.lower()} solutions.",
-            f"Met at {source} - follow up scheduled.",
-            f"Decision maker, {random.randint(10, 500)} employees.",
-            f"Budget approved for Q{random.randint(1, 4)}.",
-            f"Comparing with 2-3 competitors.",
-            f"Current solution: {random.choice(['HubSpot', 'Salesforce', 'Pipedrive', 'Excel', 'None'])}",
-        ]
+        if status in ["won", "lost"]:
+            closed_at = created_at + timedelta(days=random.randint(5, 30))
 
         lead = Lead(
+            organization_id=org_id,
             name=f"{first_name} {last_name}",
             first_name=first_name,
             last_name=last_name,
             email=generate_email(first_name, last_name, company),
-            phone=generate_phone() if random.random() > 0.2 else None,
+            phone=generate_phone(),
             company=company,
-            source=source,
-            notes=random.choice(notes_options),
+            source=random.choice(SOURCES),
             status=status,
-            deal_value=deal_value if status != LEAD_STATUS_NEW else None,
+            score=base_score,
+            score_engagement=score_engagement,
+            score_source=score_source,
+            score_value=score_value,
+            score_velocity=score_velocity,
+            score_fit=score_fit,
+            win_probability=random.randint(10, 90) if status not in ["won", "lost"] else (100 if status == "won" else 0),
+            deal_value=deal_value,
             closed_at=closed_at,
-            assigned_user_id=user.id,
-            organization_id=org.id,
+            assigned_user_id=user_id if random.random() > 0.3 else None,
+            utm_source=random.choice(UTM_SOURCES),
+            utm_medium=random.choice(UTM_MEDIUMS),
+            utm_campaign=random.choice(UTM_CAMPAIGNS),
             created_at=created_at,
-            updated_at=created_at + timedelta(days=random.randint(0, days_old)),
+            updated_at=created_at + timedelta(hours=random.randint(0, 48)),
+            score_updated_at=datetime.utcnow() - timedelta(hours=random.randint(0, 72)),
         )
-        db.add(lead)
         leads.append(lead)
 
-        if (i + 1) % 200 == 0:
-            db.commit()
-            print(f"  Created {i + 1}/{lead_count} leads...")
-
-    db.commit()
-    print(f"  Created {len(leads)} leads total")
+    session.add_all(leads)
+    session.commit()
+    print(f"Created {len(leads)} leads")
     return leads
 
 
-def create_activities(
-    db: Session,
-    org: Organization,
-    leads: list[Lead],
-    salespeople: list,
-) -> int:
-    """Create activities for leads."""
-    activity_count = 0
-    sp_lookup = {user.id: archetype for user, sp, archetype in salespeople}
+def seed_activities(session, org_id: int, user_id: int, leads: list):
+    """Seed demo activities for leads."""
+    activities = []
+
+    activity_subjects = {
+        "call": ["Discovery call", "Follow-up call", "Demo scheduled", "Pricing discussion", "Contract review"],
+        "email": ["Introduction email", "Proposal sent", "Follow-up", "Thank you note", "Contract attached"],
+        "meeting": ["Initial meeting", "Product demo", "Technical review", "Executive meeting", "Contract signing"],
+        "note": ["Interested in enterprise", "Budget approved", "Decision maker identified", "Competitor mentioned", "Timeline confirmed"],
+    }
+
+    outcomes = ["completed", "no_answer", "scheduled", "voicemail", "follow_up_needed"]
 
     for lead in leads:
-        if not lead.assigned_user_id:
-            continue
+        # More activities for leads further in pipeline
+        activity_count = {
+            "new": random.randint(0, 2),
+            "contacted": random.randint(1, 3),
+            "qualified": random.randint(2, 5),
+            "proposal": random.randint(3, 6),
+            "negotiation": random.randint(4, 8),
+            "won": random.randint(5, 10),
+            "lost": random.randint(2, 5),
+        }.get(lead.status, 1)
 
-        archetype = sp_lookup.get(lead.assigned_user_id, {"activity_mult": 1.0})
-
-        # Number of activities based on lead status and salesperson activity level
-        status_activity_base = {
-            LEAD_STATUS_NEW: (0, 2),
-            LEAD_STATUS_CONTACTED: (1, 4),
-            LEAD_STATUS_QUALIFIED: (3, 8),
-            LEAD_STATUS_PROPOSAL: (5, 12),
-            LEAD_STATUS_NEGOTIATION: (7, 15),
-            LEAD_STATUS_WON: (8, 20),
-            LEAD_STATUS_LOST: (3, 10),
-        }
-
-        min_acts, max_acts = status_activity_base.get(lead.status, (1, 5))
-        num_activities = int(random.randint(min_acts, max_acts) * archetype["activity_mult"])
-
-        lead_created = lead.created_at
-        now = datetime.utcnow()
-
-        for _ in range(num_activities):
-            # Activity type distribution
-            activity_type = random.choices(
-                [ACTIVITY_EMAIL, ACTIVITY_CALL, ACTIVITY_MEETING, ACTIVITY_NOTE],
-                weights=[0.45, 0.30, 0.15, 0.10],
-                k=1
-            )[0]
-
-            # Activity date between lead creation and now
-            activity_date = random_date(lead_created, now)
-
-            # Subject and outcome based on type
-            if activity_type == ACTIVITY_EMAIL:
-                subjects = [
-                    "Introduction and value proposition",
-                    "Follow-up on our conversation",
-                    "Proposal attached",
-                    "Quick question about your needs",
-                    "Case study you might find interesting",
-                    "Checking in",
-                    "Meeting recap and next steps",
-                ]
-                outcome = random.choice(EMAIL_OUTCOMES)
-                duration = None
-            elif activity_type == ACTIVITY_CALL:
-                subjects = [
-                    "Discovery call",
-                    "Product demo",
-                    "Pricing discussion",
-                    "Follow-up call",
-                    "Check-in call",
-                    "Technical questions",
-                    "Contract review",
-                ]
-                outcome = random.choice(CALL_OUTCOMES)
-                duration = random.randint(5, 45)
-            elif activity_type == ACTIVITY_MEETING:
-                subjects = [
-                    "Initial consultation",
-                    "Product demo meeting",
-                    "Proposal presentation",
-                    "Stakeholder meeting",
-                    "Contract negotiation",
-                    "Implementation planning",
-                    "Quarterly review",
-                ]
-                outcome = random.choice(MEETING_OUTCOMES)
-                duration = random.randint(30, 90)
-            else:  # NOTE
-                subjects = [
-                    "Left voicemail",
-                    "Competitor mentioned",
-                    "Budget concerns noted",
-                    "Timeline updated",
-                    "New stakeholder identified",
-                    "Objection handled",
-                ]
-                outcome = None
-                duration = None
+        for _ in range(activity_count):
+            activity_type = random.choice(ACTIVITY_TYPES)
 
             activity = LeadActivity(
                 lead_id=lead.id,
-                user_id=lead.assigned_user_id,
-                organization_id=org.id,
+                user_id=user_id,
+                organization_id=org_id,
                 activity_type=activity_type,
-                subject=random.choice(subjects),
-                duration_minutes=duration,
-                outcome=outcome,
-                activity_at=activity_date,
-                created_at=activity_date,
+                subject=random.choice(activity_subjects[activity_type]),
+                description=f"Activity logged for {lead.name}",
+                duration_minutes=random.randint(5, 60) if activity_type in ["call", "meeting"] else None,
+                outcome=random.choice(outcomes) if activity_type in ["call", "meeting"] else None,
+                activity_at=lead.created_at + timedelta(days=random.randint(0, 14), hours=random.randint(0, 8)),
+                created_at=lead.created_at + timedelta(days=random.randint(0, 14)),
             )
-            db.add(activity)
-            activity_count += 1
+            activities.append(activity)
 
-        if activity_count % 1000 == 0:
-            db.commit()
+    session.add_all(activities)
+    session.commit()
+    print(f"Created {len(activities)} activities")
 
-    db.commit()
-    return activity_count
-
-
-# ============================================================================
-# MAIN
-# ============================================================================
 
 def main():
-    parser = argparse.ArgumentParser(description="Seed Site2CRM demo data")
-    parser.add_argument("--leads", type=int, default=1200, help="Number of leads to create")
-    parser.add_argument("--salespeople", type=int, default=6, help="Number of salespeople")
-    parser.add_argument("--months", type=int, default=18, help="Months of historical data")
-    parser.add_argument("--org-id", type=int, default=None, help="Existing org ID to use")
-    parser.add_argument("--clear", action="store_true", help="Clear existing demo data first")
-    args = parser.parse_args()
+    import os
 
-    print("=" * 60)
-    print("Site2CRM Demo Data Seeder")
-    print("=" * 60)
-    print(f"Leads: {args.leads}")
-    print(f"Salespeople: {args.salespeople}")
-    print(f"Time range: {args.months} months")
-    print()
+    # Check for production database URL
+    db_url = os.environ.get("DATABASE_URL")
+    if not db_url:
+        # Try to load from .env file (production or local)
+        env_files = [
+            "/opt/site2crm/.env",
+            "/home/ubuntu/site2crm/.env",
+            "/home/joshua/projects/slms/.env",
+        ]
+        for env_file in env_files:
+            if os.path.exists(env_file):
+                with open(env_file) as f:
+                    for line in f:
+                        if line.startswith("DATABASE_URL="):
+                            db_url = line.strip().split("=", 1)[1].strip('"').strip("'")
+                            break
+                if db_url:
+                    break
 
-    # Create tables if needed
-    Base.metadata.create_all(bind=engine)
+    if not db_url:
+        print("No DATABASE_URL found. Set it in .env or environment.")
+        print("For production: DATABASE_URL=postgresql://user:pass@host/db")
+        return
 
-    db = SessionLocal()
-    try:
-        # Get or create org
-        print("Setting up organization...")
-        org = create_or_get_demo_org(db, args.org_id)
+    print(f"Connecting to: {db_url.split('@')[1] if '@' in db_url else 'database'}...")
+    engine = create_engine(db_url)
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
-        if args.clear:
-            print("Clearing existing demo data...")
-            db.query(LeadActivity).filter(LeadActivity.organization_id == org.id).delete()
-            db.query(Lead).filter(Lead.organization_id == org.id).delete()
-            db.commit()
-            print("  Cleared existing leads and activities")
+    # Find the admin org (site2crm.io domain or first org)
+    org = session.query(Organization).filter(Organization.domain == "site2crm.io").first()
+    if not org:
+        org = session.query(Organization).first()
 
-        # Create salespeople
-        print(f"\nCreating {args.salespeople} salespeople...")
-        salespeople = create_salespeople(db, org, args.salespeople)
+    if not org:
+        print("No organization found. Please sign up first.")
+        return
 
-        # Create leads
-        print(f"\nCreating {args.leads} leads...")
-        leads = create_leads(db, org, salespeople, args.leads, args.months)
+    print(f"Seeding data for org: {org.name or org.domain} (ID: {org.id})")
 
-        # Create activities
-        print("\nCreating lead activities...")
-        activity_count = create_activities(db, org, leads, salespeople)
-        print(f"  Created {activity_count} activities")
+    # Find a user in this org
+    user = session.query(User).filter(User.organization_id == org.id).first()
+    if not user:
+        print("No user found in organization.")
+        return
 
-        # Summary stats
-        print("\n" + "=" * 60)
-        print("SUMMARY")
-        print("=" * 60)
+    print(f"Using user: {user.email} (ID: {user.id})")
 
-        won = sum(1 for l in leads if l.status == LEAD_STATUS_WON)
-        lost = sum(1 for l in leads if l.status == LEAD_STATUS_LOST)
-        total_revenue = sum(float(l.deal_value or 0) for l in leads if l.status == LEAD_STATUS_WON)
+    # Clear existing leads first (optional)
+    existing_count = session.query(Lead).filter(Lead.organization_id == org.id).count()
+    if existing_count > 0:
+        confirm = input(f"Found {existing_count} existing leads. Delete them first? (y/n): ")
+        if confirm.lower() == 'y':
+            session.query(LeadActivity).filter(LeadActivity.organization_id == org.id).delete()
+            session.query(Lead).filter(Lead.organization_id == org.id).delete()
+            session.commit()
+            print("Deleted existing leads and activities")
 
-        print(f"Organization: {org.name} (ID: {org.id})")
-        print(f"Total leads: {len(leads)}")
-        print(f"  - Won: {won} ({won/len(leads)*100:.1f}%)")
-        print(f"  - Lost: {lost} ({lost/len(leads)*100:.1f}%)")
-        print(f"  - In pipeline: {len(leads) - won - lost}")
-        print(f"Total revenue (won): ${total_revenue:,.2f}")
-        print(f"Avg deal size: ${total_revenue/max(won,1):,.2f}")
-        print(f"Activities: {activity_count}")
-        print(f"\nLead sources:")
-        source_counts = {}
-        for l in leads:
-            source_counts[l.source] = source_counts.get(l.source, 0) + 1
-        for source, count in sorted(source_counts.items(), key=lambda x: -x[1]):
-            print(f"  - {source}: {count} ({count/len(leads)*100:.1f}%)")
+    # Seed new data
+    leads = seed_leads(session, org.id, user.id, count=150)
+    seed_activities(session, org.id, user.id, leads)
 
-        print("\nSeed complete!")
+    # Update org lead count
+    org.leads_this_month = session.query(Lead).filter(
+        Lead.organization_id == org.id,
+        Lead.created_at >= datetime.utcnow().replace(day=1, hour=0, minute=0, second=0)
+    ).count()
+    session.commit()
 
-    finally:
-        db.close()
+    print(f"\nDone! Seeded {len(leads)} leads with activities.")
+    print(f"Org leads this month: {org.leads_this_month}")
 
 
 if __name__ == "__main__":

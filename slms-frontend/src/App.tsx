@@ -74,6 +74,7 @@ const RecommendationsPage = lazy(() => import("@/pages/RecommendationsPage"));
 const LeadScoringPage = lazy(() => import("@/pages/LeadScoringPage"));
 const LeaderboardPage = lazy(() => import("@/pages/LeaderboardPage"));
 const AutomationPage = lazy(() => import("@/pages/AutomationPage"));
+const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const OnboardingWizard = lazy(() => import("@/pages/OnboardingWizard"));
 const AppSumoRedeemPage = lazy(() => import("@/pages/AppSumoRedeemPage"));
 const SupportPage = lazy(() => import("@/pages/SupportPage"));
@@ -143,6 +144,7 @@ export default function App() {
               <Route path="lead-scoring" element={<LeadScoringPage />} />
               <Route path="leaderboard" element={<LeaderboardPage />} />
               <Route path="automation" element={<AutomationPage />} />
+              <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="appsumo" element={<AppSumoRedeemPage />} />
               <Route path="support" element={<SupportPage />} />
             </Route>
