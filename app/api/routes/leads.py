@@ -1,7 +1,7 @@
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, Header, Body
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, Header, Body, Request
 from sqlalchemy.orm import Session
 import sqlalchemy as sa
 
@@ -221,11 +221,19 @@ KNOWN_LEAD_FIELDS = {
 
 @router.post("/public/leads", response_model=dict)
 def public_create_lead(
+    request: Request,
     background_tasks: BackgroundTasks,
     payload: dict = Body(...),
     db: Session = Depends(get_db),
     x_org_key: Optional[str] = Header(None, alias="X-Org-Key"),
 ):
+    # Import here to avoid circular imports
+    from app.core.rate_limit import check_rate_limit
+
+    # Rate limit by API key (60 requests/minute)
+    if x_org_key:
+        check_rate_limit(request, "public_api")
+
     if not x_org_key:
         raise HTTPException(status_code=401, detail="Missing X-Org-Key")
 

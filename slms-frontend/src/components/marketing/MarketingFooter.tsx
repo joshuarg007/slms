@@ -5,8 +5,8 @@ const FOOTER_LINKS = {
   Product: [
     { to: "/features", label: "Features" },
     { to: "/pricing", label: "Pricing" },
+    { to: "/developers", label: "API Docs" },
     { to: "/help", label: "Help Center" },
-    { to: "/contact", label: "Contact Sales" },
     { href: "https://stats.uptimerobot.com/lXaVgFmahF", label: "Status", external: true },
   ],
   Company: [

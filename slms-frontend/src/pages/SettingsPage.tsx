@@ -493,7 +493,12 @@ export default function SettingsPage() {
             </div>
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">API Keys</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Manage keys for widgets and integrations</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Manage keys for widgets and integrations.{" "}
+                <a href="/developers" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">
+                  View API Documentation
+                </a>
+              </p>
             </div>
           </div>
         </div>

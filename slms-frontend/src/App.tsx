@@ -49,6 +49,7 @@ const PrivacyPage = lazy(() => import("@/pages/public/PrivacyPage"));
 const HelpPage = lazy(() => import("@/pages/public/HelpPage"));
 const KBArticlePage = lazy(() => import("@/pages/public/KBArticlePage"));
 const AppSumoAddendumPage = lazy(() => import("@/pages/public/AppSumoAddendumPage"));
+const DevelopersPage = lazy(() => import("@/pages/public/DevelopersPage"));
 const NotFoundPage = lazy(() => import("@/pages/public/NotFoundPage"));
 
 // Protected app pages - lazy load for code splitting
@@ -104,6 +105,7 @@ export default function App() {
             <Route path="/help" element={<HelpPage />} />
             <Route path="/help/:category/:slug" element={<KBArticlePage />} />
             <Route path="/legal/appsumo-addendum" element={<AppSumoAddendumPage />} />
+            <Route path="/developers" element={<DevelopersPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
 

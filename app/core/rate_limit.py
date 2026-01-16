@@ -88,6 +88,7 @@ RATE_LIMITS = {
     "login": {"max_requests": 10, "window_seconds": 300},        # 10 per 5 minutes
     "signup": {"max_requests": 5, "window_seconds": 3600},       # 5 per hour
     "public_form": {"max_requests": 30, "window_seconds": 60},   # 30 per minute
+    "public_api": {"max_requests": 60, "window_seconds": 60},    # 60 per minute (API key based)
     "default": {"max_requests": 100, "window_seconds": 60},      # 100 per minute
 }
 
