@@ -3,29 +3,21 @@
 
 User-agent: *
 
-# Allow all public pages
+# Allow public marketing and help pages (default is allow, but explicit for clarity)
 Allow: /
-Allow: /features
-Allow: /pricing
-Allow: /about
-Allow: /contact
-Allow: /login
-Allow: /signup
-Allow: /terms
-Allow: /privacy
-Allow: /help
+Allow: /help/
 
-# Disallow app routes (authenticated area)
-Disallow: /app
+# Disallow authenticated app routes
 Disallow: /app/
 
-# Disallow media assets (unlisted)
-Disallow: /media
+# Disallow unlisted media assets
 Disallow: /media/
 
-# Disallow password reset pages (no SEO value)
+# Disallow auth/reset pages (no SEO value)
 Disallow: /forgot-password
 Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /auth/
 
-# Sitemap location
+# Sitemap
 Sitemap: https://site2crm.io/sitemap.xml
