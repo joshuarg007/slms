@@ -6,18 +6,31 @@
 
 ## SESSION STATE
 **Last Updated:** 2026-01-15
-**Status:** LAUNCHED (v1.0.0)
+**Status:** LAUNCHED (v1.0.0) + MARKETING PHASE
 
 ### Where We Left Off:
-- Site launched and stable
-- All systems operational and verified
+- G2 listing submitted with 15 screenshots
+- Capterra listing submitted (awaiting approval 1-2 days)
+- API documentation page live at /developers
+- Analytics page wired up at /app/analytics
 
 ### Immediate Next Steps:
+- Wait for Capterra approval
+- Submit to more marketplaces (GetApp, Software Advice, TrustRadius, Product Hunt)
 - Monitor for issues
-- Phase 3 scaling work when needed (Redis rate limiting, blue/green deployment)
 
 ### Current Blockers:
 - None
+
+### Marketplace Status:
+| Platform | Status | Notes |
+|----------|--------|-------|
+| G2 | Submitted | 15 screenshots uploaded |
+| Capterra | Submitted | Awaiting approval (1-2 days) |
+| GetApp | Pending | Same Gartner network as Capterra |
+| Software Advice | Pending | Same Gartner network |
+| TrustRadius | Not started | |
+| Product Hunt | Not started | |
 
 ### Infrastructure Summary:
 - **Elastic IP**: 3.91.211.77 (permanent)
@@ -26,7 +39,19 @@
 - **Live Chat**: Tawk.to with triggers, shortcuts, and KB articles
 - **Demo Video**: https://youtu.be/i-xmSmN8rsY
 
-### Recent Changes (2026-01-15):
+### Recent Changes (2026-01-15 PM):
+**Marketplace & API (Complete):**
+- `slms-frontend/src/pages/public/DevelopersPage.tsx` - Full API documentation page
+- `slms-frontend/src/pages/AnalyticsPage.tsx` - Wired to /app/analytics route
+- `app/core/rate_limit.py` - Added public_api rate limit (60 req/min)
+- `app/api/routes/leads.py` - Rate limiting on public API endpoint
+- `slms-frontend/src/pages/public/HelpPage.tsx` - Embedded YouTube demo video
+- `slms-frontend/src/pages/SupportPage.tsx` - Added demo video to tutorials
+- `marketing/g2-screenshots/` - 15 screenshots for G2 listing
+- Footer updated with API Docs link
+- Settings page links to API documentation
+
+### Recent Changes (2026-01-15 AM):
 **Launch Day Polish (Complete):**
 - `slms-frontend/src/data/knowledgeBase.ts` - Knowledge Base with 12 articles across 4 categories
 - `slms-frontend/src/pages/public/KBArticlePage.tsx` - Article page with custom markdown rendering

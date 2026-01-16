@@ -114,4 +114,25 @@ Short tutorial videos needed for the Help Center (`/app/support`):
 
 ## Completed
 
-*(Move completed items here with date)*
+### 2026-01-15: Marketplace Listings & API Documentation
+- **G2 Listing** - 15 screenshots prepared and submitted
+- **Capterra Listing** - Submitted, awaiting approval (1-2 days)
+- **API Documentation Page** (`/developers`) - Full REST API docs with:
+  - Authentication guide (X-Org-Key header)
+  - Rate limiting (60 req/min)
+  - Endpoint documentation
+  - Code examples (cURL, JS, Python, PHP)
+- **Analytics Page** - Wired up existing AnalyticsPage.tsx to `/app/analytics` route
+- **Demo Video** - Added YouTube demo to Help Center and Support page
+
+### 2026-01-15: Launch Day
+- v1.0.0 tagged and deployed
+- UptimeRobot status page configured
+- Tawk.to live chat with triggers
+- Knowledge Base (12 articles)
+- Email forwarding (support@site2crm.io)
+
+### 2026-01-08: Pre-Launch Polish
+- GDPR compliance (data export + account deletion)
+- Favicons and OG image
+- Health endpoint with DB check
