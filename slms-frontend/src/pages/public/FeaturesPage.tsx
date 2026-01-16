@@ -50,6 +50,10 @@ const FEATURE_SECTIONS = [
         description: "Add people, organizations, and deals to your Pipedrive pipeline.",
       },
       {
+        title: "Zoho CRM",
+        description: "Create leads and contacts in Zoho CRM with custom field mapping.",
+      },
+      {
         title: "Nutshell",
         description: "Sync leads and companies to Nutshell automatically.",
       },
@@ -167,7 +171,7 @@ export default function FeaturesPage() {
   useSEO({
     title: "Features - Multi-Step Forms, CRM Sync & Analytics",
     description:
-      "Explore Site2CRM features: beautiful multi-step forms, instant CRM sync to HubSpot/Salesforce/Pipedrive, real-time analytics, custom fields, and team collaboration.",
+      "Explore Site2CRM features: beautiful multi-step forms, instant CRM sync to HubSpot/Salesforce/Pipedrive/Zoho, real-time analytics, custom fields, and team collaboration.",
     path: "/features",
   });
 

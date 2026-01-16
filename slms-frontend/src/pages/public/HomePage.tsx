@@ -23,7 +23,7 @@ const FEATURES = [
       </svg>
     ),
     title: "Instant CRM Sync",
-    description: "Leads flow directly to your CRM in real-time. HubSpot, Salesforce, Pipedrive, and more.",
+    description: "Leads flow directly to your CRM in real-time. HubSpot, Salesforce, Pipedrive, Zoho, and more.",
   },
   {
     icon: (
@@ -68,6 +68,7 @@ const CRM_LOGOS = [
   { name: "HubSpot", color: "#ff7a59" },
   { name: "Salesforce", color: "#00a1e0" },
   { name: "Pipedrive", color: "#1a1a1a" },
+  { name: "Zoho CRM", color: "#e42527" },
   { name: "Nutshell", color: "#f5a623" },
 ];
 
