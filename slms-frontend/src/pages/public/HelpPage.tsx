@@ -278,8 +278,31 @@ export default function HelpPage() {
         </div>
       </section>
 
-      {/* Knowledge Base */}
+      {/* Video Demo */}
       <section className="py-16 bg-white dark:bg-gray-950">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Watch the Demo
+            </h2>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
+              See Site2CRM in action in under 3 minutes
+            </p>
+          </div>
+          <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl">
+            <iframe
+              src="https://www.youtube.com/embed/i-xmSmN8rsY"
+              title="Site2CRM Product Demo"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Knowledge Base */}
+      <section className="py-16 bg-gray-50 dark:bg-gray-900">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white">

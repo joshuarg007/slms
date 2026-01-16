@@ -300,6 +300,7 @@ const FAQ_DATA: FAQItem[] = [
 // =============================================================================
 
 const VIDEO_TUTORIALS = [
+  { id: "product-demo", title: "Site2CRM Product Demo", duration: "2:30", thumbnail: "demo", url: "https://youtu.be/i-xmSmN8rsY" },
   { id: "connect-crm", title: "Connect Your CRM", duration: "0:53", thumbnail: "crm", url: "https://site2crm.io/media/connect-crm.mp4" },
   { id: "create-form", title: "Create Your First Form", duration: "0:59", thumbnail: "form", url: "https://site2crm.io/media/create-form.mp4" },
 ];

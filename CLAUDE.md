@@ -24,6 +24,7 @@
 - **Status Page**: https://stats.uptimerobot.com/lXaVgFmahF
 - **Support Email**: support@site2crm.io (forwards to labs@axiondeep.com via ImprovMX)
 - **Live Chat**: Tawk.to with triggers, shortcuts, and KB articles
+- **Demo Video**: https://youtu.be/i-xmSmN8rsY
 
 ### Recent Changes (2026-01-15):
 **Launch Day Polish (Complete):**
