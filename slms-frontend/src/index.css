@@ -142,3 +142,9 @@ a:focus-visible {
 .dark ::selection {
   @apply bg-indigo-800 text-indigo-100;
 }
+
+/* Move reCAPTCHA badge to bottom left (avoid chat bubble clash) */
+.grecaptcha-badge {
+  left: 10px !important;
+  right: auto !important;
+}
