@@ -47,6 +47,7 @@ const ContactPage = lazy(() => import("@/pages/public/ContactPage"));
 const TermsPage = lazy(() => import("@/pages/public/TermsPage"));
 const PrivacyPage = lazy(() => import("@/pages/public/PrivacyPage"));
 const HelpPage = lazy(() => import("@/pages/public/HelpPage"));
+const KBArticlePage = lazy(() => import("@/pages/public/KBArticlePage"));
 const AppSumoAddendumPage = lazy(() => import("@/pages/public/AppSumoAddendumPage"));
 const NotFoundPage = lazy(() => import("@/pages/public/NotFoundPage"));
 
@@ -100,6 +101,7 @@ export default function App() {
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/help" element={<HelpPage />} />
+            <Route path="/help/:category/:slug" element={<KBArticlePage />} />
             <Route path="/legal/appsumo-addendum" element={<AppSumoAddendumPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>

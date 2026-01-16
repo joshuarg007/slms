@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useSEO, schemas } from "@/hooks/useSEO";
+import { KB_CATEGORIES, getArticlesByCategory } from "@/data/knowledgeBase";
 
 type FAQItem = {
   question: string;
@@ -273,6 +274,75 @@ export default function HelpPage() {
             {FAQ_CATEGORIES[activeCategory].items.map((item) => (
               <FAQAccordion key={item.question} item={item} />
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Knowledge Base */}
+      <section className="py-16 bg-white dark:bg-gray-950">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Knowledge Base
+            </h2>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
+              Step-by-step guides and tutorials
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {KB_CATEGORIES.map((category) => {
+              const articles = getArticlesByCategory(category.slug);
+              return (
+                <div key={category.slug} id={category.slug} className="scroll-mt-24">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                      <svg
+                        className="w-5 h-5 text-indigo-600 dark:text-indigo-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d={category.icon}
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                      {category.title}
+                    </h3>
+                  </div>
+                  <ul className="space-y-2">
+                    {articles.map((article) => (
+                      <li key={article.slug}>
+                        <Link
+                          to={`/help/${category.slug}/${article.slug}`}
+                          className="text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-2"
+                        >
+                          <svg
+                            className="w-4 h-4 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                          {article.title}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
