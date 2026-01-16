@@ -78,33 +78,17 @@
 
     <!--Start of Tawk.to Script-->
     <style>
-    /* Tawk.to Site2CRM Theme Override - Smaller, less intrusive */
+    /* Tawk.to Site2CRM Theme Override */
     .tawk-min-container .tawk-button,
     .tawk-min-container .tawk-button:hover {
       background-color: #4f46e5 !important;
     }
     .tawk-min-container .tawk-button.tawk-button-circle {
       background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
-      transform: scale(0.85) !important;
-    }
-    /* Hide attention bubble and popups */
-    .tawk-min-container .tawk-card,
-    .tawk-min-container .tawk-tooltip,
-    #tawk-bubble-container .tawk-tooltip {
-      display: none !important;
     }
     </style>
     <script type="text/javascript">
     var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-
-    // Customize widget appearance - smaller and offset
-    Tawk_API.customStyle = {
-      visibility: {
-        desktop: { position: 'br', xOffset: 20, yOffset: 20 },
-        mobile: { position: 'br', xOffset: 10, yOffset: 10 }
-      },
-      zIndex: 1000
-    };
 
     (function(){
     var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
@@ -117,9 +101,6 @@
 
     // Hide on dashboard/app pages and auth screens
     Tawk_API.onLoad = function(){
-      // Start minimized - don't auto-expand
-      Tawk_API.minimize();
-
       function checkAndHide() {
         var path = window.location.pathname;
         if(path.startsWith('/app') || path === '/login' || path === '/signup') {
@@ -129,7 +110,6 @@
         }
       }
       checkAndHide();
-      // Re-check on route changes (SPA navigation)
       setInterval(checkAndHide, 500);
     };
     </script>
