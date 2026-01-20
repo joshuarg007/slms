@@ -16,6 +16,7 @@ const FOOTER_LINKS = {
     { href: "https://axiondeep.com", label: "Axion Deep", external: true },
   ],
   "More Products": [
+    { href: "https://made4founders.com", label: "Made4Founders", external: true },
     { href: "https://axiondeep.com/projects/quanta", label: "QUANTA", external: true },
     { href: "https://axiondeep.com/projects/forma", label: "Forma", external: true },
   ],
