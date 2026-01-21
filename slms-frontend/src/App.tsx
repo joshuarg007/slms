@@ -30,13 +30,13 @@ function PageLoader() {
   );
 }
 
-// Auth pages - keep these sync for fast auth flow
-import LoginPage from "@/pages/LoginPage";
-import SignupPage from "@/pages/SignupPage";
-import GoogleAuthSuccessPage from "@/pages/GoogleAuthSuccessPage";
-import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
-import ResetPasswordPage from "@/pages/ResetPasswordPage";
-import VerifyEmailPage from "@/pages/VerifyEmailPage";
+// Auth pages - lazy load to reduce initial bundle
+const LoginPage = lazy(() => import("@/pages/LoginPage"));
+const SignupPage = lazy(() => import("@/pages/SignupPage"));
+const GoogleAuthSuccessPage = lazy(() => import("@/pages/GoogleAuthSuccessPage"));
+const ForgotPasswordPage = lazy(() => import("@/pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));
+const VerifyEmailPage = lazy(() => import("@/pages/VerifyEmailPage"));
 
 // Public marketing pages - lazy load for code splitting
 const HomePage = lazy(() => import("@/pages/public/HomePage"));
