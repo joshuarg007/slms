@@ -44,7 +44,7 @@ export default function MarketingFooter() {
           {/* Link Groups */}
           {Object.entries(FOOTER_LINKS).map(([title, links]) => (
             <div key={title}>
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">{title}</h4>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white mb-4">{title}</p>
               <ul className="space-y-3">
                 {links.map((link: { to?: string; href?: string; label: string; external?: boolean }) => (
                   <li key={link.label}>

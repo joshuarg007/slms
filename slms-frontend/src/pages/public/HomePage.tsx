@@ -166,7 +166,7 @@ export default function HomePage() {
             {CRM_LOGOS.map((crm) => (
               <div
                 key={crm.name}
-                className="flex items-center gap-2 text-gray-400 dark:text-gray-500"
+                className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
               >
                 <div
                   className="w-3 h-3 rounded-full"
