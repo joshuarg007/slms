@@ -22,7 +22,7 @@ export default function ContactForm({
   });
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const { executeRecaptcha, isEnabled: recaptchaEnabled } = useRecaptcha();
+  const { executeRecaptcha, preloadRecaptcha, isEnabled: recaptchaEnabled } = useRecaptcha();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -98,7 +98,11 @@ export default function ContactForm({
   }
 
   return (
-    <div className="p-8 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800">
+    <div
+      className="p-8 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800"
+      onMouseEnter={preloadRecaptcha}
+      onFocus={preloadRecaptcha}
+    >
       {/* Header */}
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h2>

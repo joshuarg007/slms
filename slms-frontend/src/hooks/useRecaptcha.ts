@@ -68,23 +68,19 @@ function loadRecaptchaScript(): Promise<void> {
  * ```
  */
 export function useRecaptcha() {
-  const [isLoading, setIsLoading] = useState(RECAPTCHA_ENABLED);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!RECAPTCHA_ENABLED) {
-      setIsLoading(false);
-      return;
-    }
+  // Preload reCAPTCHA when user shows intent (hover/focus)
+  const preloadRecaptcha = useCallback(() => {
+    if (!RECAPTCHA_ENABLED || scriptLoaded || scriptLoading) return;
 
-    loadRecaptchaScript()
-      .then(() => setIsLoading(false))
-      .catch((err) => {
-        setError("Failed to load reCAPTCHA");
-        setIsLoading(false);
-        console.error("reCAPTCHA load error:", err);
-      });
+    loadRecaptchaScript().catch((err) => {
+      console.error("reCAPTCHA preload error:", err);
+    });
   }, []);
+
+  // No longer auto-load on mount - saves 712KB on initial page load
 
   const executeRecaptcha = useCallback(
     async (action: string): Promise<string | null> => {
@@ -93,7 +89,15 @@ export function useRecaptcha() {
       }
 
       if (!scriptLoaded) {
-        await loadRecaptchaScript();
+        setIsLoading(true);
+        try {
+          await loadRecaptchaScript();
+        } catch (err) {
+          setError("Failed to load reCAPTCHA");
+          setIsLoading(false);
+          return null;
+        }
+        setIsLoading(false);
       }
 
       try {
@@ -112,6 +116,7 @@ export function useRecaptcha() {
 
   return {
     executeRecaptcha,
+    preloadRecaptcha,
     isLoading,
     error,
     isEnabled: RECAPTCHA_ENABLED,
