@@ -110,20 +110,11 @@ Most endpoints require a Bearer token. Get one via `/api/auth/login`.
     openapi_url="/openapi.json",
 )
 
-# CORS: Specific origins for credentials, wildcard for public endpoints
-ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://site2crm.io",
-    "https://www.site2crm.io",
-    "https://axiondeep.com",
-    "https://www.axiondeep.com",
-]
-
+# CORS: Allow all origins for public API endpoints (uses header auth, not cookies)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=[
         "Content-Type",
@@ -144,7 +135,7 @@ register_exception_handlers(app)
 
 logger.info("Application initialized", extra={
     "event": "app_init",
-    "cors_origins": ALLOWED_ORIGINS,
+    "cors_origins": ["*"],
     "docs_url": "/docs"
 })
 
