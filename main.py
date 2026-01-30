@@ -116,6 +116,8 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "https://site2crm.io",
     "https://www.site2crm.io",
+    "https://axiondeep.com",
+    "https://www.axiondeep.com",
 ]
 
 app.add_middleware(
