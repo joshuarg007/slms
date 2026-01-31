@@ -92,6 +92,7 @@ export default function MarketingFooter() {
             </a>
           </div>
           <div className="flex items-center gap-4">
+            <img src="/qr-code.png" alt="Scan to visit Axion Deep" className="w-16 h-16 rounded" />
             {/* Social Links */}
             <a
               href="https://twitter.com"
