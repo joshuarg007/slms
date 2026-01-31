@@ -17,6 +17,7 @@ export default function ContactForm({
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "",
     company: "",
     message: "",
   });
@@ -47,8 +48,9 @@ export default function ContactForm({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name: formData.name,
+            name: formData.name || null,
             email: formData.email,
+            phone: formData.phone || null,
             company: formData.company || null,
             message: formData.message || null,
             source: window.location.pathname,
@@ -66,7 +68,7 @@ export default function ContactForm({
       }
 
       setStatus({ type: "success", message: "Thanks! We'll be in touch soon." });
-      setFormData({ name: "", email: "", company: "", message: "" });
+      setFormData({ name: "", email: "", phone: "", company: "", message: "" });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
       setStatus({ type: "error", message });
@@ -118,10 +120,26 @@ export default function ContactForm({
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+            Email <span className="text-indigo-500">*</span>
+          </label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            placeholder="ada@example.com"
+            className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+          />
+        </div>
+
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              Name <span className="text-red-500">*</span>
+              Name
             </label>
             <input
               type="text"
@@ -129,24 +147,22 @@ export default function ContactForm({
               name="name"
               value={formData.name}
               onChange={handleChange}
-              required
               placeholder="Ada Lovelace"
               className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
             />
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              Email <span className="text-red-500">*</span>
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              Phone
             </label>
             <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
+              type="tel"
+              id="phone"
+              name="phone"
+              value={formData.phone}
               onChange={handleChange}
-              required
-              placeholder="ada@example.com"
+              placeholder="+1 (555) 123-4567"
               className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
             />
           </div>
