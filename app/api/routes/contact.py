@@ -10,6 +10,8 @@ from app.services.email import send_contact_form_notification
 from app.core.rate_limit import check_rate_limit
 from app.core.captcha import verify_captcha
 from app.integrations.hubspot import create_marketing_contact
+from app.db.session import SessionLocal
+from app.db.models import Lead, Organization
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +19,9 @@ router = APIRouter(tags=["contact"])
 
 # Team members to notify about contact form submissions
 CONTACT_NOTIFICATION_RECIPIENTS = ["support@site2crm.io"]
+
+# Site2CRM org for internal lead tracking
+SITE2CRM_ORG_API_KEY = "org_jUITQNG0ZcPF_KJ0vplRQV8rwWk0pvR9"
 
 
 class ContactFormRequest(BaseModel):
@@ -26,6 +31,34 @@ class ContactFormRequest(BaseModel):
     message: Optional[str] = None
     source: Optional[str] = None
     captcha_token: Optional[str] = None
+
+
+def _save_lead_to_site2crm(name: str, email: str, company: str, message: str, source: str):
+    """Save contact form submission as a lead in Site2CRM's own database."""
+    try:
+        db = SessionLocal()
+        # Find the org by API key
+        org = db.query(Organization).filter(Organization.api_key == SITE2CRM_ORG_API_KEY).first()
+        if not org:
+            logger.warning(f"Site2CRM org not found for API key: {SITE2CRM_ORG_API_KEY}")
+            db.close()
+            return
+
+        # Create the lead
+        lead = Lead(
+            organization_id=org.id,
+            name=name,
+            email=email,
+            company=company or None,
+            notes=message,
+            source=source,
+        )
+        db.add(lead)
+        db.commit()
+        logger.info(f"Lead saved to Site2CRM: {email} (source: {source})")
+        db.close()
+    except Exception as exc:
+        logger.error(f"Failed to save lead to Site2CRM for {email}: {exc}")
 
 
 async def _sync_to_hubspot(name: str, email: str, company: str, source: str):
@@ -89,6 +122,16 @@ async def submit_contact_form(
         name=data.name,
         email=data.email,
         company=data.company or "",
+        source=source,
+    )
+
+    # Save lead to Site2CRM's own database
+    background_tasks.add_task(
+        _save_lead_to_site2crm,
+        name=data.name,
+        email=data.email,
+        company=data.company or "",
+        message=data.message or "",
         source=source,
     )
 
