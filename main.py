@@ -110,22 +110,58 @@ Most endpoints require a Bearer token. Get one via `/api/auth/login`.
     openapi_url="/openapi.json",
 )
 
-# CORS: Allow all origins for public API endpoints (uses header auth, not cookies)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=[
-        "Content-Type",
-        "Authorization",
-        "X-Org-Key",
-        "X-Requested-With",
-        "Accept",
-        "Origin",
-    ],
-    expose_headers=["Content-Type", "X-Request-Id", "X-Process-Time"],
-)
+# CORS Configuration
+# - Dashboard needs credentials (cookies/auth tokens) so requires specific origins
+# - Public API (/api/public/*) uses X-Org-Key header auth - allows any origin
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
+
+DASHBOARD_ORIGINS = [
+    # Production
+    "https://site2crm.io",
+    "https://www.site2crm.io",
+    "https://api.site2crm.io",
+    # Development
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+]
+
+class DualCORSMiddleware(BaseHTTPMiddleware):
+    """
+    Custom CORS middleware that handles two scenarios:
+    1. Public API routes (/api/public/*): Allow any origin, no credentials
+    2. Dashboard routes: Specific origins with credentials
+    """
+    async def dispatch(self, request: Request, call_next):
+        origin = request.headers.get("origin", "")
+        path = request.url.path
+
+        # Handle preflight OPTIONS requests
+        if request.method == "OPTIONS":
+            response = Response(status_code=200)
+        else:
+            response = await call_next(request)
+
+        # Public API routes - allow any origin (uses X-Org-Key header auth)
+        if path.startswith("/api/public/"):
+            response.headers["Access-Control-Allow-Origin"] = origin or "*"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Org-Key, Accept, Origin"
+            response.headers["Access-Control-Expose-Headers"] = "Content-Type, X-Request-Id, X-Process-Time"
+            # No credentials for public API
+        # Dashboard routes - specific origins with credentials
+        elif origin in DASHBOARD_ORIGINS:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Org-Key, X-Requested-With, Accept, Origin"
+            response.headers["Access-Control-Expose-Headers"] = "Content-Type, X-Request-Id, X-Process-Time"
+
+        return response
+
+app.add_middleware(DualCORSMiddleware)
 
 # Add request logging middleware (tracks timing, adds correlation IDs)
 app.add_middleware(RequestLoggingMiddleware)
@@ -135,7 +171,7 @@ register_exception_handlers(app)
 
 logger.info("Application initialized", extra={
     "event": "app_init",
-    "cors_origins": ["*"],
+    "cors_origins": DASHBOARD_ORIGINS,
     "docs_url": "/docs"
 })
 
