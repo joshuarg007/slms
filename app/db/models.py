@@ -570,6 +570,28 @@ CHAT_TONE_CASUAL = "casual"
 
 CHAT_TONES = [CHAT_TONE_FRIENDLY, CHAT_TONE_PROFESSIONAL, CHAT_TONE_CASUAL]
 
+# Primary goals for chat widget
+CHAT_GOAL_CAPTURE_EMAIL = "capture_email"
+CHAT_GOAL_BOOK_DEMO = "book_demo"
+CHAT_GOAL_START_TRIAL = "start_trial"
+CHAT_GOAL_GET_QUOTE = "get_quote"
+CHAT_GOAL_CAPTURE_PHONE = "capture_phone"
+CHAT_GOAL_SUPPORT_ONLY = "support_only"
+CHAT_GOALS = [
+    CHAT_GOAL_CAPTURE_EMAIL,
+    CHAT_GOAL_BOOK_DEMO,
+    CHAT_GOAL_START_TRIAL,
+    CHAT_GOAL_GET_QUOTE,
+    CHAT_GOAL_CAPTURE_PHONE,
+    CHAT_GOAL_SUPPORT_ONLY,
+]
+
+# Persistence levels for chat widget
+CHAT_PERSISTENCE_SOFT = "soft"
+CHAT_PERSISTENCE_MEDIUM = "medium"
+CHAT_PERSISTENCE_AGGRESSIVE = "aggressive"
+CHAT_PERSISTENCE_LEVELS = [CHAT_PERSISTENCE_SOFT, CHAT_PERSISTENCE_MEDIUM, CHAT_PERSISTENCE_AGGRESSIVE]
+
 
 class ChatWidgetConfig(Base):
     """AI chat widget configuration - multiple widgets per organization allowed."""
@@ -597,10 +619,31 @@ class ChatWidgetConfig(Base):
     tone = Column(String(20), nullable=False, default=CHAT_TONE_FRIENDLY)
     extra_context = Column(Text, nullable=True)  # Additional instructions
 
+    # Goal and behavior settings
+    primary_goal = Column(String(30), nullable=False, default=CHAT_GOAL_CAPTURE_EMAIL)
+    goal_url = Column(String(2048), nullable=True)  # Calendly link, signup URL, etc.
+    rebuttal_count = Column(Integer, nullable=False, default=5)  # 1-10
+    persistence_level = Column(String(20), nullable=False, default=CHAT_PERSISTENCE_MEDIUM)
+    welcome_message = Column(String(500), nullable=True)  # Custom first message
+    success_message = Column(Text, nullable=True)  # Message after capturing contact info
+    collect_phone = Column(Boolean, nullable=False, default=False)
+    collect_name = Column(Boolean, nullable=False, default=True)
+    collect_company = Column(Boolean, nullable=False, default=False)
+    quick_replies = Column(Text, nullable=True)  # JSON array of quick reply buttons
+
     # Widget appearance
     primary_color = Column(String(7), nullable=False, default="#4f46e5")  # Hex color
     widget_position = Column(String(20), nullable=False, default="bottom-right")  # bottom-right, bottom-left
     bubble_icon = Column(String(20), nullable=False, default="chat")  # chat, message, support, robot, sparkle, wave
+
+    # Advanced appearance
+    header_title = Column(String(100), nullable=True)  # Override business_name in header
+    header_subtitle = Column(String(100), nullable=True)  # e.g. "Online now", "Here to help"
+    chat_bg_color = Column(String(7), nullable=True)  # Chat area background
+    user_bubble_color = Column(String(7), nullable=True)  # User message color
+    bot_bubble_color = Column(String(7), nullable=True)  # Bot message color
+    button_size = Column(String(10), nullable=False, default="medium")  # small, medium, large
+    show_branding = Column(Boolean, nullable=False, default=True)  # Show "Powered by Site2CRM"
 
     # State
     is_active = Column(Boolean, nullable=False, default=True)

@@ -8,9 +8,12 @@ import {
   deleteChatWidgetConfig,
   getChatWidgetEmbedCode,
   getChatWidgetConversations,
+  getChatWidgetTemplates,
+  getChatWidgetTemplate,
   type ChatWidgetConfig,
   type ChatWidgetEmbedCode,
   type ChatWidgetConversation,
+  type ChatWidgetTemplate,
 } from "@/utils/api";
 import { FriendlyError } from "@/components/FriendlyError";
 
@@ -18,6 +21,21 @@ const TONES = [
   { value: "friendly", label: "Friendly", desc: "Warm and approachable, like a helpful colleague" },
   { value: "professional", label: "Professional", desc: "Polished and courteous, businesslike" },
   { value: "casual", label: "Casual", desc: "Relaxed and conversational" },
+];
+
+const PRIMARY_GOALS = [
+  { value: "capture_email", label: "Capture Email", desc: "Get visitor's email for follow-up" },
+  { value: "book_demo", label: "Book Demo", desc: "Drive visitors to schedule a demo/meeting" },
+  { value: "start_trial", label: "Start Trial", desc: "Push visitors to sign up for free trial" },
+  { value: "get_quote", label: "Get Quote", desc: "Collect requirements for a custom quote" },
+  { value: "capture_phone", label: "Capture Phone", desc: "Get phone number as primary contact" },
+  { value: "support_only", label: "Support Only", desc: "Answer questions, no sales push" },
+];
+
+const PERSISTENCE_LEVELS = [
+  { value: "soft", label: "Soft", desc: "Gentle follow-ups, respect rejections quickly" },
+  { value: "medium", label: "Medium", desc: "Balanced persistence with value-adds" },
+  { value: "aggressive", label: "Aggressive", desc: "Full closer mode, maximum attempts" },
 ];
 
 const POSITIONS = [
@@ -43,11 +61,37 @@ const EMPTY_FORM: Omit<ChatWidgetConfig, 'id' | 'widget_key' | 'created_at' | 'u
   contact_email: "",
   tone: "friendly",
   extra_context: "",
+  // Goal and behavior
+  primary_goal: "capture_email",
+  goal_url: null,
+  rebuttal_count: 5,
+  persistence_level: "medium",
+  welcome_message: null,
+  success_message: null,
+  collect_phone: false,
+  collect_name: true,
+  collect_company: false,
+  quick_replies: null,
+  // Appearance
   primary_color: "#4f46e5",
   widget_position: "bottom-right",
   bubble_icon: "chat",
+  // Advanced appearance
+  header_title: null,
+  header_subtitle: null,
+  chat_bg_color: null,
+  user_bubble_color: null,
+  bot_bubble_color: null,
+  button_size: "medium",
+  show_branding: true,
   is_active: true,
 };
+
+const BUTTON_SIZES = [
+  { value: "small", label: "Small", size: "48px" },
+  { value: "medium", label: "Medium", size: "56px" },
+  { value: "large", label: "Large", size: "64px" },
+];
 
 export default function ChatWidgetPage() {
   useDocumentTitle("AI Chat Widgets");
@@ -57,6 +101,7 @@ export default function ChatWidgetPage() {
   const [selectedWidget, setSelectedWidget] = useState<ChatWidgetConfig | null>(null);
   const [embedCode, setEmbedCode] = useState<ChatWidgetEmbedCode | null>(null);
   const [conversations, setConversations] = useState<ChatWidgetConversation[]>([]);
+  const [templates, setTemplates] = useState<ChatWidgetTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,12 +110,17 @@ export default function ChatWidgetPage() {
   // Form state
   const [form, setForm] = useState<typeof EMPTY_FORM>(EMPTY_FORM);
   const [isEditing, setIsEditing] = useState(false);
+  const [quickReplyInput, setQuickReplyInput] = useState("");
 
-  // Load widgets list
+  // Load widgets and templates
   const loadWidgets = useCallback(async () => {
     try {
-      const data = await getChatWidgetConfigs();
-      setWidgets(data);
+      const [widgetsData, templatesData] = await Promise.all([
+        getChatWidgetConfigs(),
+        getChatWidgetTemplates(),
+      ]);
+      setWidgets(widgetsData);
+      setTemplates(templatesData);
     } catch (err) {
       console.error("Failed to load widgets:", err);
     } finally {
@@ -81,6 +131,29 @@ export default function ChatWidgetPage() {
   useEffect(() => {
     loadWidgets();
   }, [loadWidgets]);
+
+  // Apply template to form
+  const applyTemplate = async (templateId: string) => {
+    try {
+      const template = await getChatWidgetTemplate(templateId);
+      setForm(prev => ({
+        ...prev,
+        business_description: template.business_description,
+        services: template.services,
+        cta: template.cta,
+        tone: template.tone,
+        primary_goal: template.primary_goal,
+        rebuttal_count: template.rebuttal_count,
+        persistence_level: template.persistence_level,
+        collect_name: template.collect_name,
+        collect_phone: template.collect_phone,
+        collect_company: template.collect_company,
+        quick_replies: template.quick_replies,
+      }));
+    } catch (err) {
+      console.error("Failed to load template:", err);
+    }
+  };
 
   // Load embed code for selected widget
   async function loadEmbedCode(widgetKey: string) {
@@ -120,9 +193,26 @@ export default function ChatWidgetPage() {
       contact_email: widget.contact_email,
       tone: widget.tone,
       extra_context: widget.extra_context || "",
+      primary_goal: widget.primary_goal || "capture_email",
+      goal_url: widget.goal_url,
+      rebuttal_count: widget.rebuttal_count || 5,
+      persistence_level: widget.persistence_level || "medium",
+      welcome_message: widget.welcome_message,
+      success_message: widget.success_message,
+      collect_phone: widget.collect_phone ?? false,
+      collect_name: widget.collect_name ?? true,
+      collect_company: widget.collect_company ?? false,
+      quick_replies: widget.quick_replies,
       primary_color: widget.primary_color,
       widget_position: widget.widget_position,
       bubble_icon: widget.bubble_icon || "chat",
+      header_title: widget.header_title,
+      header_subtitle: widget.header_subtitle,
+      chat_bg_color: widget.chat_bg_color,
+      user_bubble_color: widget.user_bubble_color,
+      bot_bubble_color: widget.bot_bubble_color,
+      button_size: widget.button_size || "medium",
+      show_branding: widget.show_branding ?? true,
       is_active: widget.is_active,
     });
     setSelectedWidget(widget);
@@ -410,6 +500,199 @@ export default function ChatWidgetPage() {
             </div>
           </section>
 
+          {/* Quick Start Templates */}
+          {!isEditing && templates.length > 0 && (
+            <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4 space-y-4">
+              <h2 className="text-lg font-medium">Quick Start Templates</h2>
+              <p className="text-sm text-gray-500">Choose a template to pre-fill settings for your industry</p>
+              <div className="grid grid-cols-3 gap-3">
+                {templates.map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => applyTemplate(template.id)}
+                    className="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-all text-left"
+                  >
+                    <div className="font-medium text-gray-900 dark:text-gray-100">{template.name}</div>
+                    <div className="text-xs text-gray-500 mt-1">{template.description}</div>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Goal Configuration */}
+          <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4 space-y-4">
+            <h2 className="text-lg font-medium">Goal Configuration</h2>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Primary Goal
+              </label>
+              <div className="space-y-2">
+                {PRIMARY_GOALS.map((goal) => (
+                  <label key={goal.value} className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="primary_goal"
+                      value={goal.value}
+                      checked={form.primary_goal === goal.value}
+                      onChange={(e) => setForm({ ...form, primary_goal: e.target.value })}
+                      className="mt-1"
+                    />
+                    <div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{goal.label}</div>
+                      <div className="text-sm text-gray-500">{goal.desc}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {(form.primary_goal === "book_demo" || form.primary_goal === "start_trial") && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  {form.primary_goal === "book_demo" ? "Calendar URL (Calendly, Cal.com, etc.)" : "Signup URL"}
+                </label>
+                <input
+                  type="url"
+                  value={form.goal_url || ""}
+                  onChange={(e) => setForm({ ...form, goal_url: e.target.value || null })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  placeholder={form.primary_goal === "book_demo" ? "https://calendly.com/yourname" : "https://yoursite.com/signup"}
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Information to Collect
+              </label>
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.collect_name}
+                    onChange={(e) => setForm({ ...form, collect_name: e.target.checked })}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">Name</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.collect_phone}
+                    onChange={(e) => setForm({ ...form, collect_phone: e.target.checked })}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">Phone</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.collect_company}
+                    onChange={(e) => setForm({ ...form, collect_company: e.target.checked })}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">Company</span>
+                </label>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">Email is always collected (except Support Only mode)</p>
+            </div>
+          </section>
+
+          {/* Behavior Settings */}
+          <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4 space-y-4">
+            <h2 className="text-lg font-medium">Behavior Settings</h2>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Persistence Level
+              </label>
+              <div className="space-y-2">
+                {PERSISTENCE_LEVELS.map((level) => (
+                  <label key={level.value} className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="persistence_level"
+                      value={level.value}
+                      checked={form.persistence_level === level.value}
+                      onChange={(e) => setForm({ ...form, persistence_level: e.target.value })}
+                      className="mt-1"
+                    />
+                    <div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{level.label}</div>
+                      <div className="text-sm text-gray-500">{level.desc}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Rebuttal Attempts: {form.rebuttal_count}
+              </label>
+              <input
+                type="range"
+                min="1"
+                max="10"
+                value={form.rebuttal_count}
+                onChange={(e) => setForm({ ...form, rebuttal_count: parseInt(e.target.value) })}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>1 (give up quickly)</span>
+                <span>10 (maximum persistence)</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Quick Replies (optional)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={quickReplyInput}
+                  onChange={(e) => setQuickReplyInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && quickReplyInput.trim()) {
+                      e.preventDefault();
+                      const current = form.quick_replies || [];
+                      if (current.length < 5) {
+                        setForm({ ...form, quick_replies: [...current, quickReplyInput.trim()] });
+                        setQuickReplyInput("");
+                      }
+                    }
+                  }}
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  placeholder="Type a quick reply and press Enter"
+                />
+              </div>
+              {form.quick_replies && form.quick_replies.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {form.quick_replies.map((reply, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-sm"
+                    >
+                      {reply}
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, quick_replies: form.quick_replies?.filter((_, i) => i !== idx) || null })}
+                        className="text-gray-400 hover:text-red-500"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <p className="mt-1 text-xs text-gray-500">Suggested buttons for visitors to click (max 5)</p>
+            </div>
+          </section>
+
           {/* Chatbot Personality */}
           <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4 space-y-4">
             <h2 className="text-lg font-medium">Chatbot Personality</h2>
@@ -480,12 +763,45 @@ export default function ChatWidgetPage() {
             </div>
           </section>
 
+          {/* Custom Messages */}
+          <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4 space-y-4">
+            <h2 className="text-lg font-medium">Custom Messages</h2>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Welcome Message (optional)
+              </label>
+              <textarea
+                value={form.welcome_message || ""}
+                onChange={(e) => setForm({ ...form, welcome_message: e.target.value || null })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                rows={2}
+                placeholder="Leave blank for auto-generated greeting based on tone"
+              />
+              <p className="mt-1 text-xs text-gray-500">Override the default first message</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Success Message (optional)
+              </label>
+              <textarea
+                value={form.success_message || ""}
+                onChange={(e) => setForm({ ...form, success_message: e.target.value || null })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                rows={2}
+                placeholder="Message after capturing contact info..."
+              />
+              <p className="mt-1 text-xs text-gray-500">What to say after getting their email/phone</p>
+            </div>
+          </section>
+
           {/* Widget Appearance */}
           <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4 space-y-4">
             <h2 className="text-lg font-medium">Widget Appearance</h2>
 
-            <div className="flex gap-6">
-              <div className="flex-1">
+            <div className="grid grid-cols-2 gap-6">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Primary Color
                 </label>
@@ -506,7 +822,7 @@ export default function ChatWidgetPage() {
                 </div>
               </div>
 
-              <div className="flex-1">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Position
                 </label>
@@ -555,17 +871,146 @@ export default function ChatWidgetPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="is_active"
-                checked={form.is_active}
-                onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-                className="rounded"
-              />
-              <label htmlFor="is_active" className="text-sm text-gray-700 dark:text-gray-300">
-                Widget is active (visible on your website)
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Button Size
               </label>
+              <div className="flex gap-4">
+                {BUTTON_SIZES.map((size) => (
+                  <label key={size.value} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="button_size"
+                      value={size.value}
+                      checked={form.button_size === size.value}
+                      onChange={(e) => setForm({ ...form, button_size: e.target.value })}
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{size.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Advanced Branding */}
+          <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4 space-y-4">
+            <h2 className="text-lg font-medium">Advanced Branding</h2>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Header Title (optional)
+                </label>
+                <input
+                  type="text"
+                  value={form.header_title || ""}
+                  onChange={(e) => setForm({ ...form, header_title: e.target.value || null })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  placeholder="Override business name in header"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Header Subtitle (optional)
+                </label>
+                <input
+                  type="text"
+                  value={form.header_subtitle || ""}
+                  onChange={(e) => setForm({ ...form, header_subtitle: e.target.value || null })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  placeholder="Online now, Here to help..."
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Chat Background
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={form.chat_bg_color || "#ffffff"}
+                    onChange={(e) => setForm({ ...form, chat_bg_color: e.target.value })}
+                    className="w-10 h-10 rounded cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={form.chat_bg_color || ""}
+                    onChange={(e) => setForm({ ...form, chat_bg_color: e.target.value || null })}
+                    className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm"
+                    placeholder="#ffffff"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  User Bubble Color
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={form.user_bubble_color || form.primary_color}
+                    onChange={(e) => setForm({ ...form, user_bubble_color: e.target.value })}
+                    className="w-10 h-10 rounded cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={form.user_bubble_color || ""}
+                    onChange={(e) => setForm({ ...form, user_bubble_color: e.target.value || null })}
+                    className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm"
+                    placeholder="Uses primary"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Bot Bubble Color
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={form.bot_bubble_color || "#f3f4f6"}
+                    onChange={(e) => setForm({ ...form, bot_bubble_color: e.target.value })}
+                    className="w-10 h-10 rounded cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={form.bot_bubble_color || ""}
+                    onChange={(e) => setForm({ ...form, bot_bubble_color: e.target.value || null })}
+                    className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm"
+                    placeholder="#f3f4f6"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="show_branding"
+                  checked={form.show_branding}
+                  onChange={(e) => setForm({ ...form, show_branding: e.target.checked })}
+                  className="rounded"
+                />
+                <label htmlFor="show_branding" className="text-sm text-gray-700 dark:text-gray-300">
+                  Show "Powered by Site2CRM" branding
+                </label>
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="is_active"
+                  checked={form.is_active}
+                  onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+                  className="rounded"
+                />
+                <label htmlFor="is_active" className="text-sm text-gray-700 dark:text-gray-300">
+                  Widget is active
+                </label>
+              </div>
             </div>
           </section>
 

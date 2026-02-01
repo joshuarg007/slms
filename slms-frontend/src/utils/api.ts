@@ -948,12 +948,52 @@ export interface ChatWidgetConfig {
   contact_email: string;
   tone: string;
   extra_context: string;
+  // Goal and behavior settings
+  primary_goal: string;
+  goal_url: string | null;
+  rebuttal_count: number;
+  persistence_level: string;
+  welcome_message: string | null;
+  success_message: string | null;
+  collect_phone: boolean;
+  collect_name: boolean;
+  collect_company: boolean;
+  quick_replies: string[] | null;
+  // Widget appearance
   primary_color: string;
   widget_position: string;
   bubble_icon: string;
+  // Advanced appearance
+  header_title: string | null;
+  header_subtitle: string | null;
+  chat_bg_color: string | null;
+  user_bubble_color: string | null;
+  bot_bubble_color: string | null;
+  button_size: string;
+  show_branding: boolean;
   is_active: boolean;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface ChatWidgetTemplate {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface ChatWidgetTemplateDetail extends ChatWidgetTemplate {
+  business_description: string;
+  services: string;
+  cta: string;
+  tone: string;
+  primary_goal: string;
+  rebuttal_count: number;
+  persistence_level: string;
+  collect_name: boolean;
+  collect_phone: boolean;
+  collect_company: boolean;
+  quick_replies: string[];
 }
 
 export interface ChatWidgetEmbedCode {
@@ -975,6 +1015,14 @@ export interface ChatWidgetConversation {
 }
 
 // Chat Widget API functions
+export async function getChatWidgetTemplates(): Promise<ChatWidgetTemplate[]> {
+  return fetchJSON<ChatWidgetTemplate[]>(`${baseUrl}/chat-widget/templates`);
+}
+
+export async function getChatWidgetTemplate(templateId: string): Promise<ChatWidgetTemplateDetail> {
+  return fetchJSON<ChatWidgetTemplateDetail>(`${baseUrl}/chat-widget/templates/${templateId}`);
+}
+
 export async function getChatWidgetConfigs(): Promise<ChatWidgetConfig[]> {
   return fetchJSON<ChatWidgetConfig[]>(`${baseUrl}/chat-widget/configs`);
 }

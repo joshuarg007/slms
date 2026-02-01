@@ -36,6 +36,55 @@ def generate_widget_key() -> str:
 
 BUBBLE_ICONS = ["chat", "message", "support", "robot", "sparkle", "wave"]
 
+# Pre-built templates for quick setup
+CHAT_WIDGET_TEMPLATES = {
+    "saas": {
+        "name": "SaaS / Software",
+        "description": "Perfect for software companies offering trials and demos",
+        "business_description": "We provide software solutions that help businesses work more efficiently.",
+        "services": "- Cloud-based software platform\n- Free trial available\n- Premium support",
+        "cta": "Start your free trial",
+        "tone": "friendly",
+        "primary_goal": "start_trial",
+        "rebuttal_count": 5,
+        "persistence_level": "medium",
+        "collect_name": True,
+        "collect_phone": False,
+        "collect_company": True,
+        "quick_replies": ["How does it work?", "What's the pricing?", "Can I see a demo?"],
+    },
+    "agency": {
+        "name": "Agency / Services",
+        "description": "Ideal for agencies offering consultations and quotes",
+        "business_description": "We're a full-service agency helping businesses grow through expert services.",
+        "services": "- Strategy consulting\n- Implementation support\n- Ongoing management",
+        "cta": "Get a free consultation",
+        "tone": "professional",
+        "primary_goal": "book_demo",
+        "rebuttal_count": 5,
+        "persistence_level": "aggressive",
+        "collect_name": True,
+        "collect_phone": True,
+        "collect_company": True,
+        "quick_replies": ["What services do you offer?", "How much does it cost?", "Can we schedule a call?"],
+    },
+    "ecommerce": {
+        "name": "E-commerce / Retail",
+        "description": "Great for online stores and product inquiries",
+        "business_description": "We sell high-quality products with fast shipping and great customer service.",
+        "services": "- Wide product selection\n- Fast shipping\n- Easy returns",
+        "cta": "Get 10% off your first order",
+        "tone": "casual",
+        "primary_goal": "capture_email",
+        "rebuttal_count": 3,
+        "persistence_level": "soft",
+        "collect_name": True,
+        "collect_phone": False,
+        "collect_company": False,
+        "quick_replies": ["What are your bestsellers?", "Do you offer discounts?", "What's your return policy?"],
+    },
+}
+
 
 class ChatWidgetConfigRequest(BaseModel):
     """Request model for creating/updating chat widget configuration."""
@@ -48,9 +97,33 @@ class ChatWidgetConfigRequest(BaseModel):
     contact_email: str = Field(..., max_length=255)
     tone: str = Field(default="friendly")  # friendly, professional, casual
     extra_context: Optional[str] = Field(None, max_length=2000)
+
+    # Goal and behavior settings
+    primary_goal: str = Field(default="capture_email")
+    goal_url: Optional[str] = Field(None, max_length=2048)
+    rebuttal_count: int = Field(default=5, ge=1, le=10)
+    persistence_level: str = Field(default="medium")  # soft, medium, aggressive
+    welcome_message: Optional[str] = Field(None, max_length=500)
+    success_message: Optional[str] = Field(None, max_length=2000)
+    collect_phone: bool = Field(default=False)
+    collect_name: bool = Field(default=True)
+    collect_company: bool = Field(default=False)
+    quick_replies: Optional[list[str]] = Field(None)  # List of quick reply buttons
+
+    # Widget appearance
     primary_color: str = Field(default="#4f46e5", max_length=7)
     widget_position: str = Field(default="bottom-right")  # bottom-right, bottom-left
     bubble_icon: str = Field(default="chat")  # chat, message, support, robot, sparkle, wave
+
+    # Advanced appearance
+    header_title: Optional[str] = Field(None, max_length=100)
+    header_subtitle: Optional[str] = Field(None, max_length=100)
+    chat_bg_color: Optional[str] = Field(None, max_length=7)
+    user_bubble_color: Optional[str] = Field(None, max_length=7)
+    bot_bubble_color: Optional[str] = Field(None, max_length=7)
+    button_size: str = Field(default="medium")  # small, medium, large
+    show_branding: bool = Field(default=True)
+
     is_active: bool = True
 
 
@@ -67,9 +140,33 @@ class ChatWidgetConfigResponse(BaseModel):
     contact_email: str
     tone: str
     extra_context: Optional[str]
+
+    # Goal and behavior settings
+    primary_goal: str
+    goal_url: Optional[str]
+    rebuttal_count: int
+    persistence_level: str
+    welcome_message: Optional[str]
+    success_message: Optional[str]
+    collect_phone: bool
+    collect_name: bool
+    collect_company: bool
+    quick_replies: Optional[list[str]]
+
+    # Widget appearance
     primary_color: str
     widget_position: str
     bubble_icon: str
+
+    # Advanced appearance
+    header_title: Optional[str]
+    header_subtitle: Optional[str]
+    chat_bg_color: Optional[str]
+    user_bubble_color: Optional[str]
+    bot_bubble_color: Optional[str]
+    button_size: str
+    show_branding: bool
+
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -152,6 +249,16 @@ class ChatMessageResponse(BaseModel):
 router = APIRouter(prefix="/chat-widget", tags=["Chat Widget"])
 
 
+def _parse_quick_replies(quick_replies_json: Optional[str]) -> Optional[list[str]]:
+    """Parse quick_replies from JSON string to list."""
+    if not quick_replies_json:
+        return None
+    try:
+        return json.loads(quick_replies_json)
+    except json.JSONDecodeError:
+        return None
+
+
 def _config_to_response(config: models.ChatWidgetConfig) -> ChatWidgetConfigResponse:
     """Helper to convert config model to response."""
     return ChatWidgetConfigResponse(
@@ -165,9 +272,26 @@ def _config_to_response(config: models.ChatWidgetConfig) -> ChatWidgetConfigResp
         contact_email=config.contact_email,
         tone=config.tone,
         extra_context=config.extra_context,
+        primary_goal=config.primary_goal or "capture_email",
+        goal_url=config.goal_url,
+        rebuttal_count=config.rebuttal_count or 5,
+        persistence_level=config.persistence_level or "medium",
+        welcome_message=config.welcome_message,
+        success_message=config.success_message,
+        collect_phone=config.collect_phone if config.collect_phone is not None else False,
+        collect_name=config.collect_name if config.collect_name is not None else True,
+        collect_company=config.collect_company if config.collect_company is not None else False,
+        quick_replies=_parse_quick_replies(config.quick_replies),
         primary_color=config.primary_color,
         widget_position=config.widget_position,
         bubble_icon=config.bubble_icon or "chat",
+        header_title=config.header_title,
+        header_subtitle=config.header_subtitle,
+        chat_bg_color=config.chat_bg_color,
+        user_bubble_color=config.user_bubble_color,
+        bot_bubble_color=config.bot_bubble_color,
+        button_size=getattr(config, 'button_size', None) or "medium",
+        show_branding=config.show_branding if hasattr(config, 'show_branding') and config.show_branding is not None else True,
         is_active=config.is_active,
         created_at=config.created_at,
         updated_at=config.updated_at,
@@ -256,6 +380,89 @@ def _validate_config_request(req: ChatWidgetConfigRequest):
             detail=f"Invalid bubble_icon. Must be one of: {BUBBLE_ICONS}",
         )
 
+    if req.primary_goal not in models.CHAT_GOALS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid primary_goal. Must be one of: {models.CHAT_GOALS}",
+        )
+
+    if req.persistence_level not in models.CHAT_PERSISTENCE_LEVELS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid persistence_level. Must be one of: {models.CHAT_PERSISTENCE_LEVELS}",
+        )
+
+    if req.rebuttal_count < 1 or req.rebuttal_count > 10:
+        raise HTTPException(
+            status_code=400,
+            detail="rebuttal_count must be between 1 and 10",
+        )
+
+    if req.quick_replies and len(req.quick_replies) > 5:
+        raise HTTPException(
+            status_code=400,
+            detail="Maximum 5 quick replies allowed",
+        )
+
+
+class TemplateInfo(BaseModel):
+    """Template information for quick setup."""
+    id: str
+    name: str
+    description: str
+
+
+class TemplateDetail(BaseModel):
+    """Full template details."""
+    id: str
+    name: str
+    description: str
+    business_description: str
+    services: str
+    cta: str
+    tone: str
+    primary_goal: str
+    rebuttal_count: int
+    persistence_level: str
+    collect_name: bool
+    collect_phone: bool
+    collect_company: bool
+    quick_replies: list[str]
+
+
+@router.get("/templates", response_model=list[TemplateInfo])
+def list_templates():
+    """List available chat widget templates."""
+    return [
+        TemplateInfo(id=key, name=tpl["name"], description=tpl["description"])
+        for key, tpl in CHAT_WIDGET_TEMPLATES.items()
+    ]
+
+
+@router.get("/templates/{template_id}", response_model=TemplateDetail)
+def get_template(template_id: str):
+    """Get details of a specific template."""
+    if template_id not in CHAT_WIDGET_TEMPLATES:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    tpl = CHAT_WIDGET_TEMPLATES[template_id]
+    return TemplateDetail(
+        id=template_id,
+        name=tpl["name"],
+        description=tpl["description"],
+        business_description=tpl["business_description"],
+        services=tpl["services"],
+        cta=tpl["cta"],
+        tone=tpl["tone"],
+        primary_goal=tpl["primary_goal"],
+        rebuttal_count=tpl["rebuttal_count"],
+        persistence_level=tpl["persistence_level"],
+        collect_name=tpl["collect_name"],
+        collect_phone=tpl["collect_phone"],
+        collect_company=tpl["collect_company"],
+        quick_replies=tpl["quick_replies"],
+    )
+
 
 @router.post("/config", response_model=ChatWidgetConfigResponse)
 def create_chat_widget_config(
@@ -280,9 +487,26 @@ def create_chat_widget_config(
         contact_email=req.contact_email,
         tone=req.tone,
         extra_context=req.extra_context,
+        primary_goal=req.primary_goal,
+        goal_url=req.goal_url,
+        rebuttal_count=req.rebuttal_count,
+        persistence_level=req.persistence_level,
+        welcome_message=req.welcome_message,
+        success_message=req.success_message,
+        collect_phone=req.collect_phone,
+        collect_name=req.collect_name,
+        collect_company=req.collect_company,
+        quick_replies=json.dumps(req.quick_replies) if req.quick_replies else None,
         primary_color=req.primary_color,
         widget_position=req.widget_position,
         bubble_icon=req.bubble_icon,
+        header_title=req.header_title,
+        header_subtitle=req.header_subtitle,
+        chat_bg_color=req.chat_bg_color,
+        user_bubble_color=req.user_bubble_color,
+        bot_bubble_color=req.bot_bubble_color,
+        button_size=req.button_size,
+        show_branding=req.show_branding,
         is_active=req.is_active,
     )
     db.add(config)
@@ -322,9 +546,26 @@ def update_chat_widget_config(
     config.contact_email = req.contact_email
     config.tone = req.tone
     config.extra_context = req.extra_context
+    config.primary_goal = req.primary_goal
+    config.goal_url = req.goal_url
+    config.rebuttal_count = req.rebuttal_count
+    config.persistence_level = req.persistence_level
+    config.welcome_message = req.welcome_message
+    config.success_message = req.success_message
+    config.collect_phone = req.collect_phone
+    config.collect_name = req.collect_name
+    config.collect_company = req.collect_company
+    config.quick_replies = json.dumps(req.quick_replies) if req.quick_replies else None
     config.primary_color = req.primary_color
     config.widget_position = req.widget_position
     config.bubble_icon = req.bubble_icon
+    config.header_title = req.header_title
+    config.header_subtitle = req.header_subtitle
+    config.chat_bg_color = req.chat_bg_color
+    config.user_bubble_color = req.user_bubble_color
+    config.bot_bubble_color = req.bot_bubble_color
+    config.button_size = req.button_size
+    config.show_branding = req.show_branding
     config.is_active = req.is_active
     config.updated_at = datetime.utcnow()
 
