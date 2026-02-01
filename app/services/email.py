@@ -131,7 +131,7 @@ def _base_html_template(content: str, preview_text: str = "") -> str:
                     <!-- Header with Logo (Dark) -->
                     <tr>
                         <td style="padding: 32px 40px 24px; text-align: center; background-color: #1a1d24;">
-                            <img src="https://site2crm.io/site2crm-email-logo.png" alt="Site2CRM" width="240" style="display: block; margin: 0 auto; max-width: 240px; height: auto;">
+                            <img src="https://site2crm.io/email-logo-dark.png" alt="Site2CRM" width="240" style="display: block; margin: 0 auto; max-width: 240px; height: auto;">
                             <p style="margin: 12px 0 0; font-size: 12px; color: #9ca3af; letter-spacing: 0.5px;">
                                 Lead Capture That Syncs to Your CRM
                             </p>
