@@ -83,15 +83,17 @@
   // Generate dynamic styles based on config
   function generateStyles(cfg) {
     const primaryColor = cfg.primary_color || "#4f46e5";
-    const chatBgColor = cfg.chat_bg_color || "#f9fafb";
+    const chatBgColor = cfg.chat_bg_color || "#ffffff";
     const userBubbleColor = cfg.user_bubble_color || primaryColor;
-    const botBubbleColor = cfg.bot_bubble_color || "#ffffff";
+    const botBubbleColor = cfg.bot_bubble_color || "#f3f4f6";
     const btnSize = buttonSizes[cfg.button_size] || buttonSizes.medium;
 
     return `
     .s2c-widget * {
       box-sizing: border-box;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      margin: 0;
+      padding: 0;
     }
 
     .s2c-bubble {
@@ -100,18 +102,18 @@
       height: ${btnSize.size}px;
       border-radius: 50%;
       cursor: pointer;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 20px rgba(79, 70, 229, 0.4);
       display: flex;
       align-items: center;
       justify-content: center;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
       z-index: 999998;
-      background: ${primaryColor};
+      background: linear-gradient(135deg, ${primaryColor} 0%, #7c3aed 100%);
     }
 
     .s2c-bubble:hover {
-      transform: scale(1.05);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+      transform: scale(1.08);
+      box-shadow: 0 6px 25px rgba(79, 70, 229, 0.5);
     }
 
     .s2c-bubble svg {
@@ -121,13 +123,13 @@
     }
 
     .s2c-bubble.bottom-right {
-      bottom: 20px;
-      right: 20px;
+      bottom: 24px;
+      right: 24px;
     }
 
     .s2c-bubble.bottom-left {
-      bottom: 20px;
-      left: 20px;
+      bottom: 24px;
+      left: 24px;
     }
 
     .s2c-window {
@@ -137,41 +139,54 @@
       max-height: calc(100vh - 100px);
       border-radius: 16px;
       background: white;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
       display: none;
       flex-direction: column;
       overflow: hidden;
       z-index: 999999;
+      border: 1px solid rgba(0, 0, 0, 0.1);
     }
 
     .s2c-window.open {
       display: flex;
+      animation: s2c-slide-up 0.3s ease;
+    }
+
+    @keyframes s2c-slide-up {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .s2c-window.bottom-right {
-      bottom: ${btnSize.size + 30}px;
-      right: 20px;
+      bottom: ${btnSize.size + 35}px;
+      right: 24px;
     }
 
     .s2c-window.bottom-left {
-      bottom: ${btnSize.size + 30}px;
-      left: 20px;
+      bottom: ${btnSize.size + 35}px;
+      left: 24px;
     }
 
     @media (max-width: 480px) {
       .s2c-window {
         width: calc(100vw - 20px);
-        height: calc(100vh - 100px);
-        bottom: ${btnSize.size + 30}px;
+        height: calc(100vh - 120px);
+        bottom: ${btnSize.size + 35}px;
         right: 10px;
         left: 10px;
-        border-radius: 12px;
+        border-radius: 16px;
       }
     }
 
     .s2c-header {
       padding: 16px 20px;
-      background: ${primaryColor};
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
       color: white;
       display: flex;
       align-items: center;
@@ -199,32 +214,36 @@
       background: #22c55e;
       border-radius: 50%;
       flex-shrink: 0;
+      box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.3);
     }
 
     .s2c-header-subtitle {
-      font-size: 12px;
+      font-size: 13px;
       opacity: 0.9;
       margin-top: 2px;
       margin-left: 16px;
     }
 
     .s2c-close {
-      background: none;
+      background: rgba(255, 255, 255, 0.1);
       border: none;
       color: white;
       cursor: pointer;
-      padding: 4px;
-      opacity: 0.8;
-      transition: opacity 0.2s;
+      padding: 6px;
+      border-radius: 8px;
+      opacity: 0.9;
+      transition: all 0.2s;
     }
 
     .s2c-close:hover {
       opacity: 1;
+      background: rgba(255, 255, 255, 0.2);
     }
 
     .s2c-close svg {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
+      display: block;
     }
 
     .s2c-messages {
@@ -238,9 +257,8 @@
     }
 
     .s2c-message {
-      max-width: 85%;
+      max-width: 80%;
       padding: 12px 16px;
-      border-radius: 16px;
       font-size: 14px;
       line-height: 1.5;
       animation: s2c-fade-in 0.2s ease;
@@ -261,26 +279,23 @@
       align-self: flex-end;
       background: ${userBubbleColor};
       color: white;
-      border-bottom-right-radius: 4px;
+      border-radius: 16px 16px 4px 16px;
     }
 
     .s2c-message.assistant {
       align-self: flex-start;
       background: ${botBubbleColor};
-      color: #374151;
-      border-bottom-left-radius: 4px;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      color: #1f2937;
+      border-radius: 16px 16px 16px 4px;
     }
 
     .s2c-typing {
       display: flex;
       gap: 4px;
-      padding: 12px 16px;
+      padding: 14px 18px;
       align-self: flex-start;
       background: ${botBubbleColor};
-      border-radius: 16px;
-      border-bottom-left-radius: 4px;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      border-radius: 16px 16px 16px 4px;
     }
 
     .s2c-typing-dot {
@@ -288,7 +303,7 @@
       height: 8px;
       background: #9ca3af;
       border-radius: 50%;
-      animation: s2c-typing 1s ease-in-out infinite;
+      animation: s2c-typing 1.2s ease-in-out infinite;
     }
 
     .s2c-typing-dot:nth-child(2) {
@@ -319,45 +334,47 @@
     }
 
     .s2c-quick-reply {
-      padding: 8px 14px;
+      padding: 8px 16px;
       background: white;
       border: 1px solid #e5e7eb;
-      border-radius: 18px;
+      border-radius: 20px;
       font-size: 13px;
       color: #374151;
       cursor: pointer;
       transition: all 0.2s;
+      font-weight: 500;
     }
 
     .s2c-quick-reply:hover {
-      background: ${primaryColor};
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
       color: white;
-      border-color: ${primaryColor};
+      border-color: transparent;
+      transform: translateY(-1px);
     }
 
     .s2c-input-area {
       padding: 16px;
-      border-top: 1px solid #e5e7eb;
       display: flex;
-      gap: 8px;
+      gap: 10px;
       background: white;
       flex-shrink: 0;
+      border-top: 1px solid #f3f4f6;
     }
 
     .s2c-input {
       flex: 1;
-      padding: 12px 16px;
-      border: 1px solid #e5e7eb;
+      padding: 12px 18px;
+      border: none;
       border-radius: 24px;
       font-size: 14px;
       outline: none;
-      transition: border-color 0.2s;
+      transition: all 0.2s;
       color: #1f2937;
-      background: white;
+      background: #f3f4f6;
     }
 
     .s2c-input:focus {
-      border-color: ${primaryColor};
+      background: #e5e7eb;
     }
 
     .s2c-input::placeholder {
@@ -373,8 +390,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: opacity 0.2s, transform 0.2s;
-      background: ${primaryColor};
+      transition: all 0.2s;
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      flex-shrink: 0;
     }
 
     .s2c-send:disabled {
@@ -384,30 +402,31 @@
 
     .s2c-send:not(:disabled):hover {
       transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
     }
 
     .s2c-send svg {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       fill: white;
     }
 
     .s2c-powered {
-      padding: 8px;
+      padding: 10px;
       text-align: center;
       font-size: 11px;
       color: #9ca3af;
       background: white;
-      border-top: 1px solid #f3f4f6;
     }
 
     .s2c-powered a {
       color: #6b7280;
       text-decoration: none;
+      font-weight: 500;
     }
 
     .s2c-powered a:hover {
-      text-decoration: underline;
+      color: #4f46e5;
     }
 
     .s2c-powered.hidden {
@@ -416,22 +435,21 @@
 
     .s2c-link-btn {
       display: inline-block;
-      margin-top: 8px;
-      padding: 10px 20px;
-      background: ${primaryColor};
+      margin-top: 10px;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
       color: white !important;
       text-decoration: none;
-      border-radius: 20px;
+      border-radius: 24px;
       font-weight: 600;
       font-size: 14px;
       transition: all 0.2s;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
     }
 
     .s2c-link-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      opacity: 0.95;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
     }
   `;
   }
