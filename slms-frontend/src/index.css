@@ -163,19 +163,19 @@ a:focus-visible {
 }
 
 .shimmer-button {
-  position: relative;
-  overflow: hidden;
+  position: relative !important;
+  overflow: hidden !important;
 }
 
-/* Only animate on desktop */
-@media (min-width: 768px) {
+/* Only animate on desktop, override reduced-motion for this specific element */
+@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
   .shimmer-button::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 50%;
-    height: 100%;
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 50% !important;
+    height: 100% !important;
     background: linear-gradient(
       90deg,
       transparent 0%,
@@ -183,10 +183,10 @@ a:focus-visible {
       rgba(255, 255, 255, 0.3) 50%,
       rgba(255, 255, 255, 0.15) 75%,
       transparent 100%
-    );
+    ) !important;
     transform: translateX(-100%) skewX(-15deg);
-    animation: shimmer-sweep 4s ease-in-out infinite;
-    animation-delay: 1s;
-    pointer-events: none;
+    animation: shimmer-sweep 4s ease-in-out infinite !important;
+    animation-delay: 1s !important;
+    pointer-events: none !important;
   }
 }
