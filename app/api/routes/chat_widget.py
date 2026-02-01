@@ -17,6 +17,7 @@ from app.db import models
 from app.services.ai_chat import (
     chat_completion,
     extract_email_from_message,
+    extract_name_from_message,
     extract_phone_from_message,
 )
 
@@ -541,6 +542,101 @@ def delete_conversation(
 
 
 # ============================================================================
+# Lead Creation Helper
+# ============================================================================
+
+
+def create_lead_from_conversation(
+    db: Session,
+    config: models.ChatWidgetConfig,
+    conversation: models.ChatWidgetConversation,
+) -> Optional[models.Lead]:
+    """Create a Lead record from chat widget conversation data.
+
+    Creates a lead when we have:
+    - email + name, OR
+    - phone + name (uses placeholder email since Lead.email is required)
+
+    Returns the created Lead or None if requirements not met.
+    """
+    email = conversation.lead_email
+    name = conversation.lead_name
+    phone = conversation.lead_phone
+
+    # Check if we have enough info to create a lead
+    has_email_and_name = email and name
+    has_phone_and_name = phone and name
+
+    if not (has_email_and_name or has_phone_and_name):
+        return None
+
+    # Check if lead already exists for this conversation
+    # (by checking if a lead with same email/phone exists for this org)
+    if email:
+        existing = (
+            db.query(models.Lead)
+            .filter(
+                models.Lead.organization_id == config.organization_id,
+                models.Lead.email == email,
+            )
+            .first()
+        )
+        if existing:
+            # Update existing lead with any new info
+            if phone and not existing.phone:
+                existing.phone = phone
+                db.commit()
+            return existing
+
+    # For phone-only leads, check if lead with same phone already exists
+    if phone and not email:
+        existing = (
+            db.query(models.Lead)
+            .filter(
+                models.Lead.organization_id == config.organization_id,
+                models.Lead.phone == phone,
+            )
+            .first()
+        )
+        if existing:
+            return existing
+
+    # For phone-only leads, use a placeholder email
+    lead_email = email if email else f"chatwidget-{conversation.session_id[:20]}@noemail.site2crm.io"
+
+    # Parse name into first/last
+    first_name = None
+    last_name = None
+    if name:
+        parts = name.split(None, 1)
+        first_name = parts[0] if parts else None
+        last_name = parts[1] if len(parts) > 1 else None
+
+    lead = models.Lead(
+        organization_id=config.organization_id,
+        name=name,
+        first_name=first_name,
+        last_name=last_name,
+        email=lead_email,
+        phone=phone,
+        source="chat_widget",
+        landing_page_url=conversation.page_url,
+        notes=f"Captured via AI chat widget ({config.business_name})",
+    )
+
+    db.add(lead)
+    db.commit()
+    db.refresh(lead)
+
+    logger.info(
+        f"Created lead {lead.id} from chat widget conversation {conversation.id} "
+        f"(org={config.organization_id})"
+    )
+
+    return lead
+
+
+# ============================================================================
 # Public Routes (Widget on Customer Websites)
 # ============================================================================
 
@@ -656,6 +752,7 @@ async def send_chat_message(
 
     email = extract_email_from_message(req.message)
     phone = extract_phone_from_message(req.message)
+    name = extract_name_from_message(req.message)
 
     if email and not conversation.lead_email:
         conversation.lead_email = email
@@ -670,6 +767,9 @@ async def send_chat_message(
             conversation.lead_captured_at = datetime.utcnow()
             lead_captured = True
 
+    if name and not conversation.lead_name:
+        conversation.lead_name = name
+
     # Update conversation
     conversation.transcript = json.dumps(transcript)
     conversation.message_count = len([m for m in transcript if m["role"] == "user"])
@@ -682,6 +782,15 @@ async def send_chat_message(
         conversation.page_url = req.page_url
 
     db.commit()
+
+    # Create a Lead record if we have enough info (email+name OR phone+name)
+    # Only attempt if we just captured new contact info
+    if lead_captured or name:
+        try:
+            create_lead_from_conversation(db, config, conversation)
+        except Exception as e:
+            # Log but don't fail the chat - lead creation is secondary
+            logger.error(f"Failed to create lead from conversation: {e}")
 
     return ChatMessageResponse(
         response=response_text,

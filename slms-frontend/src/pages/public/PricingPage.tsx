@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useSEO, schemas } from "@/hooks/useSEO";
+import { useSEO } from "@/hooks/useSEO";
 
 const PLANS = [
   {
@@ -90,12 +90,51 @@ const FAQS = [
 ];
 
 export default function PricingPage() {
+  // Combine product and FAQ schemas using @graph for rich search results
+  const combinedSchema = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        name: "Site2CRM",
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web",
+        description: "Lead capture forms with CRM integration for SaaS companies",
+        offers: [
+          {
+            "@type": "Offer",
+            name: "Starter",
+            price: "29",
+            priceCurrency: "USD",
+          },
+          {
+            "@type": "Offer",
+            name: "Professional",
+            price: "79",
+            priceCurrency: "USD",
+          },
+        ],
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: FAQS.map((faq) => ({
+          "@type": "Question",
+          name: faq.question,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: faq.answer,
+          },
+        })),
+      },
+    ],
+  };
+
   useSEO({
     title: "Pricing - Plans Starting at $29/month",
     description:
       "Simple, transparent pricing for Site2CRM. Starter plan at $29/mo, Professional at $79/mo. 14-day free trial, no credit card required. Cancel anytime.",
     path: "/pricing",
-    jsonLd: schemas.product({ pricing: { starter: "29", pro: "79" } }),
+    jsonLd: combinedSchema,
   });
 
   return (

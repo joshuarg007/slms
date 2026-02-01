@@ -162,3 +162,33 @@ def extract_phone_from_message(message: str) -> Optional[str]:
             return match.group(0)
 
     return None
+
+
+def extract_name_from_message(message: str) -> Optional[str]:
+    """Extract a name from a message if present.
+
+    Looks for common name introduction patterns like:
+    - "I'm John" / "I am John"
+    - "My name is John Smith"
+    - "This is John"
+    - "John here"
+    - "It's John" / "It is John"
+    """
+    import re
+
+    # Common patterns people use to introduce themselves
+    name_patterns = [
+        r"(?:i'?m|i am|my name is|this is|it'?s|it is)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)",
+        r"^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+here\b",
+        r"(?:call me|name'?s)\s+([A-Z][a-z]+)",
+    ]
+
+    for pattern in name_patterns:
+        match = re.search(pattern, message, re.IGNORECASE)
+        if match:
+            name = match.group(1).strip()
+            # Basic validation - name should be at least 2 chars
+            if len(name) >= 2:
+                return name.title()
+
+    return None

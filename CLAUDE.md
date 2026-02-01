@@ -1,5 +1,8 @@
 # Site2CRM - Claude Code Guidelines
 
+> **LOCAL DIRECTORY**: `~/projects/site2crm` (renamed from `slms`)
+> **GITHUB REPO**: Still named `slms` — do not rename on GitHub
+
 > **FOR CLAUDE: Read the SESSION STATE section before doing anything.**
 
 ---
