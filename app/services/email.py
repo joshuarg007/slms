@@ -99,7 +99,9 @@ def send_email(
 def _base_html_template(content: str, preview_text: str = "") -> str:
     """
     Base HTML email template with Site2CRM branding.
+    Includes logo header, legal disclaimer, and Axion Deep Labs footer.
     """
+    current_year = datetime.now().year
     return f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -125,11 +127,14 @@ def _base_html_template(content: str, preview_text: str = "") -> str:
         <tr>
             <td align="center" style="padding: 40px 20px;">
                 <!-- Content card -->
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                    <!-- Header -->
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden;">
+                    <!-- Header with Logo -->
                     <tr>
-                        <td style="padding: 32px 40px 24px; text-align: center; border-bottom: 1px solid #e4e4e7;">
-                            <img src="https://site2crm.io/logo.png" alt="Site2CRM" width="140" style="display: block; margin: 0 auto;">
+                        <td style="padding: 32px 40px 24px; text-align: center; border-bottom: 1px solid #e4e4e7; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
+                            <img src="https://site2crm.io/logo.png" alt="Site2CRM" width="160" style="display: block; margin: 0 auto; max-width: 160px; height: auto;">
+                            <p style="margin: 12px 0 0; font-size: 12px; color: #94a3b8; letter-spacing: 0.5px;">
+                                Lead Capture That Syncs to Your CRM
+                            </p>
                         </td>
                     </tr>
 
@@ -140,15 +145,42 @@ def _base_html_template(content: str, preview_text: str = "") -> str:
                         </td>
                     </tr>
 
-                    <!-- Footer -->
+                    <!-- Legal Disclaimer -->
                     <tr>
-                        <td style="padding: 24px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; border-top: 1px solid #e4e4e7;">
+                        <td style="padding: 24px 40px; background-color: #f9fafb; border-top: 1px solid #e4e4e7;">
+                            <p style="margin: 0 0 12px; font-size: 12px; color: #71717a; line-height: 1.6; text-align: center;">
+                                This email was sent by Site2CRM. You received this because you have an account with us
+                                or requested this notification.
+                            </p>
                             <p style="margin: 0; font-size: 12px; color: #71717a; text-align: center;">
-                                &copy; {datetime.now().year} Site2CRM. All rights reserved.<br>
+                                <a href="https://site2crm.io/app/settings" style="color: #6366f1; text-decoration: none;">Email Preferences</a>
+                                &nbsp;&bull;&nbsp;
                                 <a href="https://site2crm.io/privacy" style="color: #6366f1; text-decoration: none;">Privacy Policy</a>
-                                &nbsp;|&nbsp;
+                                &nbsp;&bull;&nbsp;
                                 <a href="https://site2crm.io/terms" style="color: #6366f1; text-decoration: none;">Terms of Service</a>
                             </p>
+                        </td>
+                    </tr>
+
+                    <!-- Axion Deep Labs Footer -->
+                    <tr>
+                        <td style="padding: 20px 40px; background-color: #18181b; border-top: 1px solid #27272a;">
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                                <tr>
+                                    <td style="text-align: center;">
+                                        <p style="margin: 0 0 8px; font-size: 10px; color: #71717a; text-transform: uppercase; letter-spacing: 1px;">
+                                            A Product By
+                                        </p>
+                                        <img src="https://axiondeep.com/images/logo.webp" alt="Axion Deep Labs" width="100" style="display: inline-block; max-width: 100px; height: auto; opacity: 0.9;">
+                                        <p style="margin: 12px 0 0; font-size: 10px; color: #52525b;">
+                                            &copy; {current_year} Axion Deep Labs Inc. All rights reserved.
+                                        </p>
+                                        <p style="margin: 6px 0 0; font-size: 10px; color: #3f3f46;">
+                                            Delaware, USA &bull; <a href="mailto:labs@axiondeep.com" style="color: #52525b; text-decoration: none;">labs@axiondeep.com</a>
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
                     </tr>
                 </table>
