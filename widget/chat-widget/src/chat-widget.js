@@ -413,6 +413,26 @@
     .s2c-powered.hidden {
       display: none;
     }
+
+    .s2c-link-btn {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 10px 20px;
+      background: ${primaryColor};
+      color: white !important;
+      text-decoration: none;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .s2c-link-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      opacity: 0.95;
+    }
   `;
   }
 
@@ -562,11 +582,41 @@
 
     const msgEl = document.createElement("div");
     msgEl.className = `s2c-message ${role}`;
-    msgEl.textContent = content;
+
+    // For assistant messages, convert URLs to clickable buttons
+    if (role === "assistant") {
+      msgEl.innerHTML = formatMessageWithLinks(content);
+    } else {
+      msgEl.textContent = content;
+    }
+
     messagesContainer.appendChild(msgEl);
 
     // Scroll to bottom
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+
+  function formatMessageWithLinks(text) {
+    // URL regex pattern
+    const urlPattern = /(https?:\/\/[^\s<]+[^\s<.,;:'")\]])/g;
+
+    // Escape HTML first
+    let escaped = escapeHtml(text);
+
+    // Replace URLs with styled buttons
+    escaped = escaped.replace(urlPattern, (url) => {
+      // Determine button text based on URL
+      let buttonText = "Click here";
+      if (url.includes("/signup")) buttonText = "Sign Up Free";
+      else if (url.includes("/pricing")) buttonText = "View Pricing";
+      else if (url.includes("/demo") || url.includes("calendly") || url.includes("cal.com")) buttonText = "Book Demo";
+      else if (url.includes("/trial")) buttonText = "Start Free Trial";
+      else if (url.includes("/contact")) buttonText = "Contact Us";
+
+      return `<a href="${url}" target="_blank" rel="noopener" class="s2c-link-btn">${buttonText}</a>`;
+    });
+
+    return escaped;
   }
 
   function showTyping() {

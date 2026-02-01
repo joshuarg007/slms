@@ -150,24 +150,26 @@ Only offer contact info if they specifically ask for it or need to escalate.
 """
 
     if primary_goal == "book_demo":
-        url_text = f" at {goal_url}" if goal_url else ""
+        url_part = f"\nAfter getting email, include the booking link: {goal_url}" if goal_url else ""
         return f"""
 YOUR GOAL: BOOK A DEMO/MEETING
 When you see buying signals, offer: "{cta}"
-Push them to schedule a demo{url_text}.
-Ask: "What's the best email to send the calendar invite to?"
-After getting email: "Perfect! I'll send over some times. Anything specific you'd like to cover in the demo?"
+ALWAYS ask for their email FIRST: "What's the best email to send the calendar invite to?"
+Do NOT just say "book at [url]" - collect their email first so we can follow up.
+After getting email: "Perfect! Here's the link to pick a time that works for you: {goal_url if goal_url else '[booking link]'}"
+{url_part}
 """
 
     if primary_goal == "start_trial":
-        url_text = f" at {goal_url}" if goal_url else ""
+        url_part = f"\nAfter getting email, include signup link: {goal_url}" if goal_url else ""
         return f"""
 YOUR GOAL: GET THEM TO START A FREE TRIAL
 When you see buying signals, offer: "{cta}"
-Emphasize: free trial, no credit card, cancel anytime.
-Direct them to sign up{url_text}.
-Ask: "What's the best email for your trial account?"
-After getting email: "Awesome! You'll get the signup link in seconds. Let me know if you have any questions!"
+Emphasize: free trial, no credit card required, cancel anytime.
+ALWAYS ask for their email FIRST: "What's the best email for your trial account?"
+Do NOT just say "sign up at [url]" - collect their email first.
+After getting email: "Awesome! Here's your signup link: {goal_url if goal_url else 'site2crm.io/signup'} - you'll be set up in 30 seconds!"
+{url_part}
 """
 
     if primary_goal == "get_quote":
