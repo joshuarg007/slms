@@ -80,18 +80,11 @@
     <script type="module" src="/src/main.tsx"></script>
 
     <!-- Site2CRM AI Chat Widget -->
-    <script>
-    // Only load chat widget on public pages (not app, login, signup)
-    (function() {
-      var path = window.location.pathname;
-      if (!path.startsWith('/app') && path !== '/login' && path !== '/signup' && path !== '/forgot-password' && path !== '/reset-password') {
-        var s = document.createElement('script');
-        s.src = 'https://api.site2crm.io/api/public/chat-widget/widget.js';
-        s.setAttribute('data-widget-key', 'wgt_XuJJb5Wi7_o2UEHUBT4Diw');
-        s.async = true;
-        document.body.appendChild(s);
-      }
-    })();
+    <script
+      src="https://api.site2crm.io/api/public/chat-widget/widget.js"
+      data-widget-key="wgt_XuJJb5Wi7_o2UEHUBT4Diw"
+      data-exclude-paths="/app/*,/login,/signup,/forgot-password,/reset-password"
+      async>
     </script>
   </body>
 </html>

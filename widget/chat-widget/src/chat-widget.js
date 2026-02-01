@@ -17,6 +17,35 @@
     return;
   }
 
+  // Check for excluded paths (comma-separated list or patterns)
+  const excludePaths = script?.getAttribute("data-exclude-paths");
+  if (excludePaths) {
+    const currentPath = window.location.pathname;
+    const patterns = excludePaths.split(",").map(p => p.trim());
+    for (const pattern of patterns) {
+      // Support wildcards: /app/* matches /app/anything
+      if (pattern.endsWith("*")) {
+        const prefix = pattern.slice(0, -1);
+        if (currentPath.startsWith(prefix)) {
+          console.log("Site2CRM Chat Widget: Hidden on excluded path", currentPath);
+          return;
+        }
+      } else if (currentPath === pattern) {
+        console.log("Site2CRM Chat Widget: Hidden on excluded path", currentPath);
+        return;
+      }
+    }
+  }
+
+  // Check for auth cookie/localStorage - if set, hide widget
+  // Customers can set: localStorage.setItem('site2crm_hide_chat', 'true') or document.cookie = 'site2crm_hide_chat=true'
+  const hideFromStorage = localStorage.getItem("site2crm_hide_chat") === "true";
+  const hideFromCookie = document.cookie.includes("site2crm_hide_chat=true");
+  if (hideFromStorage || hideFromCookie) {
+    console.log("Site2CRM Chat Widget: Hidden for authenticated user");
+    return;
+  }
+
   // API base URL
   const API_BASE = "https://api.site2crm.io/api/public/chat-widget";
 
