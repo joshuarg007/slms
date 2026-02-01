@@ -8,6 +8,9 @@ type FormStyle = "inline" | "wizard" | "modal" | "drawer";
 
 interface StylingConfig {
   primaryColor: string;
+  secondaryColor: string;
+  backgroundColor: string;
+  textColor: string;
   borderRadius: string;
   fontFamily: string;
 }
@@ -41,19 +44,24 @@ interface ThemePreset {
   id: string;
   name: string;
   primaryColor: string;
+  secondaryColor: string;
+  backgroundColor: string;
+  textColor: string;
   borderRadius: string;
   preview: { bg: string; accent: string };
 }
 
 const THEME_PRESETS: ThemePreset[] = [
-  { id: "modern-blue", name: "Modern Blue", primaryColor: "#2563eb", borderRadius: "12px", preview: { bg: "from-blue-500 to-indigo-600", accent: "bg-blue-500" } },
-  { id: "emerald", name: "Emerald", primaryColor: "#059669", borderRadius: "8px", preview: { bg: "from-emerald-500 to-teal-600", accent: "bg-emerald-500" } },
-  { id: "sunset", name: "Sunset", primaryColor: "#ea580c", borderRadius: "16px", preview: { bg: "from-orange-500 to-rose-600", accent: "bg-orange-500" } },
-  { id: "purple-haze", name: "Purple Haze", primaryColor: "#7c3aed", borderRadius: "20px", preview: { bg: "from-purple-500 to-pink-600", accent: "bg-purple-500" } },
-  { id: "minimal", name: "Minimal", primaryColor: "#18181b", borderRadius: "4px", preview: { bg: "from-zinc-700 to-zinc-900", accent: "bg-zinc-800" } },
-  { id: "coral", name: "Coral", primaryColor: "#f43f5e", borderRadius: "10px", preview: { bg: "from-rose-500 to-pink-600", accent: "bg-rose-500" } },
-  { id: "ocean", name: "Ocean", primaryColor: "#0891b2", borderRadius: "14px", preview: { bg: "from-cyan-500 to-blue-600", accent: "bg-cyan-500" } },
-  { id: "forest", name: "Forest", primaryColor: "#16a34a", borderRadius: "6px", preview: { bg: "from-green-600 to-emerald-700", accent: "bg-green-600" } },
+  { id: "modern-blue", name: "Modern Blue", primaryColor: "#2563eb", secondaryColor: "#3b82f6", backgroundColor: "#ffffff", textColor: "#1f2937", borderRadius: "12px", preview: { bg: "from-blue-500 to-indigo-600", accent: "bg-blue-500" } },
+  { id: "emerald", name: "Emerald", primaryColor: "#059669", secondaryColor: "#10b981", backgroundColor: "#ffffff", textColor: "#1f2937", borderRadius: "8px", preview: { bg: "from-emerald-500 to-teal-600", accent: "bg-emerald-500" } },
+  { id: "sunset", name: "Sunset", primaryColor: "#ea580c", secondaryColor: "#f97316", backgroundColor: "#fffbeb", textColor: "#78350f", borderRadius: "16px", preview: { bg: "from-orange-500 to-rose-600", accent: "bg-orange-500" } },
+  { id: "purple-haze", name: "Purple Haze", primaryColor: "#7c3aed", secondaryColor: "#a855f7", backgroundColor: "#faf5ff", textColor: "#581c87", borderRadius: "20px", preview: { bg: "from-purple-500 to-pink-600", accent: "bg-purple-500" } },
+  { id: "minimal", name: "Minimal", primaryColor: "#18181b", secondaryColor: "#3f3f46", backgroundColor: "#fafafa", textColor: "#18181b", borderRadius: "4px", preview: { bg: "from-zinc-700 to-zinc-900", accent: "bg-zinc-800" } },
+  { id: "coral", name: "Coral", primaryColor: "#f43f5e", secondaryColor: "#fb7185", backgroundColor: "#fff1f2", textColor: "#881337", borderRadius: "10px", preview: { bg: "from-rose-500 to-pink-600", accent: "bg-rose-500" } },
+  { id: "ocean", name: "Ocean", primaryColor: "#0891b2", secondaryColor: "#22d3ee", backgroundColor: "#ecfeff", textColor: "#164e63", borderRadius: "14px", preview: { bg: "from-cyan-500 to-blue-600", accent: "bg-cyan-500" } },
+  { id: "forest", name: "Forest", primaryColor: "#16a34a", secondaryColor: "#22c55e", backgroundColor: "#f0fdf4", textColor: "#14532d", borderRadius: "6px", preview: { bg: "from-green-600 to-emerald-700", accent: "bg-green-600" } },
+  { id: "midnight", name: "Midnight", primaryColor: "#6366f1", secondaryColor: "#818cf8", backgroundColor: "#1e1b4b", textColor: "#e0e7ff", borderRadius: "12px", preview: { bg: "from-indigo-600 to-violet-800", accent: "bg-indigo-600" } },
+  { id: "warm-sand", name: "Warm Sand", primaryColor: "#d97706", secondaryColor: "#fbbf24", backgroundColor: "#fefce8", textColor: "#713f12", borderRadius: "8px", preview: { bg: "from-amber-500 to-yellow-600", accent: "bg-amber-500" } },
 ];
 
 async function authFetch(url: string, init: RequestInit = {}): Promise<Response> {
@@ -72,6 +80,9 @@ export default function StylesPage() {
   const [selectedStyle, setSelectedStyle] = useState<FormStyle>("inline");
   const [styling, setStyling] = useState<StylingConfig>({
     primaryColor: "#2563eb",
+    secondaryColor: "#3b82f6",
+    backgroundColor: "#ffffff",
+    textColor: "#1f2937",
     borderRadius: "10px",
     fontFamily: "system-ui",
   });
@@ -90,6 +101,9 @@ export default function StylesPage() {
     setStyling({
       ...styling,
       primaryColor: preset.primaryColor,
+      secondaryColor: preset.secondaryColor,
+      backgroundColor: preset.backgroundColor,
+      textColor: preset.textColor,
       borderRadius: preset.borderRadius,
     });
     setSelectedPreset(preset.id);
@@ -300,10 +314,10 @@ export default function StylesPage() {
         </div>
       </section>
 
-      {/* Appearance */}
+      {/* Colors */}
       <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4">
-        <h2 className="text-lg font-medium mb-4">Appearance</h2>
-        <div className="grid sm:grid-cols-3 gap-4">
+        <h2 className="text-lg font-medium mb-4">Colors</h2>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Primary Color</label>
             <div className="flex items-center gap-2">
@@ -328,6 +342,112 @@ export default function StylesPage() {
             </div>
           </div>
           <div>
+            <label className="block text-sm font-medium mb-1">Secondary Color</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={styling.secondaryColor}
+                onChange={(e) => {
+                  setStyling({ ...styling, secondaryColor: e.target.value });
+                  setSelectedPreset(null);
+                }}
+                className="h-10 w-14 cursor-pointer rounded border border-gray-300 dark:border-gray-700"
+              />
+              <input
+                type="text"
+                value={styling.secondaryColor}
+                onChange={(e) => {
+                  setStyling({ ...styling, secondaryColor: e.target.value });
+                  setSelectedPreset(null);
+                }}
+                className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Background Color</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={styling.backgroundColor}
+                onChange={(e) => {
+                  setStyling({ ...styling, backgroundColor: e.target.value });
+                  setSelectedPreset(null);
+                }}
+                className="h-10 w-14 cursor-pointer rounded border border-gray-300 dark:border-gray-700"
+              />
+              <input
+                type="text"
+                value={styling.backgroundColor}
+                onChange={(e) => {
+                  setStyling({ ...styling, backgroundColor: e.target.value });
+                  setSelectedPreset(null);
+                }}
+                className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Text Color</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={styling.textColor}
+                onChange={(e) => {
+                  setStyling({ ...styling, textColor: e.target.value });
+                  setSelectedPreset(null);
+                }}
+                className="h-10 w-14 cursor-pointer rounded border border-gray-300 dark:border-gray-700"
+              />
+              <input
+                type="text"
+                value={styling.textColor}
+                onChange={(e) => {
+                  setStyling({ ...styling, textColor: e.target.value });
+                  setSelectedPreset(null);
+                }}
+                className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Typography & Shape */}
+      <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4">
+        <h2 className="text-lg font-medium mb-4">Typography & Shape</h2>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Font Family</label>
+            <select
+              value={styling.fontFamily}
+              onChange={(e) => setStyling({ ...styling, fontFamily: e.target.value })}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+            >
+              <optgroup label="Sans-Serif">
+                <option value="system-ui">System Default</option>
+                <option value="'Inter', sans-serif">Inter</option>
+                <option value="'Roboto', sans-serif">Roboto</option>
+                <option value="'Open Sans', sans-serif">Open Sans</option>
+                <option value="'Poppins', sans-serif">Poppins</option>
+                <option value="'Montserrat', sans-serif">Montserrat</option>
+                <option value="'Lato', sans-serif">Lato</option>
+                <option value="'Source Sans Pro', sans-serif">Source Sans Pro</option>
+              </optgroup>
+              <optgroup label="Serif">
+                <option value="'Georgia', serif">Georgia</option>
+                <option value="'Playfair Display', serif">Playfair Display</option>
+                <option value="'Merriweather', serif">Merriweather</option>
+                <option value="'Lora', serif">Lora</option>
+              </optgroup>
+              <optgroup label="Monospace">
+                <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
+                <option value="'Fira Code', monospace">Fira Code</option>
+              </optgroup>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">Google Fonts are loaded automatically</p>
+          </div>
+          <div>
             <label className="block text-sm font-medium mb-1">Border Radius</label>
             <select
               value={styling.borderRadius}
@@ -343,20 +463,7 @@ export default function StylesPage() {
               <option value="12px">Large (12px)</option>
               <option value="16px">Extra Large (16px)</option>
               <option value="20px">Rounded (20px)</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Font Family</label>
-            <select
-              value={styling.fontFamily}
-              onChange={(e) => setStyling({ ...styling, fontFamily: e.target.value })}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-            >
-              <option value="system-ui">System Default</option>
-              <option value="Inter, sans-serif">Inter</option>
-              <option value="'Roboto', sans-serif">Roboto</option>
-              <option value="'Open Sans', sans-serif">Open Sans</option>
-              <option value="Georgia, serif">Georgia (Serif)</option>
+              <option value="9999px">Pill (Full)</option>
             </select>
           </div>
         </div>
@@ -603,11 +710,11 @@ export default function StylesPage() {
           ) : (
             /* Inline Preview */
             <div
-              className="max-w-md mx-auto bg-white dark:bg-gray-900 p-6 shadow-lg"
-              style={{ borderRadius: styling.borderRadius }}
+              className="max-w-md mx-auto p-6 shadow-lg"
+              style={{ borderRadius: styling.borderRadius, backgroundColor: styling.backgroundColor, fontFamily: styling.fontFamily }}
             >
-              <h3 className="text-xl font-semibold mb-1">{branding.headerText}</h3>
-              <p className="text-sm text-gray-500 mb-4">{branding.subheaderText}</p>
+              <h3 className="text-xl font-semibold mb-1" style={{ color: styling.textColor }}>{branding.headerText}</h3>
+              <p className="text-sm mb-4" style={{ color: styling.textColor, opacity: 0.7 }}>{branding.subheaderText}</p>
               <div className="space-y-3">
                 <div>
                   <input
