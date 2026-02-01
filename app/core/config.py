@@ -68,6 +68,9 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-4-20250514"
 
+    # AI Chat Widget (DeepSeek)
+    DEEPSEEK_API_KEY: str = ""
+
     frontend_base_url: str = "http://127.0.0.1:5173"
     api_base_url: str = "https://api.site2crm.io"  # Used for widget embed code
 

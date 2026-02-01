@@ -558,6 +558,89 @@ class ABTest(Base):
     variants = relationship("FormVariant", back_populates="ab_test", cascade="all, delete-orphan")
 
 
+# Chat Widget tone options
+CHAT_TONE_FRIENDLY = "friendly"
+CHAT_TONE_PROFESSIONAL = "professional"
+CHAT_TONE_CASUAL = "casual"
+
+CHAT_TONES = [CHAT_TONE_FRIENDLY, CHAT_TONE_PROFESSIONAL, CHAT_TONE_CASUAL]
+
+
+class ChatWidgetConfig(Base):
+    """AI chat widget configuration per organization."""
+
+    __tablename__ = "chat_widget_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        unique=True,  # One chat config per org
+        index=True,
+        nullable=False,
+    )
+
+    # Setup wizard fields
+    business_name = Column(String(255), nullable=False)
+    business_description = Column(Text, nullable=False)
+    services = Column(Text, nullable=False)  # Comma-separated or newline-separated
+    restrictions = Column(Text, nullable=True)  # What the bot should never say
+    cta = Column(String(255), nullable=False, default="Free 15-minute consultation")
+    contact_email = Column(String(255), nullable=False)
+    tone = Column(String(20), nullable=False, default=CHAT_TONE_FRIENDLY)
+    extra_context = Column(Text, nullable=True)  # Additional instructions
+
+    # Widget appearance
+    primary_color = Column(String(7), nullable=False, default="#4f46e5")  # Hex color
+    widget_position = Column(String(20), nullable=False, default="bottom-right")  # bottom-right, bottom-left
+
+    # State
+    is_active = Column(Boolean, nullable=False, default=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    organization = relationship("Organization", backref="chat_widget_config")
+    conversations = relationship("ChatWidgetConversation", back_populates="config", cascade="all, delete-orphan")
+
+
+class ChatWidgetConversation(Base):
+    """Visitor conversations from the embeddable chat widget."""
+
+    __tablename__ = "chat_widget_conversations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    config_id = Column(
+        Integer,
+        ForeignKey("chat_widget_configs.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+
+    # Visitor tracking (no user_id - these are anonymous visitors)
+    session_id = Column(String(100), nullable=False, index=True)  # Browser session ID
+    page_url = Column(String(2048), nullable=True)  # Where the chat happened
+
+    # Lead capture
+    lead_email = Column(String(255), nullable=True, index=True)
+    lead_name = Column(String(255), nullable=True)
+    lead_phone = Column(String(50), nullable=True)
+    lead_captured_at = Column(DateTime, nullable=True)
+
+    # Conversation data
+    transcript = Column(Text, nullable=False, default="[]")  # JSON array of messages
+    message_count = Column(Integer, nullable=False, default=0)
+
+    # Token tracking for cost analysis
+    total_tokens_input = Column(Integer, nullable=False, default=0)
+    total_tokens_output = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    config = relationship("ChatWidgetConfig", back_populates="conversations")
+
+
 class FormVariant(Base):
     """A variant in an A/B test with config overrides."""
 

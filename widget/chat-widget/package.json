@@ -1,0 +1,12 @@
+{
+  "name": "site2crm-chat-widget",
+  "version": "1.0.0",
+  "description": "Embeddable AI chat widget for Site2CRM",
+  "scripts": {
+    "build": "terser src/chat-widget.js -o dist/chat-widget.min.js -c -m",
+    "copy": "cp src/chat-widget.js dist/chat-widget.min.js"
+  },
+  "devDependencies": {
+    "terser": "^5.19.0"
+  }
+}

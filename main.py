@@ -54,6 +54,7 @@ from app.api.routes import automation as automation_routes
 from app.api.routes import support as support_routes
 from app.api.routes import appsumo as appsumo_routes
 from app.api.routes import ab_tests as ab_tests_routes
+from app.api.routes import chat_widget as chat_widget_routes
 
 # Scheduler for digest emails
 from app.services.scheduler import start_scheduler, stop_scheduler
@@ -212,6 +213,8 @@ app.include_router(automation_routes.router, prefix="/api", tags=["Automation"])
 app.include_router(support_routes.router, prefix="/api", tags=["Support"])
 app.include_router(appsumo_routes.router, prefix="/api", tags=["AppSumo"])
 app.include_router(ab_tests_routes.router, prefix="/api", tags=["A/B Testing"])
+app.include_router(chat_widget_routes.router, prefix="/api", tags=["Chat Widget"])
+app.include_router(chat_widget_routes.public_router, prefix="/api", tags=["Public Chat Widget"])
 
 # DB
 models.Base.metadata.create_all(bind=engine)
