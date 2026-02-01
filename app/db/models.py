@@ -567,7 +567,7 @@ CHAT_TONES = [CHAT_TONE_FRIENDLY, CHAT_TONE_PROFESSIONAL, CHAT_TONE_CASUAL]
 
 
 class ChatWidgetConfig(Base):
-    """AI chat widget configuration per organization."""
+    """AI chat widget configuration - multiple widgets per organization allowed."""
 
     __tablename__ = "chat_widget_configs"
 
@@ -575,10 +575,12 @@ class ChatWidgetConfig(Base):
     organization_id = Column(
         Integer,
         ForeignKey("organizations.id", ondelete="CASCADE"),
-        unique=True,  # One chat config per org
         index=True,
         nullable=False,
     )
+
+    # Unique widget identifier (used in embed codes)
+    widget_key = Column(String(50), unique=True, nullable=False, index=True)
 
     # Setup wizard fields
     business_name = Column(String(255), nullable=False)
@@ -600,7 +602,7 @@ class ChatWidgetConfig(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
-    organization = relationship("Organization", backref="chat_widget_config")
+    organization = relationship("Organization", backref="chat_widget_configs")
     conversations = relationship("ChatWidgetConversation", back_populates="config", cascade="all, delete-orphan")
 
 

@@ -939,6 +939,7 @@ export async function deleteVariant(testId: number, variantId: number): Promise<
 // Chat Widget types
 export interface ChatWidgetConfig {
   id?: number;
+  widget_key?: string;
   business_name: string;
   business_description: string;
   services: string;
@@ -956,7 +957,7 @@ export interface ChatWidgetConfig {
 
 export interface ChatWidgetEmbedCode {
   embed_code: string;
-  org_key: string;
+  widget_key: string;
 }
 
 export interface ChatWidgetConversation {
@@ -973,23 +974,53 @@ export interface ChatWidgetConversation {
 }
 
 // Chat Widget API functions
-export async function getChatWidgetConfig(): Promise<ChatWidgetConfig | null> {
+export async function getChatWidgetConfigs(): Promise<ChatWidgetConfig[]> {
+  return fetchJSON<ChatWidgetConfig[]>(`${baseUrl}/chat-widget/configs`);
+}
+
+export async function getChatWidgetConfig(widgetKey?: string): Promise<ChatWidgetConfig | null> {
+  if (widgetKey) {
+    return fetchJSON<ChatWidgetConfig | null>(`${baseUrl}/chat-widget/config/${widgetKey}`);
+  }
   return fetchJSON<ChatWidgetConfig | null>(`${baseUrl}/chat-widget/config`);
 }
 
-export async function saveChatWidgetConfig(config: ChatWidgetConfig): Promise<ChatWidgetConfig> {
+export async function createChatWidgetConfig(config: Omit<ChatWidgetConfig, 'id' | 'widget_key' | 'created_at' | 'updated_at'>): Promise<ChatWidgetConfig> {
   return fetchJSON<ChatWidgetConfig>(`${baseUrl}/chat-widget/config`, {
     method: "POST",
     body: JSON.stringify(config),
   });
 }
 
-export async function getChatWidgetEmbedCode(): Promise<ChatWidgetEmbedCode> {
-  return fetchJSON<ChatWidgetEmbedCode>(`${baseUrl}/chat-widget/embed-code`);
+export async function updateChatWidgetConfig(widgetKey: string, config: Omit<ChatWidgetConfig, 'id' | 'widget_key' | 'created_at' | 'updated_at'>): Promise<ChatWidgetConfig> {
+  return fetchJSON<ChatWidgetConfig>(`${baseUrl}/chat-widget/config/${widgetKey}`, {
+    method: "PUT",
+    body: JSON.stringify(config),
+  });
 }
 
-export async function getChatWidgetConversations(limit = 50): Promise<ChatWidgetConversation[]> {
-  return fetchJSON<ChatWidgetConversation[]>(`${baseUrl}/chat-widget/conversations${toQuery({ limit })}`);
+export async function deleteChatWidgetConfig(widgetKey: string): Promise<void> {
+  await fetchJSON<{ message: string }>(`${baseUrl}/chat-widget/config/${widgetKey}`, {
+    method: "DELETE",
+  });
+}
+
+// Deprecated - use createChatWidgetConfig or updateChatWidgetConfig
+export async function saveChatWidgetConfig(config: ChatWidgetConfig): Promise<ChatWidgetConfig> {
+  if (config.widget_key) {
+    return updateChatWidgetConfig(config.widget_key, config);
+  }
+  return createChatWidgetConfig(config);
+}
+
+export async function getChatWidgetEmbedCode(widgetKey: string): Promise<ChatWidgetEmbedCode> {
+  return fetchJSON<ChatWidgetEmbedCode>(`${baseUrl}/chat-widget/embed-code/${widgetKey}`);
+}
+
+export async function getChatWidgetConversations(limit = 50, widgetKey?: string): Promise<ChatWidgetConversation[]> {
+  const params: Record<string, unknown> = { limit };
+  if (widgetKey) params.widget_key = widgetKey;
+  return fetchJSON<ChatWidgetConversation[]>(`${baseUrl}/chat-widget/conversations${toQuery(params)}`);
 }
 
 // Named plus default export
@@ -1055,7 +1086,11 @@ export const api = {
   updateVariant,
   deleteVariant,
   // Chat Widget
+  getChatWidgetConfigs,
   getChatWidgetConfig,
+  createChatWidgetConfig,
+  updateChatWidgetConfig,
+  deleteChatWidgetConfig,
   saveChatWidgetConfig,
   getChatWidgetEmbedCode,
   getChatWidgetConversations,

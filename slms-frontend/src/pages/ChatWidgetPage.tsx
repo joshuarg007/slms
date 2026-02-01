@@ -2,8 +2,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import {
-  getChatWidgetConfig,
-  saveChatWidgetConfig,
+  getChatWidgetConfigs,
+  createChatWidgetConfig,
+  updateChatWidgetConfig,
+  deleteChatWidgetConfig,
   getChatWidgetEmbedCode,
   getChatWidgetConversations,
   type ChatWidgetConfig,
@@ -23,11 +25,26 @@ const POSITIONS = [
   { value: "bottom-left", label: "Bottom Left" },
 ];
 
-export default function ChatWidgetPage() {
-  useDocumentTitle("AI Chat Widget");
+const EMPTY_FORM: Omit<ChatWidgetConfig, 'id' | 'widget_key' | 'created_at' | 'updated_at'> = {
+  business_name: "",
+  business_description: "",
+  services: "",
+  restrictions: "",
+  cta: "Free 15-minute consultation",
+  contact_email: "",
+  tone: "friendly",
+  extra_context: "",
+  primary_color: "#4f46e5",
+  widget_position: "bottom-right",
+  is_active: true,
+};
 
-  const [activeTab, setActiveTab] = useState<"setup" | "embed" | "conversations">("setup");
-  const [config, setConfig] = useState<ChatWidgetConfig | null>(null);
+export default function ChatWidgetPage() {
+  useDocumentTitle("AI Chat Widgets");
+
+  const [view, setView] = useState<"list" | "form" | "embed" | "conversations">("list");
+  const [widgets, setWidgets] = useState<ChatWidgetConfig[]>([]);
+  const [selectedWidget, setSelectedWidget] = useState<ChatWidgetConfig | null>(null);
   const [embedCode, setEmbedCode] = useState<ChatWidgetEmbedCode | null>(null);
   const [conversations, setConversations] = useState<ChatWidgetConversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,83 +53,122 @@ export default function ChatWidgetPage() {
   const [copied, setCopied] = useState(false);
 
   // Form state
-  const [form, setForm] = useState<ChatWidgetConfig>({
-    business_name: "",
-    business_description: "",
-    services: "",
-    restrictions: "",
-    cta: "Free 15-minute consultation",
-    contact_email: "",
-    tone: "friendly",
-    extra_context: "",
-    primary_color: "#4f46e5",
-    widget_position: "bottom-right",
-    is_active: true,
-  });
+  const [form, setForm] = useState<typeof EMPTY_FORM>(EMPTY_FORM);
+  const [isEditing, setIsEditing] = useState(false);
 
-  // Load existing config
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await getChatWidgetConfig();
-        if (data) {
-          setConfig(data);
-          setForm(data);
-        }
-      } catch (err) {
-        console.error("Failed to load config:", err);
-      } finally {
-        setLoading(false);
-      }
+  // Load widgets list
+  const loadWidgets = useCallback(async () => {
+    try {
+      const data = await getChatWidgetConfigs();
+      setWidgets(data);
+    } catch (err) {
+      console.error("Failed to load widgets:", err);
+    } finally {
+      setLoading(false);
     }
-    load();
   }, []);
 
-  // Load embed code when tab changes
   useEffect(() => {
-    if (activeTab === "embed" && config) {
-      loadEmbedCode();
-    }
-    if (activeTab === "conversations" && config) {
-      loadConversations();
-    }
-  }, [activeTab, config]);
+    loadWidgets();
+  }, [loadWidgets]);
 
-  async function loadEmbedCode() {
+  // Load embed code for selected widget
+  async function loadEmbedCode(widgetKey: string) {
     try {
-      const data = await getChatWidgetEmbedCode();
+      const data = await getChatWidgetEmbedCode(widgetKey);
       setEmbedCode(data);
     } catch (err) {
       console.error("Failed to load embed code:", err);
     }
   }
 
-  async function loadConversations() {
+  // Load conversations for selected widget
+  async function loadConversations(widgetKey: string) {
     try {
-      const data = await getChatWidgetConversations(50);
+      const data = await getChatWidgetConversations(50, widgetKey);
       setConversations(data);
     } catch (err) {
       console.error("Failed to load conversations:", err);
     }
   }
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+  const handleNewWidget = () => {
+    setForm(EMPTY_FORM);
+    setSelectedWidget(null);
+    setIsEditing(false);
+    setError(null);
+    setView("form");
+  };
+
+  const handleEditWidget = (widget: ChatWidgetConfig) => {
+    setForm({
+      business_name: widget.business_name,
+      business_description: widget.business_description,
+      services: widget.services,
+      restrictions: widget.restrictions || "",
+      cta: widget.cta,
+      contact_email: widget.contact_email,
+      tone: widget.tone,
+      extra_context: widget.extra_context || "",
+      primary_color: widget.primary_color,
+      widget_position: widget.widget_position,
+      is_active: widget.is_active,
+    });
+    setSelectedWidget(widget);
+    setIsEditing(true);
+    setError(null);
+    setView("form");
+  };
+
+  const handleViewEmbed = (widget: ChatWidgetConfig) => {
+    setSelectedWidget(widget);
+    if (widget.widget_key) {
+      loadEmbedCode(widget.widget_key);
+    }
+    setView("embed");
+  };
+
+  const handleViewConversations = (widget: ChatWidgetConfig) => {
+    setSelectedWidget(widget);
+    if (widget.widget_key) {
+      loadConversations(widget.widget_key);
+    }
+    setView("conversations");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
 
     try {
-      const data = await saveChatWidgetConfig(form);
-      setConfig(data);
-      setForm(data);
+      if (isEditing && selectedWidget?.widget_key) {
+        await updateChatWidgetConfig(selectedWidget.widget_key, form);
+      } else {
+        await createChatWidgetConfig(form);
+      }
+      await loadWidgets();
+      setView("list");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save configuration");
     } finally {
       setSaving(false);
     }
-  }, [form]);
+  };
 
-  const copyToClipboard = useCallback(async (text: string) => {
+  const handleDelete = async (widget: ChatWidgetConfig) => {
+    if (!widget.widget_key) return;
+    if (!confirm(`Delete widget "${widget.business_name}"? This cannot be undone.`)) return;
+
+    try {
+      await deleteChatWidgetConfig(widget.widget_key);
+      await loadWidgets();
+    } catch (err) {
+      console.error("Failed to delete widget:", err);
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -120,7 +176,7 @@ export default function ChatWidgetPage() {
     } catch (err) {
       console.error("Failed to copy:", err);
     }
-  }, []);
+  };
 
   if (loading) {
     return (
@@ -133,53 +189,144 @@ export default function ChatWidgetPage() {
   return (
     <div className="mx-auto max-w-4xl p-6 space-y-6">
       {/* Header */}
-      <header>
-        <h1 className="text-2xl font-semibold">AI Chat Widget</h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Add an AI-powered chat assistant to your website that captures leads automatically
-        </p>
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">AI Chat Widgets</h1>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Add AI-powered chat assistants to your websites that capture leads automatically
+          </p>
+        </div>
+        {view === "list" && (
+          <button
+            onClick={handleNewWidget}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            New Widget
+          </button>
+        )}
+        {view !== "list" && (
+          <button
+            onClick={() => setView("list")}
+            className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to List
+          </button>
+        )}
       </header>
 
-      {/* Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-800">
-        <nav className="-mb-px flex gap-6">
-          <button
-            onClick={() => setActiveTab("setup")}
-            className={`py-2 px-1 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === "setup"
-                ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400"
-            }`}
-          >
-            Setup
-          </button>
-          <button
-            onClick={() => setActiveTab("embed")}
-            disabled={!config}
-            className={`py-2 px-1 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === "embed"
-                ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400"
-            } ${!config ? "opacity-50 cursor-not-allowed" : ""}`}
-          >
-            Embed Code
-          </button>
-          <button
-            onClick={() => setActiveTab("conversations")}
-            disabled={!config}
-            className={`py-2 px-1 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === "conversations"
-                ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400"
-            } ${!config ? "opacity-50 cursor-not-allowed" : ""}`}
-          >
-            Conversations
-          </button>
-        </nav>
-      </div>
+      {/* List View */}
+      {view === "list" && (
+        <div className="space-y-4">
+          {widgets.length === 0 ? (
+            <div className="text-center py-12 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+              <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+              <p className="font-medium text-gray-900 dark:text-gray-100">No chat widgets yet</p>
+              <p className="text-sm mt-1 text-gray-500">Create your first AI chat widget to start capturing leads</p>
+              <button
+                onClick={handleNewWidget}
+                className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500"
+              >
+                Create Widget
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {widgets.map((widget) => (
+                <div
+                  key={widget.id}
+                  className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0"
+                        style={{ backgroundColor: widget.primary_color }}
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                            {widget.business_name}
+                          </h3>
+                          {widget.is_active ? (
+                            <span className="px-2 py-0.5 text-xs bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 rounded-full">
+                              Active
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 rounded-full">
+                              Inactive
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1 line-clamp-1">
+                          {widget.business_description}
+                        </p>
+                        {widget.widget_key && (
+                          <p className="text-xs text-gray-400 mt-1 font-mono">
+                            {widget.widget_key}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleViewConversations(widget)}
+                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                        title="View conversations"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleViewEmbed(widget)}
+                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                        title="Get embed code"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleEditWidget(widget)}
+                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                        title="Edit widget"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(widget)}
+                        className="p-2 text-gray-400 hover:text-red-600"
+                        title="Delete widget"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Setup Tab */}
-      {activeTab === "setup" && (
+      {/* Form View */}
+      {view === "form" && (
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
             <FriendlyError
@@ -381,21 +528,40 @@ export default function ChatWidgetPage() {
           </section>
 
           {/* Submit Button */}
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              className="px-6 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+            >
+              Cancel
+            </button>
             <button
               type="submit"
               disabled={saving}
               className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? "Saving..." : config ? "Update Configuration" : "Save Configuration"}
+              {saving ? "Saving..." : isEditing ? "Update Widget" : "Create Widget"}
             </button>
           </div>
         </form>
       )}
 
-      {/* Embed Code Tab */}
-      {activeTab === "embed" && (
+      {/* Embed Code View */}
+      {view === "embed" && selectedWidget && (
         <div className="space-y-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0"
+              style={{ backgroundColor: selectedWidget.primary_color }}
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z"/>
+              </svg>
+            </div>
+            <h2 className="text-lg font-medium">{selectedWidget.business_name}</h2>
+          </div>
+
           {embedCode ? (
             <>
               <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
@@ -432,7 +598,7 @@ export default function ChatWidgetPage() {
                 <ol className="text-sm text-blue-700 dark:text-blue-300 list-decimal list-inside space-y-1">
                   <li>Copy the code above</li>
                   <li>Paste it just before the closing <code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">&lt;/body&gt;</code> tag on your website</li>
-                  <li>The chat widget will appear in the {form.widget_position === "bottom-right" ? "bottom right" : "bottom left"} corner</li>
+                  <li>The chat widget will appear in the {selectedWidget.widget_position === "bottom-right" ? "bottom right" : "bottom left"} corner</li>
                 </ol>
               </div>
             </>
@@ -442,16 +608,28 @@ export default function ChatWidgetPage() {
         </div>
       )}
 
-      {/* Conversations Tab */}
-      {activeTab === "conversations" && (
+      {/* Conversations View */}
+      {view === "conversations" && selectedWidget && (
         <div className="space-y-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0"
+              style={{ backgroundColor: selectedWidget.primary_color }}
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z"/>
+              </svg>
+            </div>
+            <h2 className="text-lg font-medium">{selectedWidget.business_name} - Conversations</h2>
+          </div>
+
           {conversations.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
               <p className="font-medium">No conversations yet</p>
-              <p className="text-sm mt-1">Conversations will appear here when visitors use your chat widget</p>
+              <p className="text-sm mt-1">Conversations will appear here when visitors use this chat widget</p>
             </div>
           ) : (
             <div className="space-y-3">

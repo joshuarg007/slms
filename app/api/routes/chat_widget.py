@@ -2,6 +2,7 @@
 
 import json
 import logging
+import secrets
 from datetime import datetime
 from typing import Optional
 
@@ -20,6 +21,12 @@ from app.services.ai_chat import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def generate_widget_key() -> str:
+    """Generate a unique widget key."""
+    return f"wgt_{secrets.token_urlsafe(16)}"
+
 
 # ============================================================================
 # Request/Response Models
@@ -46,6 +53,7 @@ class ChatWidgetConfigResponse(BaseModel):
     """Response model for chat widget configuration."""
 
     id: int
+    widget_key: str
     business_name: str
     business_description: str
     services: str
@@ -65,7 +73,7 @@ class EmbedCodeResponse(BaseModel):
     """Response model containing embed code snippet."""
 
     embed_code: str
-    org_key: str
+    widget_key: str
 
 
 class ConversationSummary(BaseModel):
@@ -137,12 +145,49 @@ class ChatMessageResponse(BaseModel):
 router = APIRouter(prefix="/chat-widget", tags=["Chat Widget"])
 
 
+def _config_to_response(config: models.ChatWidgetConfig) -> ChatWidgetConfigResponse:
+    """Helper to convert config model to response."""
+    return ChatWidgetConfigResponse(
+        id=config.id,
+        widget_key=config.widget_key,
+        business_name=config.business_name,
+        business_description=config.business_description,
+        services=config.services,
+        restrictions=config.restrictions,
+        cta=config.cta,
+        contact_email=config.contact_email,
+        tone=config.tone,
+        extra_context=config.extra_context,
+        primary_color=config.primary_color,
+        widget_position=config.widget_position,
+        is_active=config.is_active,
+        created_at=config.created_at,
+        updated_at=config.updated_at,
+    )
+
+
+@router.get("/configs", response_model=list[ChatWidgetConfigResponse])
+def list_chat_widget_configs(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """List all chat widget configurations for the organization."""
+    configs = (
+        db.query(models.ChatWidgetConfig)
+        .filter(models.ChatWidgetConfig.organization_id == user.organization_id)
+        .order_by(models.ChatWidgetConfig.created_at.desc())
+        .all()
+    )
+
+    return [_config_to_response(c) for c in configs]
+
+
 @router.get("/config", response_model=Optional[ChatWidgetConfigResponse])
 def get_chat_widget_config(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-    """Get current chat widget configuration for the organization."""
+    """Get first chat widget configuration for the organization (legacy endpoint)."""
     config = (
         db.query(models.ChatWidgetConfig)
         .filter(models.ChatWidgetConfig.organization_id == user.organization_id)
@@ -152,165 +197,218 @@ def get_chat_widget_config(
     if not config:
         return None
 
-    return ChatWidgetConfigResponse(
-        id=config.id,
-        business_name=config.business_name,
-        business_description=config.business_description,
-        services=config.services,
-        restrictions=config.restrictions,
-        cta=config.cta,
-        contact_email=config.contact_email,
-        tone=config.tone,
-        extra_context=config.extra_context,
-        primary_color=config.primary_color,
-        widget_position=config.widget_position,
-        is_active=config.is_active,
-        created_at=config.created_at,
-        updated_at=config.updated_at,
-    )
+    return _config_to_response(config)
 
 
-@router.post("/config", response_model=ChatWidgetConfigResponse)
-def create_or_update_chat_widget_config(
-    req: ChatWidgetConfigRequest,
+@router.get("/config/{widget_key}", response_model=ChatWidgetConfigResponse)
+def get_chat_widget_config_by_key(
+    widget_key: str,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-    """Create or update chat widget configuration."""
-    # Validate tone
+    """Get a specific chat widget configuration by widget_key."""
+    config = (
+        db.query(models.ChatWidgetConfig)
+        .filter(
+            models.ChatWidgetConfig.widget_key == widget_key,
+            models.ChatWidgetConfig.organization_id == user.organization_id,
+        )
+        .first()
+    )
+
+    if not config:
+        raise HTTPException(status_code=404, detail="Widget config not found")
+
+    return _config_to_response(config)
+
+
+def _validate_config_request(req: ChatWidgetConfigRequest):
+    """Validate configuration request fields."""
     if req.tone not in models.CHAT_TONES:
         raise HTTPException(
             status_code=400,
             detail=f"Invalid tone. Must be one of: {models.CHAT_TONES}",
         )
 
-    # Validate widget position
     if req.widget_position not in ["bottom-right", "bottom-left"]:
         raise HTTPException(
             status_code=400,
             detail="Invalid widget_position. Must be 'bottom-right' or 'bottom-left'",
         )
 
-    # Validate hex color
     if not req.primary_color.startswith("#") or len(req.primary_color) != 7:
         raise HTTPException(
             status_code=400,
             detail="Invalid primary_color. Must be hex format (e.g., #4f46e5)",
         )
 
-    # Check for existing config
+
+@router.post("/config", response_model=ChatWidgetConfigResponse)
+def create_chat_widget_config(
+    req: ChatWidgetConfigRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Create a new chat widget configuration."""
+    _validate_config_request(req)
+
+    # Generate unique widget key
+    widget_key = generate_widget_key()
+
+    config = models.ChatWidgetConfig(
+        organization_id=user.organization_id,
+        widget_key=widget_key,
+        business_name=req.business_name,
+        business_description=req.business_description,
+        services=req.services,
+        restrictions=req.restrictions,
+        cta=req.cta,
+        contact_email=req.contact_email,
+        tone=req.tone,
+        extra_context=req.extra_context,
+        primary_color=req.primary_color,
+        widget_position=req.widget_position,
+        is_active=req.is_active,
+    )
+    db.add(config)
+    db.commit()
+    db.refresh(config)
+
+    return _config_to_response(config)
+
+
+@router.put("/config/{widget_key}", response_model=ChatWidgetConfigResponse)
+def update_chat_widget_config(
+    widget_key: str,
+    req: ChatWidgetConfigRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Update an existing chat widget configuration."""
+    _validate_config_request(req)
+
     config = (
         db.query(models.ChatWidgetConfig)
-        .filter(models.ChatWidgetConfig.organization_id == user.organization_id)
+        .filter(
+            models.ChatWidgetConfig.widget_key == widget_key,
+            models.ChatWidgetConfig.organization_id == user.organization_id,
+        )
         .first()
     )
 
-    if config:
-        # Update existing
-        config.business_name = req.business_name
-        config.business_description = req.business_description
-        config.services = req.services
-        config.restrictions = req.restrictions
-        config.cta = req.cta
-        config.contact_email = req.contact_email
-        config.tone = req.tone
-        config.extra_context = req.extra_context
-        config.primary_color = req.primary_color
-        config.widget_position = req.widget_position
-        config.is_active = req.is_active
-        config.updated_at = datetime.utcnow()
-    else:
-        # Create new
-        config = models.ChatWidgetConfig(
-            organization_id=user.organization_id,
-            business_name=req.business_name,
-            business_description=req.business_description,
-            services=req.services,
-            restrictions=req.restrictions,
-            cta=req.cta,
-            contact_email=req.contact_email,
-            tone=req.tone,
-            extra_context=req.extra_context,
-            primary_color=req.primary_color,
-            widget_position=req.widget_position,
-            is_active=req.is_active,
-        )
-        db.add(config)
+    if not config:
+        raise HTTPException(status_code=404, detail="Widget config not found")
+
+    config.business_name = req.business_name
+    config.business_description = req.business_description
+    config.services = req.services
+    config.restrictions = req.restrictions
+    config.cta = req.cta
+    config.contact_email = req.contact_email
+    config.tone = req.tone
+    config.extra_context = req.extra_context
+    config.primary_color = req.primary_color
+    config.widget_position = req.widget_position
+    config.is_active = req.is_active
+    config.updated_at = datetime.utcnow()
 
     db.commit()
     db.refresh(config)
 
-    return ChatWidgetConfigResponse(
-        id=config.id,
-        business_name=config.business_name,
-        business_description=config.business_description,
-        services=config.services,
-        restrictions=config.restrictions,
-        cta=config.cta,
-        contact_email=config.contact_email,
-        tone=config.tone,
-        extra_context=config.extra_context,
-        primary_color=config.primary_color,
-        widget_position=config.widget_position,
-        is_active=config.is_active,
-        created_at=config.created_at,
-        updated_at=config.updated_at,
-    )
+    return _config_to_response(config)
 
 
-@router.get("/embed-code", response_model=EmbedCodeResponse)
-def get_embed_code(
+@router.delete("/config/{widget_key}")
+def delete_chat_widget_config(
+    widget_key: str,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-    """Get the embed code snippet for the chat widget."""
-    org = db.get(models.Organization, user.organization_id)
-    if not org or not org.api_key:
-        raise HTTPException(status_code=400, detail="Organization API key not found")
-
-    # Check if config exists
+    """Delete a chat widget configuration."""
     config = (
         db.query(models.ChatWidgetConfig)
-        .filter(models.ChatWidgetConfig.organization_id == user.organization_id)
+        .filter(
+            models.ChatWidgetConfig.widget_key == widget_key,
+            models.ChatWidgetConfig.organization_id == user.organization_id,
+        )
         .first()
     )
-    if not config:
-        raise HTTPException(
-            status_code=400,
-            detail="Please configure your chat widget first",
-        )
 
-    # Generate embed code
+    if not config:
+        raise HTTPException(status_code=404, detail="Widget config not found")
+
+    db.delete(config)
+    db.commit()
+
+    return {"message": "Widget configuration deleted"}
+
+
+@router.get("/embed-code/{widget_key}", response_model=EmbedCodeResponse)
+def get_embed_code(
+    widget_key: str,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Get the embed code snippet for a specific chat widget."""
+    config = (
+        db.query(models.ChatWidgetConfig)
+        .filter(
+            models.ChatWidgetConfig.widget_key == widget_key,
+            models.ChatWidgetConfig.organization_id == user.organization_id,
+        )
+        .first()
+    )
+
+    if not config:
+        raise HTTPException(status_code=404, detail="Widget config not found")
+
+    # Generate embed code using widget_key
     embed_code = f"""<!-- Site2CRM AI Chat Widget -->
 <script
   src="https://api.site2crm.io/api/public/chat-widget/widget.js"
-  data-org-key="{org.api_key}"
+  data-widget-key="{widget_key}"
   async
 ></script>"""
 
-    return EmbedCodeResponse(embed_code=embed_code, org_key=org.api_key)
+    return EmbedCodeResponse(embed_code=embed_code, widget_key=widget_key)
 
 
 @router.get("/conversations", response_model=list[ConversationSummary])
 def list_conversations(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
+    widget_key: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
     lead_only: bool = False,
 ):
-    """List chat widget conversations for the organization."""
-    # Get config first
-    config = (
-        db.query(models.ChatWidgetConfig)
-        .filter(models.ChatWidgetConfig.organization_id == user.organization_id)
-        .first()
-    )
-    if not config:
-        return []
+    """List chat widget conversations for the organization (optionally filtered by widget_key)."""
+    # Build query based on whether widget_key is provided
+    if widget_key:
+        config = (
+            db.query(models.ChatWidgetConfig)
+            .filter(
+                models.ChatWidgetConfig.widget_key == widget_key,
+                models.ChatWidgetConfig.organization_id == user.organization_id,
+            )
+            .first()
+        )
+        if not config:
+            return []
+        config_ids = [config.id]
+    else:
+        # Get all configs for the organization
+        configs = (
+            db.query(models.ChatWidgetConfig)
+            .filter(models.ChatWidgetConfig.organization_id == user.organization_id)
+            .all()
+        )
+        if not configs:
+            return []
+        config_ids = [c.id for c in configs]
 
     query = db.query(models.ChatWidgetConversation).filter(
-        models.ChatWidgetConversation.config_id == config.id
+        models.ChatWidgetConversation.config_id.in_(config_ids)
     )
 
     if lead_only:
@@ -347,20 +445,21 @@ def get_conversation(
     user: models.User = Depends(get_current_user),
 ):
     """Get a specific conversation with full transcript."""
-    # Get config first
-    config = (
+    # Get all config IDs for this org
+    config_ids = [
+        c.id for c in
         db.query(models.ChatWidgetConfig)
         .filter(models.ChatWidgetConfig.organization_id == user.organization_id)
-        .first()
-    )
-    if not config:
-        raise HTTPException(status_code=404, detail="Chat widget not configured")
+        .all()
+    ]
+    if not config_ids:
+        raise HTTPException(status_code=404, detail="No chat widgets configured")
 
     conversation = (
         db.query(models.ChatWidgetConversation)
         .filter(
             models.ChatWidgetConversation.id == conversation_id,
-            models.ChatWidgetConversation.config_id == config.id,
+            models.ChatWidgetConversation.config_id.in_(config_ids),
         )
         .first()
     )
@@ -398,19 +497,21 @@ def delete_conversation(
     user: models.User = Depends(get_current_user),
 ):
     """Delete a conversation."""
-    config = (
+    # Get all config IDs for this org
+    config_ids = [
+        c.id for c in
         db.query(models.ChatWidgetConfig)
         .filter(models.ChatWidgetConfig.organization_id == user.organization_id)
-        .first()
-    )
-    if not config:
-        raise HTTPException(status_code=404, detail="Chat widget not configured")
+        .all()
+    ]
+    if not config_ids:
+        raise HTTPException(status_code=404, detail="No chat widgets configured")
 
     conversation = (
         db.query(models.ChatWidgetConversation)
         .filter(
             models.ChatWidgetConversation.id == conversation_id,
-            models.ChatWidgetConversation.config_id == config.id,
+            models.ChatWidgetConversation.config_id.in_(config_ids),
         )
         .first()
     )
@@ -431,27 +532,19 @@ def delete_conversation(
 public_router = APIRouter(prefix="/public/chat-widget", tags=["Public Chat Widget"])
 
 
-@public_router.get("/config/{org_key}", response_model=PublicWidgetConfigResponse)
+@public_router.get("/config/{widget_key}", response_model=PublicWidgetConfigResponse)
 def get_public_widget_config(
-    org_key: str,
+    widget_key: str,
     db: Session = Depends(get_db),
 ):
     """Get public widget configuration (for widget initialization)."""
-    org = (
-        db.query(models.Organization)
-        .filter(models.Organization.api_key == org_key)
-        .first()
-    )
-    if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
-
     config = (
         db.query(models.ChatWidgetConfig)
-        .filter(models.ChatWidgetConfig.organization_id == org.id)
+        .filter(models.ChatWidgetConfig.widget_key == widget_key)
         .first()
     )
     if not config:
-        raise HTTPException(status_code=404, detail="Chat widget not configured")
+        raise HTTPException(status_code=404, detail="Chat widget not found")
 
     if not config.is_active:
         raise HTTPException(status_code=404, detail="Chat widget is disabled")
@@ -476,24 +569,15 @@ def get_public_widget_config(
 
 @public_router.post("/message", response_model=ChatMessageResponse)
 async def send_chat_message(
-    org_key: str,
+    widget_key: str,
     req: ChatMessageRequest,
     db: Session = Depends(get_db),
 ):
     """Send a message and get an AI response."""
-    # Look up organization
-    org = (
-        db.query(models.Organization)
-        .filter(models.Organization.api_key == org_key)
-        .first()
-    )
-    if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
-
-    # Get widget config
+    # Look up widget config by widget_key
     config = (
         db.query(models.ChatWidgetConfig)
-        .filter(models.ChatWidgetConfig.organization_id == org.id)
+        .filter(models.ChatWidgetConfig.widget_key == widget_key)
         .first()
     )
     if not config or not config.is_active:

@@ -3,17 +3,17 @@
  * Embeddable chat widget powered by DeepSeek AI
  *
  * Usage:
- * <script src="https://api.site2crm.io/api/public/chat-widget/widget.js" data-org-key="YOUR_KEY" async></script>
+ * <script src="https://api.site2crm.io/api/public/chat-widget/widget.js" data-widget-key="YOUR_KEY" async></script>
  */
 (function () {
   "use strict";
 
   // Get script configuration
   const script = document.currentScript;
-  const orgKey = script?.getAttribute("data-org-key");
+  const widgetKey = script?.getAttribute("data-widget-key");
 
-  if (!orgKey) {
-    console.error("Site2CRM Chat Widget: Missing data-org-key attribute");
+  if (!widgetKey) {
+    console.error("Site2CRM Chat Widget: Missing data-widget-key attribute");
     return;
   }
 
@@ -269,6 +269,8 @@
       font-size: 14px;
       outline: none;
       transition: border-color 0.2s;
+      color: #1f2937;
+      background: white;
     }
 
     .s2c-input:focus {
@@ -334,7 +336,7 @@
   async function init() {
     try {
       // Fetch config
-      const res = await fetch(`${API_BASE}/config/${orgKey}`);
+      const res = await fetch(`${API_BASE}/config/${widgetKey}`);
       if (!res.ok) {
         console.warn("Site2CRM Chat Widget: Unable to load config");
         return;
@@ -465,7 +467,7 @@
     showTyping();
 
     try {
-      const res = await fetch(`${API_BASE}/message?org_key=${orgKey}`, {
+      const res = await fetch(`${API_BASE}/message?widget_key=${widgetKey}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
