@@ -1,7 +1,7 @@
 // src/pages/ChatWidgetPage.tsx
 import { useEffect, useState, useCallback } from "react";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
-import { apiRequest } from "@/utils/api";
+import apiRequest from "@/utils/api";
 import { FriendlyError } from "@/components/FriendlyError";
 
 interface ChatWidgetConfig {
