@@ -131,7 +131,7 @@ def _base_html_template(content: str, preview_text: str = "") -> str:
                     <!-- Header with Logo -->
                     <tr>
                         <td style="padding: 32px 40px 24px; text-align: center; border-bottom: 1px solid #e4e4e7; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
-                            <img src="https://site2crm.io/logo.png" alt="Site2CRM" width="160" style="display: block; margin: 0 auto; max-width: 160px; height: auto;">
+                            <img src="https://site2crm.io/email-logo.png" alt="Site2CRM" width="200" style="display: block; margin: 0 auto; max-width: 200px; height: auto;">
                             <p style="margin: 12px 0 0; font-size: 12px; color: #94a3b8; letter-spacing: 0.5px;">
                                 Lead Capture That Syncs to Your CRM
                             </p>
@@ -171,7 +171,7 @@ def _base_html_template(content: str, preview_text: str = "") -> str:
                                         <p style="margin: 0 0 8px; font-size: 10px; color: #71717a; text-transform: uppercase; letter-spacing: 1px;">
                                             A Product By
                                         </p>
-                                        <img src="https://axiondeep.com/images/logo.webp" alt="Axion Deep Labs" width="100" style="display: inline-block; max-width: 100px; height: auto; opacity: 0.9;">
+                                        <img src="https://axiondeep.com/images/email-logo.png" alt="Axion Deep Labs" width="120" style="display: inline-block; max-width: 120px; height: auto;">
                                         <p style="margin: 12px 0 0; font-size: 10px; color: #52525b;">
                                             &copy; {current_year} Axion Deep Labs Inc. All rights reserved.
                                         </p>
