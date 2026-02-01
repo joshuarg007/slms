@@ -2,6 +2,47 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import Logo from "@/components/Logo";
 
+// Shimmer CTA button - desktop only
+function ShimmerLink({ to, children, className }: { to: string; children: React.ReactNode; className?: string }) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  return (
+    <Link to={to} className={className} style={{ position: "relative", overflow: "hidden" }}>
+      {children}
+      {!isMobile && (
+        <span
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "50%",
+            height: "100%",
+            background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 25%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0.15) 75%, transparent 100%)",
+            transform: "translateX(-100%) skewX(-15deg)",
+            animation: "shimmer-sweep 4s ease-in-out infinite",
+            animationDelay: "1s",
+            pointerEvents: "none",
+          }}
+        />
+      )}
+      <style>{`
+        @keyframes shimmer-sweep {
+          0% { transform: translateX(-100%) skewX(-15deg); }
+          15% { transform: translateX(250%) skewX(-15deg); }
+          100% { transform: translateX(250%) skewX(-15deg); }
+        }
+      `}</style>
+    </Link>
+  );
+}
+
 const NAV_LINKS = [
   { to: "/", label: "Home" },
   { to: "/features", label: "Features" },
@@ -85,12 +126,12 @@ export default function MarketingHeader() {
             >
               Log in
             </Link>
-            <Link
+            <ShimmerLink
               to="/signup"
-              className="shimmer-button px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-sm"
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-sm"
             >
               Get Started
-            </Link>
+            </ShimmerLink>
           </div>
 
           {/* Mobile Menu Button */}
