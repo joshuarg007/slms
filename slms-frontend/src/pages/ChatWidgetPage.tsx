@@ -1,43 +1,16 @@
 // src/pages/ChatWidgetPage.tsx
 import { useEffect, useState, useCallback } from "react";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
-import apiRequest from "@/utils/api";
+import {
+  getChatWidgetConfig,
+  saveChatWidgetConfig,
+  getChatWidgetEmbedCode,
+  getChatWidgetConversations,
+  type ChatWidgetConfig,
+  type ChatWidgetEmbedCode,
+  type ChatWidgetConversation,
+} from "@/utils/api";
 import { FriendlyError } from "@/components/FriendlyError";
-
-interface ChatWidgetConfig {
-  id?: number;
-  business_name: string;
-  business_description: string;
-  services: string;
-  restrictions: string;
-  cta: string;
-  contact_email: string;
-  tone: string;
-  extra_context: string;
-  primary_color: string;
-  widget_position: string;
-  is_active: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
-interface EmbedCode {
-  embed_code: string;
-  org_key: string;
-}
-
-interface Conversation {
-  id: number;
-  session_id: string;
-  page_url: string | null;
-  lead_email: string | null;
-  lead_name: string | null;
-  lead_phone: string | null;
-  lead_captured_at: string | null;
-  message_count: number;
-  created_at: string;
-  updated_at: string;
-}
 
 const TONES = [
   { value: "friendly", label: "Friendly", desc: "Warm and approachable, like a helpful colleague" },
@@ -55,8 +28,8 @@ export default function ChatWidgetPage() {
 
   const [activeTab, setActiveTab] = useState<"setup" | "embed" | "conversations">("setup");
   const [config, setConfig] = useState<ChatWidgetConfig | null>(null);
-  const [embedCode, setEmbedCode] = useState<EmbedCode | null>(null);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [embedCode, setEmbedCode] = useState<ChatWidgetEmbedCode | null>(null);
+  const [conversations, setConversations] = useState<ChatWidgetConversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +54,7 @@ export default function ChatWidgetPage() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await apiRequest<ChatWidgetConfig | null>("/api/chat-widget/config");
+        const data = await getChatWidgetConfig();
         if (data) {
           setConfig(data);
           setForm(data);
@@ -107,7 +80,7 @@ export default function ChatWidgetPage() {
 
   async function loadEmbedCode() {
     try {
-      const data = await apiRequest<EmbedCode>("/api/chat-widget/embed-code");
+      const data = await getChatWidgetEmbedCode();
       setEmbedCode(data);
     } catch (err) {
       console.error("Failed to load embed code:", err);
@@ -116,7 +89,7 @@ export default function ChatWidgetPage() {
 
   async function loadConversations() {
     try {
-      const data = await apiRequest<Conversation[]>("/api/chat-widget/conversations?limit=50");
+      const data = await getChatWidgetConversations(50);
       setConversations(data);
     } catch (err) {
       console.error("Failed to load conversations:", err);
@@ -129,10 +102,7 @@ export default function ChatWidgetPage() {
     setError(null);
 
     try {
-      const data = await apiRequest<ChatWidgetConfig>("/api/chat-widget/config", {
-        method: "POST",
-        body: JSON.stringify(form),
-      });
+      const data = await saveChatWidgetConfig(form);
       setConfig(data);
       setForm(data);
     } catch (err: unknown) {

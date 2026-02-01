@@ -936,6 +936,62 @@ export async function deleteVariant(testId: number, variantId: number): Promise<
   });
 }
 
+// Chat Widget types
+export interface ChatWidgetConfig {
+  id?: number;
+  business_name: string;
+  business_description: string;
+  services: string;
+  restrictions: string;
+  cta: string;
+  contact_email: string;
+  tone: string;
+  extra_context: string;
+  primary_color: string;
+  widget_position: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ChatWidgetEmbedCode {
+  embed_code: string;
+  org_key: string;
+}
+
+export interface ChatWidgetConversation {
+  id: number;
+  session_id: string;
+  page_url: string | null;
+  lead_email: string | null;
+  lead_name: string | null;
+  lead_phone: string | null;
+  lead_captured_at: string | null;
+  message_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// Chat Widget API functions
+export async function getChatWidgetConfig(): Promise<ChatWidgetConfig | null> {
+  return fetchJSON<ChatWidgetConfig | null>(`${baseUrl}/chat-widget/config`);
+}
+
+export async function saveChatWidgetConfig(config: ChatWidgetConfig): Promise<ChatWidgetConfig> {
+  return fetchJSON<ChatWidgetConfig>(`${baseUrl}/chat-widget/config`, {
+    method: "POST",
+    body: JSON.stringify(config),
+  });
+}
+
+export async function getChatWidgetEmbedCode(): Promise<ChatWidgetEmbedCode> {
+  return fetchJSON<ChatWidgetEmbedCode>(`${baseUrl}/chat-widget/embed-code`);
+}
+
+export async function getChatWidgetConversations(limit = 50): Promise<ChatWidgetConversation[]> {
+  return fetchJSON<ChatWidgetConversation[]>(`${baseUrl}/chat-widget/conversations${toQuery({ limit })}`);
+}
+
 // Named plus default export
 export const api = {
   login,
@@ -998,6 +1054,11 @@ export const api = {
   addVariant,
   updateVariant,
   deleteVariant,
+  // Chat Widget
+  getChatWidgetConfig,
+  saveChatWidgetConfig,
+  getChatWidgetEmbedCode,
+  getChatWidgetConversations,
 };
 
 export default api;
