@@ -10,10 +10,11 @@ const PLANS = [
     features: [
       "1 embedded form",
       "Up to 100 leads/month",
+      "1 CRM integration",
+      "1 AI Chat Agent",
+      "100 chat conversations/mo",
       "Email notifications",
       "Basic analytics",
-      "1 CRM integration",
-      "Email support",
     ],
     cta: "Start Free Trial",
     highlighted: false,
@@ -22,14 +23,18 @@ const PLANS = [
     name: "Site2CRM PRO",
     price: "$79",
     period: "/month",
-    description: "For teams that need unlimited power and flexibility.",
+    description: "Unlimited forms + full AI Chat Widget Pro for maximum conversions.",
     features: [
       "Unlimited forms",
       "Up to 1,000 leads/month",
-      "Email & SMS notifications",
-      "Advanced analytics",
       "All CRM integrations",
-      "Custom fields",
+      "3 AI Chat Agents",
+      "1,000 chat conversations/mo",
+      "Chat Widget Pro features",
+      "Industry templates",
+      "Custom branding & colors",
+      "Goal-driven AI (demo, trial, quote)",
+      "Persistent sales AI (5 rebuttals)",
       "Priority support",
       "Remove branding",
     ],
@@ -40,10 +45,12 @@ const PLANS = [
     name: "Site2CRM Enterprise",
     price: "Custom",
     period: "",
-    description: "For large organizations with advanced security and compliance needs.",
+    description: "Unlimited everything with dedicated support and custom integrations.",
     features: [
       "Everything in PRO",
       "Unlimited leads",
+      "Unlimited AI Chat Agents",
+      "Unlimited conversations",
       "SSO / SAML",
       "Dedicated account manager",
       "Custom integrations",
@@ -65,7 +72,22 @@ const FAQS = [
   {
     question: "What CRMs do you integrate with?",
     answer:
-      "We integrate with HubSpot, Salesforce, Pipedrive, and Nutshell. More integrations are added regularly.",
+      "We integrate with HubSpot, Salesforce, Pipedrive, Zoho CRM, and Nutshell. More integrations are added regularly.",
+  },
+  {
+    question: "What is Chat Widget Pro?",
+    answer:
+      "Chat Widget Pro is our AI-powered chat assistant that captures leads on your website 24/7. It can book demos, start trials, collect quotes, or just answer questions. The AI is trained to be persistent (up to 5 rebuttals) and goal-driven, not giving up after the first objection.",
+  },
+  {
+    question: "How does the AI Chat Agent work?",
+    answer:
+      "You configure your AI agent with your business info, choose a primary goal (capture email, book demo, start trial, etc.), set the persistence level, and embed it on your site. The AI handles conversations, qualifies leads, and syncs them to your CRM automatically.",
+  },
+  {
+    question: "Can I customize the chat widget appearance?",
+    answer:
+      "On PRO plans, you get full branding control: custom colors, header text, button size, quick reply buttons, welcome messages, and more. You can also use our industry templates (SaaS, Agency, E-commerce) to get started quickly.",
   },
   {
     question: "Can I upgrade or downgrade my plan?",
@@ -73,7 +95,7 @@ const FAQS = [
       "Absolutely. You can change your plan at any time. Changes take effect on your next billing cycle.",
   },
   {
-    question: "What happens if I exceed my lead limit?",
+    question: "What happens if I exceed my lead or conversation limit?",
     answer:
       "We'll notify you when you're approaching your limit. You can upgrade anytime, or we'll queue leads until your next billing period.",
   },
@@ -99,7 +121,7 @@ export default function PricingPage() {
         name: "Site2CRM",
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
-        description: "Lead capture forms with CRM integration for SaaS companies",
+        description: "Lead capture forms and AI chat widgets with CRM integration for sales teams",
         offers: [
           {
             "@type": "Offer",
@@ -130,9 +152,9 @@ export default function PricingPage() {
   };
 
   useSEO({
-    title: "Pricing - Plans Starting at $29/month",
+    title: "Pricing - Lead Forms + AI Chat Widget Starting at $29/month",
     description:
-      "Simple, transparent pricing for Site2CRM. Starter plan at $29/mo, Professional at $79/mo. 14-day free trial, no credit card required. Cancel anytime.",
+      "Site2CRM pricing: Lead capture forms + AI Chat Widget Pro. Starter at $29/mo, PRO at $79/mo with goal-driven AI chat agents, industry templates, and CRM sync. 14-day free trial.",
     path: "/pricing",
     jsonLd: combinedSchema,
   });

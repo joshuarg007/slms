@@ -9,6 +9,30 @@ import features4Image from "@/assets/features4.png";
 
 const FEATURE_SECTIONS = [
   {
+    title: "AI Chat Widget Pro",
+    description:
+      "Turn website visitors into qualified leads 24/7 with our persistent, goal-driven AI chat assistant.",
+    features: [
+      {
+        title: "Goal-Driven Conversations",
+        description: "Configure your AI to capture emails, book demos, start trials, or collect quote requests.",
+      },
+      {
+        title: "Persistent Sales AI",
+        description: "Unlike basic chatbots, our AI handles objections gracefully with up to 5 rebuttals before backing off.",
+      },
+      {
+        title: "Industry Templates",
+        description: "Get started fast with templates for SaaS, Agency, E-commerce, and more.",
+      },
+      {
+        title: "Full Branding Control",
+        description: "Custom colors, headers, button sizes, quick replies, and welcome messages.",
+      },
+    ],
+    media: { type: "video" as const, src: features1Video },
+  },
+  {
     title: "Beautiful Multi-Step Forms",
     description:
       "Guide your visitors through a seamless, wizard-style experience that dramatically increases completion rates.",
@@ -30,7 +54,7 @@ const FEATURE_SECTIONS = [
         description: "Let users review their information before submitting for accuracy.",
       },
     ],
-    media: { type: "video" as const, src: features1Video },
+    media: { type: "video" as const, src: features2Video },
   },
   {
     title: "Powerful CRM Integrations",
@@ -58,7 +82,7 @@ const FEATURE_SECTIONS = [
         description: "Sync leads and companies to Nutshell automatically.",
       },
     ],
-    media: { type: "video" as const, src: features2Video },
+    media: { type: "video" as const, src: features3Video },
   },
   {
     title: "Complete Customization",
@@ -82,7 +106,7 @@ const FEATURE_SECTIONS = [
         description: "One line of code works on WordPress, Webflow, Squarespace, and custom sites.",
       },
     ],
-    media: { type: "video" as const, src: features3Video },
+    media: { type: "video" as const, src: features4Image },
   },
   {
     title: "Analytics & Insights",
@@ -106,11 +130,29 @@ const FEATURE_SECTIONS = [
         description: "Download your data as CSV for further analysis.",
       },
     ],
-    media: { type: "image" as const, src: features4Image },
+    media: { type: "video" as const, src: features1Video },
   },
 ];
 
 const ADDITIONAL_FEATURES = [
+  {
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+      </svg>
+    ),
+    title: "AI Chat Agents",
+    description: "Deploy multiple chat agents with different goals across your website.",
+  },
+  {
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    ),
+    title: "Persistent AI Sales",
+    description: "Our AI doesn't give up after one objection. Configurable rebuttal count (up to 5).",
+  },
   {
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -169,9 +211,9 @@ const ADDITIONAL_FEATURES = [
 
 export default function FeaturesPage() {
   useSEO({
-    title: "Features - Multi-Step Forms, CRM Sync & Analytics",
+    title: "Features - AI Chat Widget Pro, Multi-Step Forms & CRM Sync",
     description:
-      "Explore Site2CRM features: beautiful multi-step forms, instant CRM sync to HubSpot/Salesforce/Pipedrive/Zoho, real-time analytics, custom fields, and team collaboration.",
+      "Site2CRM features: AI Chat Widget Pro with goal-driven lead capture, persistent sales AI, industry templates. Plus multi-step forms, CRM sync to HubSpot/Salesforce/Pipedrive/Zoho, and real-time analytics.",
     path: "/features",
   });
 
@@ -181,10 +223,10 @@ export default function FeaturesPage() {
       <section className="py-20 bg-gradient-to-b from-indigo-50 to-white dark:from-gray-900 dark:to-gray-950">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">
-            Everything You Need to Capture More Leads
+            AI Chat + Forms + CRM Sync
           </h1>
           <p className="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Powerful features that help you convert website visitors into CRM contacts, automatically.
+            Capture leads with our persistent AI chat widget and beautiful forms. Every lead syncs to your CRM automatically.
           </p>
         </div>
       </section>

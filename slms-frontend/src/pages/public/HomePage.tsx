@@ -10,11 +10,11 @@ const FEATURES = [
   {
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
       </svg>
     ),
-    title: "Multi-Step Forms",
-    description: "Beautiful wizard-style forms that guide users through each field for higher completion rates.",
+    title: "AI Chat Widget Pro",
+    description: "Persistent AI chat that captures leads 24/7. Goal-driven conversations that don't give up after one objection.",
   },
   {
     icon: (
@@ -28,6 +28,15 @@ const FEATURES = [
   {
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+      </svg>
+    ),
+    title: "Multi-Step Forms",
+    description: "Beautiful wizard-style forms that guide users through each field for higher completion rates.",
+  },
+  {
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
       </svg>
     ),
@@ -37,20 +46,11 @@ const FEATURES = [
   {
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
-      </svg>
-    ),
-    title: "Custom Fields",
-    description: "Add dropdowns, checkboxes, text areas, and more. Capture exactly what you need.",
-  },
-  {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
       </svg>
     ),
     title: "Analytics Dashboard",
-    description: "Track form submissions, conversion rates, and lead sources all in one place.",
+    description: "Track form submissions, chat conversations, and lead sources all in one place.",
   },
   {
     icon: (
@@ -93,9 +93,9 @@ const STEPS = [
 
 export default function HomePage() {
   useSEO({
-    title: "Stop Wasting Hours on Manual CRM Entry | Site2CRM",
+    title: "AI Chat Widget + Lead Forms with CRM Sync | Site2CRM",
     description:
-      "7 min per lead × 30 leads = 3.5 hours wasted daily. Site2CRM syncs leads to HubSpot, Salesforce, Pipedrive instantly. Start your free trial.",
+      "Capture leads 24/7 with our AI Chat Widget Pro and multi-step forms. Persistent AI that handles objections. Syncs to HubSpot, Salesforce, Pipedrive instantly. Start free.",
     path: "/",
     jsonLd: schemas.organization,
   });
@@ -107,13 +107,13 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white tracking-tight">
-              Stop wasting hours on{" "}
+              AI chat that{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
-                manual CRM entry
+                never gives up
               </span>
             </h1>
             <p className="mt-6 text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              7 minutes per lead. 30 leads a day. That's 3.5 hours wasted on data entry. Site2CRM syncs leads to your CRM instantly—so you can focus on closing deals.
+              Your AI sales assistant captures leads 24/7. Unlike basic chatbots, it handles objections, stays persistent, and syncs every lead to your CRM instantly.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
@@ -129,21 +129,21 @@ export default function HomePage() {
                 See How It Works
               </Link>
             </div>
-            {/* Time savings highlight */}
+            {/* Value props highlight */}
             <div className="mt-12 inline-flex items-center gap-6 px-6 py-3 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700">
               <div className="text-center">
-                <div className="text-2xl font-bold text-indigo-600">3.5 hrs</div>
-                <div className="text-xs text-gray-500">saved daily</div>
+                <div className="text-2xl font-bold text-indigo-600">24/7</div>
+                <div className="text-xs text-gray-500">AI chat</div>
               </div>
               <div className="w-px h-8 bg-gray-200 dark:bg-gray-700" />
               <div className="text-center">
-                <div className="text-2xl font-bold text-indigo-600">17+ hrs</div>
-                <div className="text-xs text-gray-500">saved weekly</div>
+                <div className="text-2xl font-bold text-indigo-600">5x</div>
+                <div className="text-xs text-gray-500">rebuttals</div>
               </div>
               <div className="w-px h-8 bg-gray-200 dark:bg-gray-700" />
               <div className="text-center">
-                <div className="text-2xl font-bold text-indigo-600">$0</div>
-                <div className="text-xs text-gray-500">to start</div>
+                <div className="text-2xl font-bold text-indigo-600">Instant</div>
+                <div className="text-xs text-gray-500">CRM sync</div>
               </div>
             </div>
           </div>
@@ -179,11 +179,91 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* AI-Powered Section - DISABLED
+      {/* AI Chat Widget Pro Section */}
       <section className="py-20 bg-gradient-to-br from-violet-50 via-indigo-50 to-cyan-50 dark:from-gray-900 dark:via-indigo-950/30 dark:to-gray-900">
-        ...
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-sm font-medium mb-4">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                NEW: Chat Widget Pro
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+                AI that sells like your best rep
+              </h2>
+              <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                Most chatbots give up after one "no thanks." Ours doesn't. Configure goals, persistence levels, and let AI handle objections professionally.
+              </p>
+              <ul className="mt-8 space-y-4">
+                {[
+                  { title: "Goal-Driven", desc: "Capture emails, book demos, start trials, or collect quotes" },
+                  { title: "Persistent Sales AI", desc: "Up to 5 rebuttals before gracefully backing off" },
+                  { title: "Industry Templates", desc: "Pre-built configs for SaaS, Agency, E-commerce" },
+                  { title: "Full Branding", desc: "Custom colors, headers, quick replies, and more" },
+                ].map((item) => (
+                  <li key={item.title} className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <div>
+                      <span className="font-semibold text-gray-900 dark:text-white">{item.title}:</span>{" "}
+                      <span className="text-gray-600 dark:text-gray-400">{item.desc}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                to="/signup"
+                className="inline-flex items-center gap-2 mt-8 px-6 py-3 text-base font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/25 transition-all"
+              >
+                Try Chat Widget Pro
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+            <div className="relative">
+              {/* Chat widget mockup */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden max-w-sm mx-auto">
+                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-3">
+                  <div className="text-white font-semibold">Chat with us</div>
+                  <div className="text-indigo-100 text-sm">We reply instantly</div>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="flex justify-start">
+                    <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl rounded-bl-md px-4 py-2 max-w-[80%]">
+                      <p className="text-sm text-gray-800 dark:text-gray-200">Hi! I'd love to show you how we can help. What brings you here today?</p>
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <div className="bg-indigo-600 rounded-2xl rounded-br-md px-4 py-2 max-w-[80%]">
+                      <p className="text-sm text-white">Just browsing, not interested</p>
+                    </div>
+                  </div>
+                  <div className="flex justify-start">
+                    <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl rounded-bl-md px-4 py-2 max-w-[80%]">
+                      <p className="text-sm text-gray-800 dark:text-gray-200">No pressure at all! Quick question though - are you currently using any CRM? I might have a tip that saves you hours each week.</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2 px-4 pb-4">
+                  <div className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-xl text-sm text-gray-400">Type a message...</div>
+                  <button className="px-3 py-2 bg-indigo-600 rounded-xl">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              {/* Decorative elements */}
+              <div className="absolute -top-4 -right-4 w-24 h-24 bg-indigo-200 dark:bg-indigo-800/30 rounded-full blur-2xl -z-10" />
+              <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-purple-200 dark:bg-purple-800/30 rounded-full blur-2xl -z-10" />
+            </div>
+          </div>
+        </div>
       </section>
-      */}
 
       {/* How It Works */}
       <section className="py-20 bg-white dark:bg-gray-950">

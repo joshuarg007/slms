@@ -118,7 +118,7 @@ export const schemas = {
     name: "Site2CRM",
     url: "https://site2crm.io",
     logo: "https://site2crm.io/logo.png",
-    description: "Lead capture and CRM integration platform for SaaS companies",
+    description: "AI chat widgets and lead capture forms with CRM integration. Persistent sales AI that handles objections and syncs leads instantly.",
     parentOrganization: {
       "@type": "Organization",
       name: "Axion Deep Labs",
@@ -145,7 +145,7 @@ export const schemas = {
       name: "Site2CRM",
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
-      description: "Lead capture forms with CRM integration for SaaS companies",
+      description: "AI Chat Widget Pro and lead capture forms with instant CRM integration. Goal-driven AI that handles objections.",
     };
 
     if (options?.pricing) {

@@ -13,6 +13,10 @@ class PlanLimits:
     ai_features: List[str] = field(default_factory=list)  # ["analysis", "coaching", "reports"]
     remove_branding: bool = False
     priority_support: bool = False
+    # Chat Widget Pro limits
+    chat_agents: int = 0  # Number of chat widget agents allowed (0 = disabled)
+    chat_conversations_per_month: int = 0  # -1 = unlimited, 0 = disabled
+    chat_pro_features: bool = False  # Access to templates, branding, goals, etc.
 
 
 # AI feature definitions
@@ -31,6 +35,9 @@ PLAN_LIMITS: Dict[str, PlanLimits] = {
         ai_features=[],
         remove_branding=False,
         priority_support=False,
+        chat_agents=0,
+        chat_conversations_per_month=0,
+        chat_pro_features=False,
     ),
     "trial": PlanLimits(
         leads_per_month=100,
@@ -40,6 +47,9 @@ PLAN_LIMITS: Dict[str, PlanLimits] = {
         ai_features=[AI_FEATURE_ANALYSIS],
         remove_branding=True,
         priority_support=False,
+        chat_agents=1,
+        chat_conversations_per_month=50,
+        chat_pro_features=True,  # Full access during trial
     ),
     "starter": PlanLimits(
         leads_per_month=100,
@@ -49,6 +59,9 @@ PLAN_LIMITS: Dict[str, PlanLimits] = {
         ai_features=[],
         remove_branding=False,
         priority_support=False,
+        chat_agents=1,
+        chat_conversations_per_month=100,
+        chat_pro_features=False,  # Basic widget only
     ),
     "appsumo": PlanLimits(
         leads_per_month=1000,  # Hard cap - submissions blocked after limit
@@ -58,6 +71,9 @@ PLAN_LIMITS: Dict[str, PlanLimits] = {
         ai_features=[],
         remove_branding=False,  # Branding stays
         priority_support=False,  # No priority support
+        chat_agents=1,
+        chat_conversations_per_month=500,
+        chat_pro_features=False,  # Basic widget
     ),
     "pro": PlanLimits(
         leads_per_month=1000,
@@ -67,6 +83,9 @@ PLAN_LIMITS: Dict[str, PlanLimits] = {
         ai_features=[AI_FEATURE_ANALYSIS],
         remove_branding=True,
         priority_support=True,
+        chat_agents=3,
+        chat_conversations_per_month=1000,
+        chat_pro_features=True,  # Full Chat Widget Pro
     ),
     "pro_ai": PlanLimits(
         leads_per_month=1000,
@@ -76,6 +95,9 @@ PLAN_LIMITS: Dict[str, PlanLimits] = {
         ai_features=[AI_FEATURE_ANALYSIS, AI_FEATURE_COACHING, AI_FEATURE_REPORTS],
         remove_branding=True,
         priority_support=True,
+        chat_agents=5,
+        chat_conversations_per_month=2500,
+        chat_pro_features=True,
     ),
     "enterprise": PlanLimits(
         leads_per_month=-1,  # Unlimited
@@ -85,6 +107,9 @@ PLAN_LIMITS: Dict[str, PlanLimits] = {
         ai_features=[AI_FEATURE_ANALYSIS, AI_FEATURE_COACHING, AI_FEATURE_REPORTS, AI_FEATURE_CUSTOM],
         remove_branding=True,
         priority_support=True,
+        chat_agents=-1,  # Unlimited
+        chat_conversations_per_month=-1,  # Unlimited
+        chat_pro_features=True,
     ),
 }
 

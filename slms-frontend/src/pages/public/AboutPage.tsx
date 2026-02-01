@@ -22,8 +22,8 @@ const VALUES = [
 
 const STATS = [
   { label: "Leads Captured", value: "2M+" },
+  { label: "AI Conversations", value: "500K+" },
   { label: "Happy Customers", value: "5,000+" },
-  { label: "CRM Syncs Daily", value: "50K+" },
   { label: "Countries", value: "45+" },
 ];
 
@@ -51,9 +51,9 @@ const AXIONDEEP_PRODUCTS = [
 
 export default function AboutPage() {
   useSEO({
-    title: "About Us - Built by Axion Deep Labs",
+    title: "About Us - AI Chat Widget + CRM Lead Capture",
     description:
-      "Site2CRM is built by Axion Deep Labs, a research organization focused on AI, data systems, and computational science. Learn about our mission and values.",
+      "Site2CRM: AI chat widgets and lead forms that sync to your CRM. Built by Axion Deep Labs. Persistent sales AI that handles objections and captures leads 24/7.",
     path: "/about",
   });
 
@@ -71,7 +71,7 @@ export default function AboutPage() {
             About Site2CRM
           </h1>
           <p className="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Intelligent lead capture and enrichment, built with precision engineering and data-driven insights.
+            AI chat widgets and lead forms that capture leads 24/7 and sync directly to your CRM. Built with precision engineering and persistent sales AI.
           </p>
         </div>
       </section>
@@ -84,24 +84,23 @@ export default function AboutPage() {
           </h2>
           <div className="prose prose-lg dark:prose-invert max-w-none text-gray-600 dark:text-gray-400">
             <p>
-              Site2CRM transforms anonymous website traffic into actionable CRM intelligence.
-              It captures visitor events, enriches company and contact data, scores intent signals,
-              and syncs qualified leads directly into your CRM with full attribution.
+              Site2CRM combines AI-powered chat widgets with beautiful lead capture forms, all syncing
+              directly to your CRM in real-time. Our Chat Widget Pro uses goal-driven AI that doesn't
+              give up after one objection - it handles rebuttals professionally and persistently.
             </p>
             <p className="mt-4">
-              Unlike traditional lead capture tools that operate as black boxes, Site2CRM provides
-              transparent attribution you can audit. Know exactly where leads come from, what actions
-              they've taken, and why they were scored the way they were.
+              Unlike basic chatbots that fold after a visitor says "not interested," our AI
+              continues the conversation naturally. Configure goals like booking demos, starting trials,
+              or collecting quotes. The AI pursues your objective while respecting visitor boundaries.
             </p>
             <p className="mt-4">
               We built Site2CRM because we saw the same problem over and over: getting leads from
               a website into a CRM was way harder than it needed to be. Traditional form builders
-              were clunky and disconnected. Developers were stuck building custom integrations that
-              broke whenever the CRM updated.
+              were clunky and disconnected. Basic chatbots were too passive.
             </p>
             <p className="mt-4">
               Today, Site2CRM powers lead capture for thousands of businesses around the world,
-              with smart lead scoring, real-time CRM sync, and complete visibility into every lead's journey.
+              with AI chat that works 24/7, smart lead qualification, and complete visibility into every conversation.
             </p>
           </div>
         </div>
