@@ -25,3 +25,4 @@ test.db
 claude.md
 
 *.db
+widget/chat-widget/node_modules/

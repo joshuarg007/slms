@@ -83,9 +83,9 @@
   // Generate dynamic styles based on config
   function generateStyles(cfg) {
     const primaryColor = cfg.primary_color || "#4f46e5";
-    const chatBgColor = cfg.chat_bg_color || "#ffffff";
+    const chatBgColor = cfg.chat_bg_color || "#1e1b4b";
     const userBubbleColor = cfg.user_bubble_color || primaryColor;
-    const botBubbleColor = cfg.bot_bubble_color || "#f3f4f6";
+    const botBubbleColor = cfg.bot_bubble_color || "#2d2a5e";
     const btnSize = buttonSizes[cfg.button_size] || buttonSizes.medium;
 
     return `
@@ -138,13 +138,13 @@
       height: 520px;
       max-height: calc(100vh - 100px);
       border-radius: 16px;
-      background: white;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      background: #1e1b4b;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
       display: none;
       flex-direction: column;
       overflow: hidden;
       z-index: 999999;
-      border: 1px solid rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .s2c-window.open {
@@ -285,7 +285,7 @@
     .s2c-message.assistant {
       align-self: flex-start;
       background: ${botBubbleColor};
-      color: #1f2937;
+      color: #e5e7eb;
       border-radius: 16px 16px 16px 4px;
     }
 
@@ -335,11 +335,11 @@
 
     .s2c-quick-reply {
       padding: 8px 16px;
-      background: white;
-      border: 1px solid #e5e7eb;
+      background: #2d2a5e;
+      border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 20px;
       font-size: 13px;
-      color: #374151;
+      color: #e5e7eb;
       cursor: pointer;
       transition: all 0.2s;
       font-weight: 500;
@@ -356,9 +356,9 @@
       padding: 16px;
       display: flex;
       gap: 10px;
-      background: white;
+      background: #1e1b4b;
       flex-shrink: 0;
-      border-top: 1px solid #f3f4f6;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .s2c-input {
@@ -369,12 +369,12 @@
       font-size: 14px;
       outline: none;
       transition: all 0.2s;
-      color: #1f2937;
-      background: #f3f4f6;
+      color: #e5e7eb;
+      background: #2d2a5e;
     }
 
     .s2c-input:focus {
-      background: #e5e7eb;
+      background: #3d3a6e;
     }
 
     .s2c-input::placeholder {
@@ -416,17 +416,17 @@
       text-align: center;
       font-size: 11px;
       color: #9ca3af;
-      background: white;
+      background: #1e1b4b;
     }
 
     .s2c-powered a {
-      color: #6b7280;
+      color: #a5b4fc;
       text-decoration: none;
       font-weight: 500;
     }
 
     .s2c-powered a:hover {
-      color: #4f46e5;
+      color: #c7d2fe;
     }
 
     .s2c-powered.hidden {

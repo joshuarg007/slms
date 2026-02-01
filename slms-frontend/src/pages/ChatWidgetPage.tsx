@@ -931,7 +931,7 @@ export default function ChatWidgetPage() {
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
-                    value={form.chat_bg_color || "#ffffff"}
+                    value={form.chat_bg_color || "#1e1b4b"}
                     onChange={(e) => setForm({ ...form, chat_bg_color: e.target.value })}
                     className="w-10 h-10 rounded cursor-pointer"
                   />
@@ -940,7 +940,7 @@ export default function ChatWidgetPage() {
                     value={form.chat_bg_color || ""}
                     onChange={(e) => setForm({ ...form, chat_bg_color: e.target.value || null })}
                     className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm"
-                    placeholder="#ffffff"
+                    placeholder="#1e1b4b"
                   />
                 </div>
               </div>
@@ -971,7 +971,7 @@ export default function ChatWidgetPage() {
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
-                    value={form.bot_bubble_color || "#f3f4f6"}
+                    value={form.bot_bubble_color || "#2d2a5e"}
                     onChange={(e) => setForm({ ...form, bot_bubble_color: e.target.value })}
                     className="w-10 h-10 rounded cursor-pointer"
                   />
@@ -980,7 +980,7 @@ export default function ChatWidgetPage() {
                     value={form.bot_bubble_color || ""}
                     onChange={(e) => setForm({ ...form, bot_bubble_color: e.target.value || null })}
                     className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm"
-                    placeholder="#f3f4f6"
+                    placeholder="#2d2a5e"
                   />
                 </div>
               </div>
