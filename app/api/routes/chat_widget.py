@@ -632,7 +632,7 @@ def get_embed_code(
         raise HTTPException(status_code=404, detail="Widget config not found")
 
     # Generate embed code using widget_key
-    embed_code = f"""<!-- Site2CRM AI Chat Widget -->
+    embed_code = f"""<!-- Site2CRM AI - Your CRM AI Connection -->
 <script
   src="https://api.site2crm.io/api/public/chat-widget/widget.js"
   data-widget-key="{widget_key}"

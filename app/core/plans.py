@@ -13,7 +13,7 @@ class PlanLimits:
     ai_features: List[str] = field(default_factory=list)  # ["analysis", "coaching", "reports"]
     remove_branding: bool = False
     priority_support: bool = False
-    # Chat Widget Pro limits
+    # Site2CRM AI limits
     chat_agents: int = 0  # Number of chat widget agents allowed (0 = disabled)
     chat_conversations_per_month: int = 0  # -1 = unlimited, 0 = disabled
     chat_pro_features: bool = False  # Access to templates, branding, goals, etc.
@@ -85,7 +85,7 @@ PLAN_LIMITS: Dict[str, PlanLimits] = {
         priority_support=True,
         chat_agents=3,
         chat_conversations_per_month=1000,
-        chat_pro_features=True,  # Full Chat Widget Pro
+        chat_pro_features=True,  # Full Site2CRM AI features
     ),
     "pro_ai": PlanLimits(
         leads_per_month=1000,

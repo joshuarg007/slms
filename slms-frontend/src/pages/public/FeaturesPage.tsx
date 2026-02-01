@@ -9,7 +9,7 @@ import features4Image from "@/assets/features4.png";
 
 const FEATURE_SECTIONS = [
   {
-    title: "AI Chat Widget Pro",
+    title: "Site2CRM AI",
     description:
       "Turn website visitors into qualified leads 24/7 with our persistent, goal-driven AI chat assistant.",
     features: [
@@ -211,9 +211,9 @@ const ADDITIONAL_FEATURES = [
 
 export default function FeaturesPage() {
   useSEO({
-    title: "Features - AI Chat Widget Pro, Multi-Step Forms & CRM Sync",
+    title: "Features - Site2CRM AI, Multi-Step Forms & CRM Sync",
     description:
-      "Site2CRM features: AI Chat Widget Pro with goal-driven lead capture, persistent sales AI, industry templates. Plus multi-step forms, CRM sync to HubSpot/Salesforce/Pipedrive/Zoho, and real-time analytics.",
+      "Site2CRM features: Site2CRM AI with goal-driven lead capture, persistent sales AI, industry templates. Plus multi-step forms, CRM sync to HubSpot/Salesforce/Pipedrive/Zoho, and real-time analytics.",
     path: "/features",
   });
 

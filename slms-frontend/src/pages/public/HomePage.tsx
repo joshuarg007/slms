@@ -13,7 +13,7 @@ const FEATURES = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
       </svg>
     ),
-    title: "AI Chat Widget Pro",
+    title: "AI Site2CRM AI",
     description: "Persistent AI chat that captures leads 24/7. Goal-driven conversations that don't give up after one objection.",
   },
   {
@@ -95,7 +95,7 @@ export default function HomePage() {
   useSEO({
     title: "AI Chat Widget + Lead Forms with CRM Sync | Site2CRM",
     description:
-      "Capture leads 24/7 with our AI Chat Widget Pro and multi-step forms. Persistent AI that handles objections. Syncs to HubSpot, Salesforce, Pipedrive instantly. Start free.",
+      "Capture leads 24/7 with our AI Site2CRM AI and multi-step forms. Persistent AI that handles objections. Syncs to HubSpot, Salesforce, Pipedrive instantly. Start free.",
     path: "/",
     jsonLd: schemas.organization,
   });
@@ -179,7 +179,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* AI Chat Widget Pro Section */}
+      {/* AI Site2CRM AI Section */}
       <section className="py-20 bg-gradient-to-br from-violet-50 via-indigo-50 to-cyan-50 dark:from-gray-900 dark:via-indigo-950/30 dark:to-gray-900">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -188,7 +188,7 @@ export default function HomePage() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                NEW: Chat Widget Pro
+                NEW: Site2CRM AI
               </div>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
                 AI that sells like your best rep
@@ -218,7 +218,7 @@ export default function HomePage() {
                 to="/signup"
                 className="inline-flex items-center gap-2 mt-8 px-6 py-3 text-base font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/25 transition-all"
               >
-                Try Chat Widget Pro
+                Try Site2CRM AI
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>

@@ -85,7 +85,7 @@ export default function AboutPage() {
           <div className="prose prose-lg dark:prose-invert max-w-none text-gray-600 dark:text-gray-400">
             <p>
               Site2CRM combines AI-powered chat widgets with beautiful lead capture forms, all syncing
-              directly to your CRM in real-time. Our Chat Widget Pro uses goal-driven AI that doesn't
+              directly to your CRM in real-time. Our Site2CRM AI uses goal-driven AI that doesn't
               give up after one objection - it handles rebuttals professionally and persistently.
             </p>
             <p className="mt-4">

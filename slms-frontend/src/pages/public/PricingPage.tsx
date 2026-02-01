@@ -23,14 +23,14 @@ const PLANS = [
     name: "Site2CRM PRO",
     price: "$79",
     period: "/month",
-    description: "Unlimited forms + full AI Chat Widget Pro for maximum conversions.",
+    description: "Unlimited forms + full AI Site2CRM AI for maximum conversions.",
     features: [
       "Unlimited forms",
       "Up to 1,000 leads/month",
       "All CRM integrations",
       "3 AI Chat Agents",
       "1,000 chat conversations/mo",
-      "Chat Widget Pro features",
+      "Site2CRM AI features",
       "Industry templates",
       "Custom branding & colors",
       "Goal-driven AI (demo, trial, quote)",
@@ -75,9 +75,9 @@ const FAQS = [
       "We integrate with HubSpot, Salesforce, Pipedrive, Zoho CRM, and Nutshell. More integrations are added regularly.",
   },
   {
-    question: "What is Chat Widget Pro?",
+    question: "What is Site2CRM AI?",
     answer:
-      "Chat Widget Pro is our AI-powered chat assistant that captures leads on your website 24/7. It can book demos, start trials, collect quotes, or just answer questions. The AI is trained to be persistent (up to 5 rebuttals) and goal-driven, not giving up after the first objection.",
+      "Site2CRM AI is our AI-powered chat assistant that captures leads on your website 24/7. It can book demos, start trials, collect quotes, or just answer questions. The AI is trained to be persistent (up to 5 rebuttals) and goal-driven, not giving up after the first objection.",
   },
   {
     question: "How does the AI Chat Agent work?",
@@ -154,7 +154,7 @@ export default function PricingPage() {
   useSEO({
     title: "Pricing - Lead Forms + AI Chat Widget Starting at $29/month",
     description:
-      "Site2CRM pricing: Lead capture forms + AI Chat Widget Pro. Starter at $29/mo, PRO at $79/mo with goal-driven AI chat agents, industry templates, and CRM sync. 14-day free trial.",
+      "Site2CRM pricing: Lead capture forms + AI Site2CRM AI. Starter at $29/mo, PRO at $79/mo with goal-driven AI chat agents, industry templates, and CRM sync. 14-day free trial.",
     path: "/pricing",
     jsonLd: combinedSchema,
   });

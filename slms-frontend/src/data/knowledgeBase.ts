@@ -26,8 +26,8 @@ export const KB_CATEGORIES: Category[] = [
   },
   {
     slug: "chat-widget",
-    title: "AI Chat Widget",
-    description: "Set up and customize your AI chat agent",
+    title: "Site2CRM AI",
+    description: "Your CRM AI Connection - set up and customize your AI chat agent",
     icon: "M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z",
   },
   {
@@ -215,18 +215,18 @@ The form automatically inherits styles from your Site2CRM form settings. To cust
     `,
   },
 
-  // Chat Widget Pro
+  // Site2CRM AI
   {
     slug: "what-is-chat-widget-pro",
-    title: "What is Chat Widget Pro?",
+    title: "What is Site2CRM AI?",
     description: "Learn about our AI-powered chat widget that captures leads 24/7",
-    category: "AI Chat Widget",
+    category: "Site2CRM AI",
     categorySlug: "chat-widget",
     timeToRead: "3 min",
     content: `
-## What is Chat Widget Pro?
+## What is Site2CRM AI?
 
-Chat Widget Pro is an AI-powered chat assistant that lives on your website and captures leads around the clock.
+Site2CRM AI is an AI-powered chat assistant that lives on your website and captures leads around the clock.
 
 ### How It's Different
 
@@ -278,7 +278,7 @@ Ready to set up your first AI chat agent?
     slug: "creating-chat-agent",
     title: "Creating Your First Chat Agent",
     description: "Step-by-step guide to setting up an AI chat agent",
-    category: "AI Chat Widget",
+    category: "Site2CRM AI",
     categorySlug: "chat-widget",
     timeToRead: "3 min",
     content: `
@@ -341,7 +341,7 @@ After creating your agent:
     slug: "configuring-goals",
     title: "Configuring Chat Goals",
     description: "Set up what your AI chat agent should achieve",
-    category: "AI Chat Widget",
+    category: "Site2CRM AI",
     categorySlug: "chat-widget",
     timeToRead: "4 min",
     content: `
@@ -430,13 +430,13 @@ Set a custom call-to-action that the AI uses when closing:
     slug: "persistence-settings",
     title: "Persistence and Rebuttal Settings",
     description: "Configure how your AI handles objections and rejections",
-    category: "AI Chat Widget",
+    category: "Site2CRM AI",
     categorySlug: "chat-widget",
     timeToRead: "4 min",
     content: `
 ## Persistence and Rebuttal Settings
 
-The key difference between Chat Widget Pro and basic chatbots: **our AI doesn't give up easily.**
+The key difference between Site2CRM AI and basic chatbots: **our AI doesn't give up easily.**
 
 ### Why Persistence Matters
 
@@ -512,7 +512,7 @@ When a visitor says "no thanks," "not interested," or similar:
     slug: "customizing-appearance",
     title: "Customizing Widget Appearance",
     description: "Brand your chat widget with custom colors, headers, and more",
-    category: "AI Chat Widget",
+    category: "Site2CRM AI",
     categorySlug: "chat-widget",
     timeToRead: "3 min",
     content: `
@@ -596,7 +596,7 @@ With PRO plan, you can fully brand the widget:
     slug: "quick-replies",
     title: "Setting Up Quick Replies",
     description: "Add suggested response buttons for faster engagement",
-    category: "AI Chat Widget",
+    category: "Site2CRM AI",
     categorySlug: "chat-widget",
     timeToRead: "2 min",
     content: `
@@ -679,7 +679,7 @@ Quick reply buttons appear below the AI's greeting message. When clicked, they a
     slug: "industry-templates",
     title: "Using Industry Templates",
     description: "Get started fast with pre-built configurations",
-    category: "AI Chat Widget",
+    category: "Site2CRM AI",
     categorySlug: "chat-widget",
     timeToRead: "2 min",
     content: `
@@ -753,7 +753,7 @@ You can always start blank and configure everything manually.
     slug: "embedding-widget",
     title: "Embedding the Chat Widget",
     description: "Add your AI chat agent to any website",
-    category: "AI Chat Widget",
+    category: "Site2CRM AI",
     categorySlug: "chat-widget",
     timeToRead: "3 min",
     content: `
@@ -868,7 +868,7 @@ The widget checks for both localStorage and cookies.
     slug: "data-collection",
     title: "Data Collection Settings",
     description: "Configure what information your AI collects from visitors",
-    category: "AI Chat Widget",
+    category: "Site2CRM AI",
     categorySlug: "chat-widget",
     timeToRead: "2 min",
     content: `
@@ -945,7 +945,7 @@ For GDPR/privacy compliance:
     slug: "custom-messages",
     title: "Custom Welcome and Success Messages",
     description: "Personalize your AI's greeting and post-capture messages",
-    category: "AI Chat Widget",
+    category: "Site2CRM AI",
     categorySlug: "chat-widget",
     timeToRead: "2 min",
     content: `
@@ -1022,7 +1022,7 @@ The success message appears after the AI successfully captures contact informati
     slug: "ai-behavior",
     title: "Understanding AI Behavior",
     description: "How your AI chat agent handles conversations",
-    category: "AI Chat Widget",
+    category: "Site2CRM AI",
     categorySlug: "chat-widget",
     timeToRead: "4 min",
     content: `
@@ -1122,7 +1122,7 @@ If the AI isn't performing as expected:
     slug: "viewing-conversations",
     title: "Viewing Chat Conversations",
     description: "Monitor and review your AI chat conversations",
-    category: "AI Chat Widget",
+    category: "Site2CRM AI",
     categorySlug: "chat-widget",
     timeToRead: "2 min",
     content: `
@@ -1195,7 +1195,7 @@ Conversation data is:
     slug: "troubleshooting-chat-widget",
     title: "Chat Widget Troubleshooting",
     description: "Fix common issues with your AI chat widget",
-    category: "AI Chat Widget",
+    category: "Site2CRM AI",
     categorySlug: "chat-widget",
     timeToRead: "3 min",
     content: `

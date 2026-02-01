@@ -145,7 +145,7 @@ export const schemas = {
       name: "Site2CRM",
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
-      description: "AI Chat Widget Pro and lead capture forms with instant CRM integration. Goal-driven AI that handles objections.",
+      description: "AI Site2CRM AI and lead capture forms with instant CRM integration. Goal-driven AI that handles objections.",
     };
 
     if (options?.pricing) {
