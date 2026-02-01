@@ -87,7 +87,7 @@ export default function MarketingHeader() {
             </Link>
             <Link
               to="/signup"
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-sm"
+              className="shimmer-button px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-sm"
             >
               Get Started
             </Link>
