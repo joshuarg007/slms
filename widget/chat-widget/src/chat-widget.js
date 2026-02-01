@@ -42,10 +42,24 @@
   let messages = [];
 
   // DOM elements
-  let container, bubble, chatWindow, messagesContainer, inputField, sendBtn;
+  let container, bubble, chatWindow, messagesContainer, inputField, sendBtn, quickRepliesContainer;
 
-  // Styles
-  const styles = `
+  // Button sizes
+  const buttonSizes = {
+    small: { size: 48, icon: 24 },
+    medium: { size: 60, icon: 28 },
+    large: { size: 72, icon: 32 },
+  };
+
+  // Generate dynamic styles based on config
+  function generateStyles(cfg) {
+    const primaryColor = cfg.primary_color || "#4f46e5";
+    const chatBgColor = cfg.chat_bg_color || "#f9fafb";
+    const userBubbleColor = cfg.user_bubble_color || primaryColor;
+    const botBubbleColor = cfg.bot_bubble_color || "#ffffff";
+    const btnSize = buttonSizes[cfg.button_size] || buttonSizes.medium;
+
+    return `
     .s2c-widget * {
       box-sizing: border-box;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
@@ -53,8 +67,8 @@
 
     .s2c-bubble {
       position: fixed;
-      width: 60px;
-      height: 60px;
+      width: ${btnSize.size}px;
+      height: ${btnSize.size}px;
       border-radius: 50%;
       cursor: pointer;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
@@ -63,6 +77,7 @@
       justify-content: center;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
       z-index: 999998;
+      background: ${primaryColor};
     }
 
     .s2c-bubble:hover {
@@ -71,8 +86,8 @@
     }
 
     .s2c-bubble svg {
-      width: 28px;
-      height: 28px;
+      width: ${btnSize.icon}px;
+      height: ${btnSize.icon}px;
       fill: white;
     }
 
@@ -105,12 +120,12 @@
     }
 
     .s2c-window.bottom-right {
-      bottom: 90px;
+      bottom: ${btnSize.size + 30}px;
       right: 20px;
     }
 
     .s2c-window.bottom-left {
-      bottom: 90px;
+      bottom: ${btnSize.size + 30}px;
       left: 20px;
     }
 
@@ -118,7 +133,7 @@
       .s2c-window {
         width: calc(100vw - 20px);
         height: calc(100vh - 100px);
-        bottom: 90px;
+        bottom: ${btnSize.size + 30}px;
         right: 10px;
         left: 10px;
         border-radius: 12px;
@@ -127,11 +142,17 @@
 
     .s2c-header {
       padding: 16px 20px;
+      background: ${primaryColor};
       color: white;
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-shrink: 0;
+    }
+
+    .s2c-header-info {
+      display: flex;
+      flex-direction: column;
     }
 
     .s2c-header-title {
@@ -148,6 +169,14 @@
       height: 8px;
       background: #22c55e;
       border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .s2c-header-subtitle {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-top: 2px;
+      margin-left: 16px;
     }
 
     .s2c-close {
@@ -176,7 +205,7 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      background: #f9fafb;
+      background: ${chatBgColor};
     }
 
     .s2c-message {
@@ -201,14 +230,14 @@
 
     .s2c-message.user {
       align-self: flex-end;
-      background: #e5e7eb;
-      color: #1f2937;
+      background: ${userBubbleColor};
+      color: white;
       border-bottom-right-radius: 4px;
     }
 
     .s2c-message.assistant {
       align-self: flex-start;
-      background: white;
+      background: ${botBubbleColor};
       color: #374151;
       border-bottom-left-radius: 4px;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -219,7 +248,7 @@
       gap: 4px;
       padding: 12px 16px;
       align-self: flex-start;
-      background: white;
+      background: ${botBubbleColor};
       border-radius: 16px;
       border-bottom-left-radius: 4px;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -252,6 +281,31 @@
       }
     }
 
+    .s2c-quick-replies {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0 16px 12px;
+      background: ${chatBgColor};
+    }
+
+    .s2c-quick-reply {
+      padding: 8px 14px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      font-size: 13px;
+      color: #374151;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .s2c-quick-reply:hover {
+      background: ${primaryColor};
+      color: white;
+      border-color: ${primaryColor};
+    }
+
     .s2c-input-area {
       padding: 16px;
       border-top: 1px solid #e5e7eb;
@@ -274,7 +328,7 @@
     }
 
     .s2c-input:focus {
-      border-color: var(--s2c-primary, #4f46e5);
+      border-color: ${primaryColor};
     }
 
     .s2c-input::placeholder {
@@ -291,6 +345,7 @@
       align-items: center;
       justify-content: center;
       transition: opacity 0.2s, transform 0.2s;
+      background: ${primaryColor};
     }
 
     .s2c-send:disabled {
@@ -325,7 +380,12 @@
     .s2c-powered a:hover {
       text-decoration: underline;
     }
+
+    .s2c-powered.hidden {
+      display: none;
+    }
   `;
+  }
 
   // Icons - multiple options for the bubble
   const bubbleIcons = {
@@ -350,9 +410,9 @@
       }
       config = await res.json();
 
-      // Inject styles
+      // Inject dynamic styles
       const styleEl = document.createElement("style");
-      styleEl.textContent = styles;
+      styleEl.textContent = generateStyles(config);
       document.head.appendChild(styleEl);
 
       // Create widget
@@ -367,39 +427,63 @@
     const primaryColor = config.primary_color || "#4f46e5";
     const iconName = config.bubble_icon || "chat";
     const bubbleIcon = bubbleIcons[iconName] || bubbleIcons.chat;
+    const headerTitle = config.header_title || config.business_name;
+    const headerSubtitle = config.header_subtitle || "";
+    const showBranding = config.show_branding !== false;
 
     // Container
     container = document.createElement("div");
     container.className = "s2c-widget";
-    container.style.setProperty("--s2c-primary", primaryColor);
 
     // Bubble
     bubble = document.createElement("div");
     bubble.className = `s2c-bubble ${position}`;
-    bubble.style.background = primaryColor;
     bubble.innerHTML = bubbleIcon;
     bubble.addEventListener("click", toggleChat);
+
+    // Build header HTML
+    let headerHtml = `
+      <div class="s2c-header-info">
+        <div class="s2c-header-title">${escapeHtml(headerTitle)}</div>
+        ${headerSubtitle ? `<div class="s2c-header-subtitle">${escapeHtml(headerSubtitle)}</div>` : ""}
+      </div>
+      <button class="s2c-close">${closeIcon}</button>
+    `;
+
+    // Build quick replies HTML
+    let quickRepliesHtml = "";
+    if (config.quick_replies && config.quick_replies.length > 0) {
+      quickRepliesHtml = `
+        <div class="s2c-quick-replies">
+          ${config.quick_replies.map(reply => `<button class="s2c-quick-reply">${escapeHtml(reply)}</button>`).join("")}
+        </div>
+      `;
+    }
+
+    // Build branding HTML
+    const brandingHtml = showBranding
+      ? `<div class="s2c-powered">Powered by <a href="https://site2crm.io" target="_blank" rel="noopener">Site2CRM</a></div>`
+      : `<div class="s2c-powered hidden"></div>`;
 
     // Chat window
     chatWindow = document.createElement("div");
     chatWindow.className = `s2c-window ${position}`;
     chatWindow.innerHTML = `
-      <div class="s2c-header" style="background: ${primaryColor}">
-        <div class="s2c-header-title">${escapeHtml(config.business_name)}</div>
-        <button class="s2c-close">${closeIcon}</button>
-      </div>
+      <div class="s2c-header">${headerHtml}</div>
       <div class="s2c-messages"></div>
+      ${quickRepliesHtml}
       <div class="s2c-input-area">
         <input type="text" class="s2c-input" placeholder="Type a message..." />
-        <button class="s2c-send" style="background: ${primaryColor}">${sendIcon}</button>
+        <button class="s2c-send">${sendIcon}</button>
       </div>
-      <div class="s2c-powered">Powered by <a href="https://site2crm.io" target="_blank" rel="noopener">Site2CRM</a></div>
+      ${brandingHtml}
     `;
 
     // Get elements
     messagesContainer = chatWindow.querySelector(".s2c-messages");
     inputField = chatWindow.querySelector(".s2c-input");
     sendBtn = chatWindow.querySelector(".s2c-send");
+    quickRepliesContainer = chatWindow.querySelector(".s2c-quick-replies");
     const closeBtn = chatWindow.querySelector(".s2c-close");
 
     // Event listeners
@@ -411,6 +495,18 @@
         sendMessage();
       }
     });
+
+    // Quick reply click handlers
+    if (quickRepliesContainer) {
+      quickRepliesContainer.querySelectorAll(".s2c-quick-reply").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          inputField.value = btn.textContent;
+          sendMessage();
+          // Hide quick replies after use
+          quickRepliesContainer.style.display = "none";
+        });
+      });
+    }
 
     // Append to DOM
     container.appendChild(bubble);
@@ -465,6 +561,11 @@
   async function sendMessage() {
     const message = inputField.value.trim();
     if (!message || isLoading) return;
+
+    // Hide quick replies after first message
+    if (quickRepliesContainer) {
+      quickRepliesContainer.style.display = "none";
+    }
 
     // Add user message
     addMessage("user", message);

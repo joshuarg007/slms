@@ -221,8 +221,20 @@ class PublicWidgetConfigResponse(BaseModel):
     widget_position: str
     bubble_icon: str
     tone: str
-    greeting: str  # Generated greeting message
+    greeting: str  # Generated or custom greeting message
     is_active: bool
+
+    # Advanced branding
+    header_title: Optional[str]
+    header_subtitle: Optional[str]
+    chat_bg_color: Optional[str]
+    user_bubble_color: Optional[str]
+    bot_bubble_color: Optional[str]
+    button_size: str
+    show_branding: bool
+
+    # Quick replies
+    quick_replies: Optional[list[str]]
 
 
 class ChatMessageRequest(BaseModel):
@@ -901,13 +913,17 @@ def get_public_widget_config(
     if not config.is_active:
         raise HTTPException(status_code=404, detail="Chat widget is disabled")
 
-    # Generate greeting based on tone
-    greetings = {
-        "friendly": f"Hi there! 👋 I'm the AI assistant for {config.business_name}. How can I help you today?",
-        "professional": f"Welcome to {config.business_name}. How may I assist you?",
-        "casual": f"Hey! What can I help you with today?",
-    }
-    greeting = greetings.get(config.tone, greetings["friendly"])
+    # Use custom welcome message or generate based on tone
+    if config.welcome_message:
+        greeting = config.welcome_message
+    else:
+        header_name = config.header_title or config.business_name
+        greetings = {
+            "friendly": f"Hi there! 👋 I'm the AI assistant for {header_name}. How can I help you today?",
+            "professional": f"Welcome to {header_name}. How may I assist you?",
+            "casual": f"Hey! What can I help you with today?",
+        }
+        greeting = greetings.get(config.tone, greetings["friendly"])
 
     return PublicWidgetConfigResponse(
         business_name=config.business_name,
@@ -917,6 +933,14 @@ def get_public_widget_config(
         tone=config.tone,
         greeting=greeting,
         is_active=config.is_active,
+        header_title=config.header_title,
+        header_subtitle=config.header_subtitle,
+        chat_bg_color=config.chat_bg_color,
+        user_bubble_color=config.user_bubble_color,
+        bot_bubble_color=config.bot_bubble_color,
+        button_size=getattr(config, 'button_size', None) or "medium",
+        show_branding=config.show_branding if hasattr(config, 'show_branding') and config.show_branding is not None else True,
+        quick_replies=_parse_quick_replies(config.quick_replies),
     )
 
 
