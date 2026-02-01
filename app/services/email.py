@@ -127,12 +127,12 @@ def _base_html_template(content: str, preview_text: str = "") -> str:
         <tr>
             <td align="center" style="padding: 40px 20px;">
                 <!-- Content card -->
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #1a1d24; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden;">
                     <!-- Header with Logo -->
                     <tr>
-                        <td style="padding: 32px 40px 24px; text-align: center; border-bottom: 1px solid #e4e4e7; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
+                        <td style="padding: 32px 40px 24px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
                             <img src="https://site2crm.io/site2crm-email-logo.png" alt="Site2CRM" width="240" style="display: block; margin: 0 auto; max-width: 240px; height: auto;">
-                            <p style="margin: 12px 0 0; font-size: 12px; color: #94a3b8; letter-spacing: 0.5px;">
+                            <p style="margin: 12px 0 0; font-size: 12px; color: #9ca3af; letter-spacing: 0.5px;">
                                 Lead Capture That Syncs to Your CRM
                             </p>
                         </td>
@@ -147,17 +147,17 @@ def _base_html_template(content: str, preview_text: str = "") -> str:
 
                     <!-- Legal Disclaimer -->
                     <tr>
-                        <td style="padding: 24px 40px; background-color: #f9fafb; border-top: 1px solid #e4e4e7;">
-                            <p style="margin: 0 0 12px; font-size: 12px; color: #71717a; line-height: 1.6; text-align: center;">
+                        <td style="padding: 24px 40px; background-color: #13151a; border-top: 1px solid rgba(255,255,255,0.1);">
+                            <p style="margin: 0 0 12px; font-size: 12px; color: #6b7280; line-height: 1.6; text-align: center;">
                                 This email was sent by Site2CRM. You received this because you have an account with us
                                 or requested this notification.
                             </p>
-                            <p style="margin: 0; font-size: 12px; color: #71717a; text-align: center;">
-                                <a href="https://site2crm.io/app/settings" style="color: #6366f1; text-decoration: none;">Email Preferences</a>
+                            <p style="margin: 0; font-size: 12px; color: #6b7280; text-align: center;">
+                                <a href="https://site2crm.io/app/settings" style="color: #818cf8; text-decoration: none;">Email Preferences</a>
                                 &nbsp;&bull;&nbsp;
-                                <a href="https://site2crm.io/privacy" style="color: #6366f1; text-decoration: none;">Privacy Policy</a>
+                                <a href="https://site2crm.io/privacy" style="color: #818cf8; text-decoration: none;">Privacy Policy</a>
                                 &nbsp;&bull;&nbsp;
-                                <a href="https://site2crm.io/terms" style="color: #6366f1; text-decoration: none;">Terms of Service</a>
+                                <a href="https://site2crm.io/terms" style="color: #818cf8; text-decoration: none;">Terms of Service</a>
                             </p>
                         </td>
                     </tr>
