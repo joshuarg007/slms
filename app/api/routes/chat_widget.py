@@ -33,6 +33,9 @@ def generate_widget_key() -> str:
 # ============================================================================
 
 
+BUBBLE_ICONS = ["chat", "message", "support", "robot", "sparkle", "wave"]
+
+
 class ChatWidgetConfigRequest(BaseModel):
     """Request model for creating/updating chat widget configuration."""
 
@@ -46,6 +49,7 @@ class ChatWidgetConfigRequest(BaseModel):
     extra_context: Optional[str] = Field(None, max_length=2000)
     primary_color: str = Field(default="#4f46e5", max_length=7)
     widget_position: str = Field(default="bottom-right")  # bottom-right, bottom-left
+    bubble_icon: str = Field(default="chat")  # chat, message, support, robot, sparkle, wave
     is_active: bool = True
 
 
@@ -64,6 +68,7 @@ class ChatWidgetConfigResponse(BaseModel):
     extra_context: Optional[str]
     primary_color: str
     widget_position: str
+    bubble_icon: str
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -116,6 +121,7 @@ class PublicWidgetConfigResponse(BaseModel):
     business_name: str
     primary_color: str
     widget_position: str
+    bubble_icon: str
     tone: str
     greeting: str  # Generated greeting message
     is_active: bool
@@ -160,6 +166,7 @@ def _config_to_response(config: models.ChatWidgetConfig) -> ChatWidgetConfigResp
         extra_context=config.extra_context,
         primary_color=config.primary_color,
         widget_position=config.widget_position,
+        bubble_icon=config.bubble_icon or "chat",
         is_active=config.is_active,
         created_at=config.created_at,
         updated_at=config.updated_at,
@@ -242,6 +249,12 @@ def _validate_config_request(req: ChatWidgetConfigRequest):
             detail="Invalid primary_color. Must be hex format (e.g., #4f46e5)",
         )
 
+    if req.bubble_icon not in BUBBLE_ICONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid bubble_icon. Must be one of: {BUBBLE_ICONS}",
+        )
+
 
 @router.post("/config", response_model=ChatWidgetConfigResponse)
 def create_chat_widget_config(
@@ -268,6 +281,7 @@ def create_chat_widget_config(
         extra_context=req.extra_context,
         primary_color=req.primary_color,
         widget_position=req.widget_position,
+        bubble_icon=req.bubble_icon,
         is_active=req.is_active,
     )
     db.add(config)
@@ -309,6 +323,7 @@ def update_chat_widget_config(
     config.extra_context = req.extra_context
     config.primary_color = req.primary_color
     config.widget_position = req.widget_position
+    config.bubble_icon = req.bubble_icon
     config.is_active = req.is_active
     config.updated_at = datetime.utcnow()
 
@@ -561,6 +576,7 @@ def get_public_widget_config(
         business_name=config.business_name,
         primary_color=config.primary_color,
         widget_position=config.widget_position,
+        bubble_icon=config.bubble_icon or "chat",
         tone=config.tone,
         greeting=greeting,
         is_active=config.is_active,

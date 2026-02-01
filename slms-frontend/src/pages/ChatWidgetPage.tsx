@@ -25,6 +25,15 @@ const POSITIONS = [
   { value: "bottom-left", label: "Bottom Left" },
 ];
 
+const BUBBLE_ICONS = [
+  { value: "chat", label: "Chat Bubble", icon: "M12 2C6.48 2 2 6.48 2 12c0 1.85.53 3.57 1.42 5.04L2 22l4.96-1.42C8.43 21.47 10.15 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2z" },
+  { value: "message", label: "Message", icon: "M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10z" },
+  { value: "support", label: "Support", icon: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z" },
+  { value: "robot", label: "Robot", icon: "M20 9V7c0-1.1-.9-2-2-2h-3c0-1.66-1.34-3-3-3S9 3.34 9 5H6c-1.1 0-2 .9-2 2v2c-1.66 0-3 1.34-3 3s1.34 3 3 3v4c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-4c1.66 0 3-1.34 3-3s-1.34-3-3-3z" },
+  { value: "sparkle", label: "Sparkle", icon: "M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z" },
+  { value: "wave", label: "Lightning", icon: "M7 2v11h3v9l7-12h-4l3-8H7z" },
+];
+
 const EMPTY_FORM: Omit<ChatWidgetConfig, 'id' | 'widget_key' | 'created_at' | 'updated_at'> = {
   business_name: "",
   business_description: "",
@@ -36,6 +45,7 @@ const EMPTY_FORM: Omit<ChatWidgetConfig, 'id' | 'widget_key' | 'created_at' | 'u
   extra_context: "",
   primary_color: "#4f46e5",
   widget_position: "bottom-right",
+  bubble_icon: "chat",
   is_active: true,
 };
 
@@ -112,6 +122,7 @@ export default function ChatWidgetPage() {
       extra_context: widget.extra_context || "",
       primary_color: widget.primary_color,
       widget_position: widget.widget_position,
+      bubble_icon: widget.bubble_icon || "chat",
       is_active: widget.is_active,
     });
     setSelectedWidget(widget);
@@ -510,6 +521,37 @@ export default function ChatWidgetPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Bubble Icon
+              </label>
+              <div className="grid grid-cols-6 gap-3">
+                {BUBBLE_ICONS.map((icon) => (
+                  <button
+                    key={icon.value}
+                    type="button"
+                    onClick={() => setForm({ ...form, bubble_icon: icon.value })}
+                    className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                      form.bubble_icon === icon.value
+                        ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30"
+                        : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                    }`}
+                    title={icon.label}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white"
+                      style={{ backgroundColor: form.primary_color }}
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d={icon.icon} />
+                      </svg>
+                    </div>
+                    <span className="text-xs text-gray-600 dark:text-gray-400">{icon.label}</span>
+                  </button>
+                ))}
               </div>
             </div>
 

@@ -950,6 +950,7 @@ export interface ChatWidgetConfig {
   extra_context: string;
   primary_color: string;
   widget_position: string;
+  bubble_icon: string;
   is_active: boolean;
   created_at?: string;
   updated_at?: string;

@@ -240,7 +240,7 @@ class IntegrationCredential(Base):
 
 
 class FormConfig(Base):
-    """Stores embeddable form configuration per organization."""
+    """Stores embeddable form configuration - multiple forms per organization allowed."""
 
     __tablename__ = "form_configs"
 
@@ -248,10 +248,15 @@ class FormConfig(Base):
     organization_id = Column(
         Integer,
         ForeignKey("organizations.id", ondelete="CASCADE"),
-        unique=True,  # One form config per org
         index=True,
         nullable=False,
     )
+
+    # Unique form identifier (used in embed codes)
+    form_key = Column(String(50), unique=True, nullable=True, index=True)
+
+    # Form name for identification in dashboard
+    name = Column(String(255), nullable=False, default="Default Form")
 
     # "inline" | "wizard" | "modal" | "drawer"
     form_style = Column(String(20), nullable=False, default="inline")
@@ -262,7 +267,7 @@ class FormConfig(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
-    organization = relationship("Organization", backref="form_config")
+    organization = relationship("Organization", backref="form_configs")
 
 
 class SalespersonDailyStats(Base):
@@ -595,6 +600,7 @@ class ChatWidgetConfig(Base):
     # Widget appearance
     primary_color = Column(String(7), nullable=False, default="#4f46e5")  # Hex color
     widget_position = Column(String(20), nullable=False, default="bottom-right")  # bottom-right, bottom-left
+    bubble_icon = Column(String(20), nullable=False, default="chat")  # chat, message, support, robot, sparkle, wave
 
     # State
     is_active = Column(Boolean, nullable=False, default=True)
