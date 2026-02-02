@@ -68,8 +68,11 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-4-20250514"
 
-    # AI Chat Widget (DeepSeek)
+    # AI Chat Widget (DeepSeek - primary, Cloudflare - fallback)
     DEEPSEEK_API_KEY: str = ""
+    CLOUDFLARE_ACCOUNT_ID: str = ""
+    CLOUDFLARE_API_TOKEN: str = ""
+    CLOUDFLARE_AI_MODEL: str = "@cf/meta/llama-3.2-3b-instruct"
 
     frontend_base_url: str = "http://127.0.0.1:5173"
     api_base_url: str = "https://api.site2crm.io"  # Used for widget embed code

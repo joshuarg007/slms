@@ -1,4 +1,4 @@
-"""AI Chat Service - DeepSeek integration for chat widget."""
+"""AI Chat Service - DeepSeek integration for chat widget with Cloudflare fallback."""
 
 import json
 import logging
@@ -12,6 +12,54 @@ from app.db.models import ChatWidgetConfig
 logger = logging.getLogger(__name__)
 
 DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
+
+
+async def _cloudflare_completion(
+    messages: list[dict],
+    system_prompt: str,
+    max_tokens: int = 256,
+) -> tuple[str, int, int]:
+    """
+    Fallback to Cloudflare Workers AI when DeepSeek is unavailable.
+
+    Returns:
+        tuple: (response_text, input_tokens, output_tokens)
+    """
+    if not settings.CLOUDFLARE_ACCOUNT_ID or not settings.CLOUDFLARE_API_TOKEN:
+        raise Exception("Cloudflare AI not configured")
+
+    api_messages = [{"role": "system", "content": system_prompt}]
+    api_messages.extend(messages)
+
+    payload = {
+        "messages": api_messages,
+        "max_tokens": max_tokens,
+        "temperature": 0.7,
+    }
+
+    headers = {
+        "Authorization": f"Bearer {settings.CLOUDFLARE_API_TOKEN}",
+        "Content-Type": "application/json",
+    }
+
+    url = f"https://api.cloudflare.com/client/v4/accounts/{settings.CLOUDFLARE_ACCOUNT_ID}/ai/run/{settings.CLOUDFLARE_AI_MODEL}"
+
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        response = await client.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+
+        data = response.json()
+        if data.get("success"):
+            result = data.get("result", {})
+            content = result.get("response", "")
+            usage = result.get("usage", {})
+            input_tokens = usage.get("prompt_tokens", 0)
+            output_tokens = usage.get("completion_tokens", 0)
+            return content, input_tokens, output_tokens
+        else:
+            errors = data.get("errors", [])
+            error_msg = errors[0].get("message") if errors else "Unknown Cloudflare error"
+            raise Exception(f"Cloudflare API error: {error_msg}")
 
 
 def build_system_prompt(config: ChatWidgetConfig) -> str:
@@ -319,7 +367,7 @@ async def chat_completion(
     max_tokens: int = 256,
 ) -> tuple[str, int, int]:
     """
-    Send a chat completion request to DeepSeek.
+    Send a chat completion request to DeepSeek with Cloudflare fallback.
 
     Returns:
         tuple: (response_text, input_tokens, output_tokens)
@@ -327,7 +375,32 @@ async def chat_completion(
 
     system_prompt = build_system_prompt(config)
 
-    # Build messages array with system prompt
+    # Try DeepSeek first (primary)
+    if settings.DEEPSEEK_API_KEY:
+        try:
+            return await _deepseek_completion(messages, system_prompt, max_tokens)
+        except Exception as e:
+            logger.warning(f"DeepSeek failed, trying Cloudflare fallback: {e}")
+
+    # Fallback to Cloudflare
+    try:
+        return await _cloudflare_completion(messages, system_prompt, max_tokens)
+    except Exception as e:
+        logger.error(f"All AI providers failed. Cloudflare error: {e}")
+        raise Exception("AI service temporarily unavailable. Please try again.")
+
+
+async def _deepseek_completion(
+    messages: list[dict],
+    system_prompt: str,
+    max_tokens: int = 256,
+) -> tuple[str, int, int]:
+    """
+    Send a chat completion request to DeepSeek.
+
+    Returns:
+        tuple: (response_text, input_tokens, output_tokens)
+    """
     api_messages = [{"role": "system", "content": system_prompt}]
     api_messages.extend(messages)
 
@@ -344,30 +417,22 @@ async def chat_completion(
         "Content-Type": "application/json",
     }
 
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                DEEPSEEK_API_URL,
-                json=payload,
-                headers=headers,
-            )
-            response.raise_for_status()
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(
+            DEEPSEEK_API_URL,
+            json=payload,
+            headers=headers,
+        )
+        response.raise_for_status()
 
-            data = response.json()
+        data = response.json()
 
-            content = data["choices"][0]["message"]["content"]
-            usage = data.get("usage", {})
-            input_tokens = usage.get("prompt_tokens", 0)
-            output_tokens = usage.get("completion_tokens", 0)
+        content = data["choices"][0]["message"]["content"]
+        usage = data.get("usage", {})
+        input_tokens = usage.get("prompt_tokens", 0)
+        output_tokens = usage.get("completion_tokens", 0)
 
-            return content, input_tokens, output_tokens
-
-    except httpx.HTTPStatusError as e:
-        logger.error(f"DeepSeek API error: {e.response.status_code} - {e.response.text}")
-        raise
-    except Exception as e:
-        logger.error(f"DeepSeek API error: {e}")
-        raise
+        return content, input_tokens, output_tokens
 
 
 def extract_email_from_message(message: str) -> Optional[str]:
