@@ -260,6 +260,10 @@ interface ExtendedFormState {
   gradient_angle: number;
   button_opacity: number;
   blur_background: boolean;
+  // Effects
+  attention_effect: string;
+  shadow_style: string;
+  entry_animation: string;
 }
 
 const EMPTY_FORM: ExtendedFormState = {
@@ -304,6 +308,10 @@ const EMPTY_FORM: ExtendedFormState = {
   gradient_angle: 135,
   button_opacity: 1,
   blur_background: false,
+  // Effects
+  attention_effect: "none",
+  shadow_style: "elevated",
+  entry_animation: "scale",
 };
 
 const BUTTON_SIZES = [
@@ -387,6 +395,34 @@ const TRANSPARENCY_LEVELS = [
   { value: "light", label: "Light", opacity: 0.85 },
   { value: "medium", label: "Medium", opacity: 0.75 },
   { value: "glass", label: "Glass", opacity: 0.6 },
+];
+
+// Attention-grabbing effects
+const ATTENTION_EFFECTS = [
+  { value: "none", label: "None", desc: "Static button", icon: "M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" },
+  { value: "pulse", label: "Pulse", desc: "Gentle breathing", icon: "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" },
+  { value: "bounce", label: "Bounce", desc: "Playful hop", icon: "M5 10l7-7m0 0l7 7m-7-7v18" },
+  { value: "glow", label: "Glow", desc: "Radiant aura", icon: "M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" },
+  { value: "shake", label: "Shake", desc: "Attention wiggle", icon: "M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" },
+  { value: "ring", label: "Ring", desc: "Ripple wave", icon: "M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" },
+];
+
+// Shadow styles
+const SHADOW_STYLES = [
+  { value: "none", label: "None", class: "shadow-none" },
+  { value: "subtle", label: "Subtle", class: "shadow-md" },
+  { value: "elevated", label: "Elevated", class: "shadow-xl" },
+  { value: "dramatic", label: "Dramatic", class: "shadow-2xl" },
+  { value: "glow", label: "Color Glow", class: "shadow-lg" },
+];
+
+// Entry animations
+const ENTRY_ANIMATIONS = [
+  { value: "none", label: "None", desc: "Instant appear" },
+  { value: "fade", label: "Fade In", desc: "Smooth opacity" },
+  { value: "slide", label: "Slide Up", desc: "Rise from bottom" },
+  { value: "scale", label: "Scale", desc: "Grow from small" },
+  { value: "bounce", label: "Bounce In", desc: "Playful entrance" },
 ];
 
 export default function ChatWidgetPage() {
@@ -523,6 +559,10 @@ export default function ChatWidgetPage() {
       gradient_angle: w.gradient_angle || 135,
       button_opacity: w.button_opacity ?? 1,
       blur_background: w.blur_background ?? false,
+      // Effects
+      attention_effect: w.attention_effect || "none",
+      shadow_style: w.shadow_style || "elevated",
+      entry_animation: w.entry_animation || "scale",
     });
     setSelectedWidget(widget);
     setIsEditing(true);
@@ -1269,18 +1309,38 @@ export default function ChatWidgetPage() {
                 />
                 {/* Preview button */}
                 <div
-                  className={`relative flex items-center justify-center text-white shadow-2xl transition-all ${
+                  className={`relative flex items-center justify-center text-white transition-all ${
                     form.button_shape === "bubble" ? "w-14 h-14 rounded-full" :
                     form.button_shape === "pill" ? "w-24 h-12 rounded-full gap-2" :
                     form.button_shape === "square" ? "w-14 h-14 rounded-xl" :
                     form.button_shape === "tab" ? "w-10 h-24 rounded-l-lg" :
                     "w-40 h-12 rounded-t-lg gap-2"
+                  } ${
+                    form.shadow_style === "none" ? "" :
+                    form.shadow_style === "subtle" ? "shadow-md" :
+                    form.shadow_style === "elevated" ? "shadow-xl" :
+                    form.shadow_style === "dramatic" ? "shadow-2xl" :
+                    "shadow-lg"
+                  } ${
+                    form.attention_effect === "pulse" ? "animate-pulse" :
+                    form.attention_effect === "bounce" ? "animate-bounce" :
+                    ""
                   }`}
                   style={{
                     background: getButtonBackground(),
                     opacity: form.button_opacity,
                     backdropFilter: form.blur_background ? "blur(8px)" : "none",
                     WebkitBackdropFilter: form.blur_background ? "blur(8px)" : "none",
+                    boxShadow: form.shadow_style === "glow"
+                      ? `0 0 30px ${form.primary_color}60, 0 0 60px ${form.primary_color}30`
+                      : undefined,
+                    animation: form.attention_effect === "glow"
+                      ? "glow-pulse 2s ease-in-out infinite"
+                      : form.attention_effect === "shake"
+                      ? "shake 0.5s ease-in-out infinite"
+                      : form.attention_effect === "ring"
+                      ? undefined
+                      : undefined,
                   }}
                 >
                   {form.button_shape === "tab" ? (
@@ -1300,7 +1360,7 @@ export default function ChatWidgetPage() {
                 </div>
               </div>
               {/* Preview info badges */}
-              <div className="flex items-center justify-center gap-2 mt-4">
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
                 {form.gradient_type !== "none" && (
                   <span className="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
                     {GRADIENT_PRESETS.find(p => p.value === form.gradient_type)?.label || "Gradient"}
@@ -1314,6 +1374,21 @@ export default function ChatWidgetPage() {
                 {form.blur_background && (
                   <span className="px-2 py-1 text-xs rounded-full bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300">
                     Glassmorphism
+                  </span>
+                )}
+                {form.attention_effect !== "none" && (
+                  <span className="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                    {ATTENTION_EFFECTS.find(e => e.value === form.attention_effect)?.label}
+                  </span>
+                )}
+                {form.shadow_style !== "none" && (
+                  <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                    {SHADOW_STYLES.find(s => s.value === form.shadow_style)?.label} shadow
+                  </span>
+                )}
+                {form.entry_animation !== "none" && (
+                  <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                    {ENTRY_ANIMATIONS.find(a => a.value === form.entry_animation)?.label}
                   </span>
                 )}
               </div>
@@ -1618,6 +1693,121 @@ export default function ChatWidgetPage() {
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
                 </div>
               </label>
+            </div>
+
+            {/* Effects Section */}
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-900 dark:text-gray-100">Effects</h3>
+                  <p className="text-xs text-gray-500">Animations and visual flair</p>
+                </div>
+              </div>
+
+              {/* Attention Effect */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Attention Effect
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {ATTENTION_EFFECTS.map((effect) => (
+                    <button
+                      key={effect.value}
+                      type="button"
+                      onClick={() => setForm({ ...form, attention_effect: effect.value })}
+                      className={`relative flex flex-col items-center p-3 rounded-xl border-2 transition-all ${
+                        form.attention_effect === effect.value
+                          ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30"
+                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-1 ${
+                        form.attention_effect === effect.value
+                          ? "bg-amber-100 dark:bg-amber-900/50"
+                          : "bg-gray-100 dark:bg-gray-800"
+                      }`}>
+                        <svg className={`w-4 h-4 ${form.attention_effect === effect.value ? "text-amber-600" : "text-gray-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={effect.icon} />
+                        </svg>
+                      </div>
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{effect.label}</span>
+                      <span className="text-[10px] text-gray-500">{effect.desc}</span>
+                      {form.attention_effect === effect.value && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center">
+                          <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Shadow Style */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Shadow Style
+                </label>
+                <div className="flex gap-2">
+                  {SHADOW_STYLES.map((shadow) => (
+                    <button
+                      key={shadow.value}
+                      type="button"
+                      onClick={() => setForm({ ...form, shadow_style: shadow.value })}
+                      className={`flex-1 flex flex-col items-center p-3 rounded-xl border-2 transition-all ${
+                        form.shadow_style === shadow.value
+                          ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30"
+                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                      }`}
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-full mb-1.5 ${
+                          shadow.value === "glow"
+                            ? "shadow-lg"
+                            : shadow.class
+                        }`}
+                        style={{
+                          background: form.primary_color,
+                          boxShadow: shadow.value === "glow"
+                            ? `0 0 20px ${form.primary_color}80`
+                            : undefined,
+                        }}
+                      />
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{shadow.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Entry Animation */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Entry Animation
+                </label>
+                <div className="flex gap-2">
+                  {ENTRY_ANIMATIONS.map((anim) => (
+                    <button
+                      key={anim.value}
+                      type="button"
+                      onClick={() => setForm({ ...form, entry_animation: anim.value })}
+                      className={`flex-1 flex flex-col items-center p-3 rounded-xl border-2 transition-all ${
+                        form.entry_animation === anim.value
+                          ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30"
+                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                      }`}
+                    >
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{anim.label}</span>
+                      <span className="text-[10px] text-gray-500">{anim.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-col gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
