@@ -1,7 +1,7 @@
 """add widget appearance columns
 
-Revision ID: i6d7e8f9g0h1
-Revises: h5c6d7e8f9g0
+Revision ID: n1i2j3k4l5m6
+Revises: m0h1i2j3k4l5
 Create Date: 2026-02-03
 
 """
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'i6d7e8f9g0h1'
+revision = 'n1i2j3k4l5m6'
 down_revision = 'm0h1i2j3k4l5'
 branch_labels = None
 depends_on = None
