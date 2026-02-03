@@ -299,33 +299,26 @@
     }
 
     .s2c-bubble.bottom-right {
-      bottom: 24px;
-      right: 24px;
+      bottom: ${buttonShape === "bar" ? "0" : "24px"};
+      right: ${buttonShape === "tab" ? "0" : "24px"};
     }
 
     .s2c-bubble.bottom-left {
-      bottom: 24px;
-      left: 24px;
+      bottom: ${buttonShape === "bar" ? "0" : "24px"};
+      left: ${buttonShape === "tab" ? "0" : "24px"};
     }
 
     ${buttonShape === "tab" ? `
-    .s2c-bubble.bottom-right {
-      right: 0;
-      border-radius: 12px 0 0 12px;
-    }
     .s2c-bubble.bottom-left {
-      left: 0;
       border-radius: 0 12px 12px 0;
     }` : ""}
 
     ${buttonShape === "bar" ? `
     .s2c-bubble.bottom-right,
     .s2c-bubble.bottom-left {
-      bottom: 0;
-      left: 50%;
       right: auto;
+      left: 50%;
       transform: translateX(-50%);
-      border-radius: 16px 16px 0 0;
     }
     .s2c-bubble.bottom-right:hover,
     .s2c-bubble.bottom-left:hover {
@@ -731,44 +724,45 @@
   `;
   }
 
-  // Modern Icons - Next-Gen Design
+  // Icons — match dashboard previews exactly
   const bubbleIcons = {
-    chat: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    chat: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+      <circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="8" cy="12" r="1" fill="currentColor"/><circle cx="16" cy="12" r="1" fill="currentColor"/>
     </svg>`,
-    message: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    message: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
       <polyline points="22,6 12,13 2,6"/>
+      <line x1="2" y1="20" x2="8" y2="14" opacity="0.5"/><line x1="22" y1="20" x2="16" y2="14" opacity="0.5"/>
     </svg>`,
-    support: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="10"/>
-      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-      <line x1="12" y1="17" x2="12.01" y2="17"/>
+    support: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+      <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+      <circle cx="12" cy="12" r="2" opacity="0.4"/><path d="M12 14v3" opacity="0.4"/>
     </svg>`,
-    robot: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="11" width="18" height="10" rx="2"/>
-      <circle cx="12" cy="5" r="2"/>
-      <path d="M12 7v4"/>
-      <line x1="8" y1="16" x2="8" y2="16"/>
-      <line x1="16" y1="16" x2="16" y2="16"/>
+    robot: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="8" width="18" height="12" rx="2"/>
+      <circle cx="9" cy="14" r="1.5" fill="currentColor"/><circle cx="15" cy="14" r="1.5" fill="currentColor"/>
+      <path d="M12 2v4"/><circle cx="12" cy="2" r="1" fill="currentColor"/>
+      <path d="M8 17h8" stroke-linecap="round"/>
+      <path d="M1 12h2M21 12h2" opacity="0.5"/>
     </svg>`,
-    sparkle: `<svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 0L14.59 8.41L23 11L14.59 13.59L12 22L9.41 13.59L1 11L9.41 8.41L12 0Z"/>
-      <path d="M5 2L6 5L9 6L6 7L5 10L4 7L1 6L4 5L5 2Z" opacity="0.6"/>
-      <path d="M19 14L20 17L23 18L20 19L19 22L18 19L15 18L18 17L19 14Z" opacity="0.6"/>
+    sparkle: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2l2.4 7.2H22l-6.2 4.5 2.4 7.3L12 16.5 5.8 21l2.4-7.3L2 9.2h7.6L12 2z"/>
+      <circle cx="19" cy="5" r="1.5" fill="currentColor" opacity="0.6"/>
+      <circle cx="5" cy="19" r="1" fill="currentColor" opacity="0.4"/>
+      <path d="M19 2v2M18 3h2" opacity="0.5"/>
     </svg>`,
-    wave: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M18.37 2.63L14 7l-1.59-1.59a2 2 0 0 0-2.82 0L8 7l9 9 1.59-1.59a2 2 0 0 0 0-2.82L17 10l4.37-4.37a2.12 2.12 0 1 0-3-3Z"/>
-      <path d="M9 8c-2 3-4 3.5-7 4l8 10c2-1 6-5 6-10"/>
-      <path d="M14.5 17.5L4.5 15"/>
+    wave: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/>
+      <path d="M17 6l2-2M19 10h2M17 14l2 2" opacity="0.4"/>
     </svg>`,
-    ai: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/>
-      <path d="M16 10v2a4 4 0 0 1-8 0v-2"/>
-      <circle cx="12" cy="18" r="4"/>
-      <path d="M12 14v0"/>
-      <path d="M7.5 6.5L5 4"/>
-      <path d="M16.5 6.5L19 4"/>
+    ai: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/>
+      <circle cx="12" cy="12" r="4" opacity="0.5"/>
+      <circle cx="12" cy="12" r="1" fill="currentColor"/>
+      <path d="M12 3v2M12 19v2M3 12h2M19 12h2" opacity="0.6"/>
+      <path d="M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4l1.4-1.4M17 7l1.4-1.4" opacity="0.4"/>
     </svg>`,
   };
 
