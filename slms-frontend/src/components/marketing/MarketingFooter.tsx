@@ -91,13 +91,13 @@ export default function MarketingFooter() {
               An Axion Deep Product
             </a>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1">
             {/* Social Links */}
             <a
               href="https://twitter.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
               aria-label="Twitter"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -108,7 +108,7 @@ export default function MarketingFooter() {
               href="https://linkedin.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
               aria-label="LinkedIn"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -119,7 +119,7 @@ export default function MarketingFooter() {
               href="https://github.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
               aria-label="GitHub"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

@@ -137,7 +137,7 @@ const FEATURE_SECTIONS = [
 const ADDITIONAL_FEATURES = [
   {
     icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
       </svg>
     ),
@@ -146,7 +146,7 @@ const ADDITIONAL_FEATURES = [
   },
   {
     icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
     ),
@@ -155,7 +155,7 @@ const ADDITIONAL_FEATURES = [
   },
   {
     icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
       </svg>
     ),
@@ -164,7 +164,7 @@ const ADDITIONAL_FEATURES = [
   },
   {
     icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
       </svg>
     ),
@@ -173,7 +173,7 @@ const ADDITIONAL_FEATURES = [
   },
   {
     icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
       </svg>
     ),
@@ -182,7 +182,7 @@ const ADDITIONAL_FEATURES = [
   },
   {
     icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
       </svg>
     ),
@@ -191,7 +191,7 @@ const ADDITIONAL_FEATURES = [
   },
   {
     icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
       </svg>
     ),
@@ -200,7 +200,7 @@ const ADDITIONAL_FEATURES = [
   },
   {
     icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
       </svg>
     ),
@@ -220,7 +220,7 @@ export default function FeaturesPage() {
   return (
     <div>
       {/* Hero */}
-      <section className="py-20 bg-gradient-to-b from-indigo-50 to-white dark:from-gray-900 dark:to-gray-950">
+      <section className="py-12 sm:py-20 bg-gradient-to-b from-indigo-50 to-white dark:from-gray-900 dark:to-gray-950">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">
             AI Chat + Forms + CRM Sync
@@ -235,10 +235,10 @@ export default function FeaturesPage() {
       {FEATURE_SECTIONS.map((section, index) => (
         <section
           key={section.title}
-          className={`py-20 ${index % 2 === 0 ? "bg-white dark:bg-gray-950" : "bg-gray-50 dark:bg-gray-900"}`}
+          className={`py-12 sm:py-20 ${index % 2 === 0 ? "bg-white dark:bg-gray-950" : "bg-gray-50 dark:bg-gray-900"}`}
         >
           <div className="max-w-7xl mx-auto px-6">
-            <div className={`grid lg:grid-cols-2 gap-12 items-center ${index % 2 === 1 ? "lg:flex-row-reverse" : ""}`}>
+            <div className={`grid lg:grid-cols-2 gap-8 sm:gap-12 items-center ${index % 2 === 1 ? "lg:flex-row-reverse" : ""}`}>
               <div className={index % 2 === 1 ? "lg:order-2" : ""}>
                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
                   {section.title}
@@ -290,19 +290,19 @@ export default function FeaturesPage() {
       ))}
 
       {/* Additional Features Grid */}
-      <section className="py-20 bg-white dark:bg-gray-950">
+      <section className="py-12 sm:py-20 bg-white dark:bg-gray-950">
         <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">
+          <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-8 sm:mb-12">
             And Much More
           </h2>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {ADDITIONAL_FEATURES.map((feature) => (
               <div
                 key={feature.title}
-                className="p-6 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors"
+                className="p-4 sm:p-6 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors"
               >
-                <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                   {feature.icon}
                 </div>
                 <h3 className="mt-4 font-semibold text-gray-900 dark:text-white">
@@ -318,7 +318,7 @@ export default function FeaturesPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 bg-gradient-to-r from-indigo-600 to-purple-600">
+      <section className="py-12 sm:py-20 bg-gradient-to-r from-indigo-600 to-purple-600">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white">
             Ready to See It in Action?
@@ -326,16 +326,16 @@ export default function FeaturesPage() {
           <p className="mt-4 text-lg text-indigo-100">
             Start your free trial today. No credit card required.
           </p>
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <Link
               to="/signup"
-              className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold rounded-xl bg-white text-indigo-600 hover:bg-indigo-50 shadow-lg transition-all"
+              className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] text-base font-semibold rounded-xl bg-white text-indigo-600 hover:bg-indigo-50 shadow-lg transition-all flex items-center justify-center"
             >
               Start Free Trial
             </Link>
             <Link
               to="/pricing"
-              className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold rounded-xl border border-white/30 text-white hover:bg-white/10 transition-colors"
+              className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] text-base font-semibold rounded-xl border border-white/30 text-white hover:bg-white/10 transition-colors flex items-center justify-center"
             >
               View Pricing
             </Link>

@@ -9,7 +9,7 @@ import { useSEO, schemas } from "@/hooks/useSEO";
 const FEATURES = [
   {
     icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
       </svg>
     ),
@@ -18,7 +18,7 @@ const FEATURES = [
   },
   {
     icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
       </svg>
     ),
@@ -27,7 +27,7 @@ const FEATURES = [
   },
   {
     icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
       </svg>
     ),
@@ -36,7 +36,7 @@ const FEATURES = [
   },
   {
     icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
       </svg>
     ),
@@ -45,7 +45,7 @@ const FEATURES = [
   },
   {
     icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
       </svg>
     ),
@@ -54,7 +54,7 @@ const FEATURES = [
   },
   {
     icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
       </svg>
     ),
@@ -103,7 +103,7 @@ export default function HomePage() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-indigo-50 to-white dark:from-gray-900 dark:to-gray-950 py-20 lg:py-28">
+      <section className="relative overflow-hidden bg-gradient-to-b from-indigo-50 to-white dark:from-gray-900 dark:to-gray-950 py-12 sm:py-20 lg:py-28">
         <div className="max-w-7xl mx-auto px-6">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white tracking-tight">
@@ -112,25 +112,25 @@ export default function HomePage() {
                 never gives up
               </span>
             </h1>
-            <p className="mt-6 text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            <p className="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
               Your AI sales assistant captures leads 24/7. Unlike basic chatbots, it handles objections, stays persistent, and syncs every lead to your CRM instantly.
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
               <Link
                 to="/signup"
-                className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl hover:shadow-indigo-500/30"
+                className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] text-base font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl hover:shadow-indigo-500/30 flex items-center justify-center"
               >
                 Start Free Trial
               </Link>
               <Link
                 to="/features"
-                className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold rounded-xl border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] text-base font-semibold rounded-xl border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center"
               >
                 See How It Works
               </Link>
             </div>
             {/* Value props highlight */}
-            <div className="mt-12 inline-flex items-center gap-6 px-6 py-3 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700">
+            <div className="mt-8 sm:mt-12 inline-flex items-center gap-4 sm:gap-6 px-4 sm:px-6 py-3 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700">
               <div className="text-center">
                 <div className="text-2xl font-bold text-indigo-600">24/7</div>
                 <div className="text-xs text-gray-500">AI chat</div>
@@ -162,7 +162,7 @@ export default function HomePage() {
           <p className="text-center text-sm font-medium text-gray-500 dark:text-gray-400 mb-6">
             Trusted by teams using
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 md:gap-12">
             {CRM_LOGOS.map((crm) => (
               <div
                 key={crm.name}
@@ -172,7 +172,7 @@ export default function HomePage() {
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: crm.color }}
                 />
-                <span className="text-lg font-semibold">{crm.name}</span>
+                <span className="text-base sm:text-lg font-semibold">{crm.name}</span>
               </div>
             ))}
           </div>
@@ -180,9 +180,9 @@ export default function HomePage() {
       </section>
 
       {/* AI Site2CRM AI Section */}
-      <section className="py-20 bg-gradient-to-br from-violet-50 via-indigo-50 to-cyan-50 dark:from-gray-900 dark:via-indigo-950/30 dark:to-gray-900">
+      <section className="py-12 sm:py-20 bg-gradient-to-br from-violet-50 via-indigo-50 to-cyan-50 dark:from-gray-900 dark:via-indigo-950/30 dark:to-gray-900">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-sm font-medium mb-4">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -269,9 +269,9 @@ export default function HomePage() {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 bg-white dark:bg-gray-950">
+      <section className="py-12 sm:py-20 bg-white dark:bg-gray-950">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
               How It Works
             </h2>
@@ -280,7 +280,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
             {STEPS.map((step, index) => (
               <div key={step.number} className="relative">
                 {/* Connector line */}
@@ -288,7 +288,7 @@ export default function HomePage() {
                   <div className="hidden md:block absolute top-8 left-[calc(50%+2rem)] w-[calc(100%-4rem)] h-0.5 bg-gradient-to-r from-indigo-600 to-purple-600" />
                 )}
                 <div className="text-center">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white text-2xl font-bold mb-4">
+                  <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white text-xl sm:text-2xl font-bold mb-4">
                     {step.number}
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
@@ -305,9 +305,9 @@ export default function HomePage() {
       </section>
 
       {/* Features */}
-      <section className="py-20 bg-gray-50 dark:bg-gray-900">
+      <section className="py-12 sm:py-20 bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
               Everything You Need
             </h2>
@@ -316,16 +316,16 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {FEATURES.map((feature) => (
               <div
                 key={feature.title}
-                className="p-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-indigo-200 dark:hover:border-indigo-800 transition-all"
+                className="p-4 sm:p-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-indigo-200 dark:hover:border-indigo-800 transition-all"
               >
-                <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-3 sm:mb-4">
                   {feature.icon}
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-2">
                   {feature.title}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
@@ -350,9 +350,9 @@ export default function HomePage() {
       </section>
 
       {/* Demo Form Section */}
-      <section className="py-20 bg-white dark:bg-gray-950">
+      <section className="py-12 sm:py-20 bg-white dark:bg-gray-950">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
                 Try It Now
@@ -387,7 +387,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-indigo-600 to-purple-600">
+      <section className="py-12 sm:py-20 bg-gradient-to-r from-indigo-600 to-purple-600">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white">
             Ready to Get Your Time Back?
@@ -395,16 +395,16 @@ export default function HomePage() {
           <p className="mt-4 text-lg text-indigo-100">
             Start your 14-day free trial. No credit card required.
           </p>
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <Link
               to="/signup"
-              className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold rounded-xl bg-white text-indigo-600 hover:bg-indigo-50 shadow-lg transition-all"
+              className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] text-base font-semibold rounded-xl bg-white text-indigo-600 hover:bg-indigo-50 shadow-lg transition-all flex items-center justify-center"
             >
               Start Free Trial
             </Link>
             <Link
               to="/pricing"
-              className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold rounded-xl border border-white/30 text-white hover:bg-white/10 transition-colors"
+              className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] text-base font-semibold rounded-xl border border-white/30 text-white hover:bg-white/10 transition-colors flex items-center justify-center"
             >
               View Pricing
             </Link>

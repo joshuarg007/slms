@@ -162,7 +162,7 @@ export default function PricingPage() {
   return (
     <div>
       {/* Hero */}
-      <section className="py-20 bg-gradient-to-b from-indigo-50 to-white dark:from-gray-900 dark:to-gray-950">
+      <section className="py-12 sm:py-20 bg-gradient-to-b from-indigo-50 to-white dark:from-gray-900 dark:to-gray-950">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">
             Simple, Transparent Pricing
@@ -176,13 +176,13 @@ export default function PricingPage() {
       {/* Pricing Cards */}
       <section className="py-16 bg-white dark:bg-gray-950">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
             {PLANS.map((plan) => (
               <div
                 key={plan.name}
-                className={`relative rounded-2xl p-8 ${
+                className={`relative rounded-2xl p-5 sm:p-8 ${
                   plan.highlighted
-                    ? "bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-2xl shadow-indigo-500/25 scale-105"
+                    ? "bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-2xl shadow-indigo-500/25 md:scale-105"
                     : "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
                 }`}
               >
@@ -256,7 +256,7 @@ export default function PricingPage() {
 
                 <Link
                   to={plan.name === "Site2CRM Enterprise" ? "/contact" : "/signup"}
-                  className={`mt-8 block w-full py-3 text-center font-semibold rounded-xl transition-all ${
+                  className={`mt-6 sm:mt-8 block w-full py-3 min-h-[44px] text-center font-semibold rounded-xl transition-all flex items-center justify-center ${
                     plan.highlighted
                       ? "bg-white text-indigo-600 hover:bg-indigo-50"
                       : "bg-indigo-600 text-white hover:bg-indigo-700"
@@ -271,17 +271,17 @@ export default function PricingPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 bg-gray-50 dark:bg-gray-900">
+      <section className="py-12 sm:py-20 bg-gray-50 dark:bg-gray-900">
         <div className="max-w-4xl mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">
+          <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-8 sm:mb-12">
             Frequently Asked Questions
           </h2>
 
-          <div className="grid gap-6">
+          <div className="grid gap-4 sm:gap-6">
             {FAQS.map((faq) => (
               <div
                 key={faq.question}
-                className="p-6 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                className="p-4 sm:p-6 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
               >
                 <h3 className="font-semibold text-gray-900 dark:text-white">
                   {faq.question}
@@ -304,7 +304,7 @@ export default function PricingPage() {
           </p>
           <Link
             to="/contact"
-            className="inline-block mt-6 px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-colors"
+            className="inline-block mt-6 px-8 py-3 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-colors"
           >
             Contact Sales
           </Link>

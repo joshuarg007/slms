@@ -61,12 +61,19 @@ export default function MarketingHeader() {
     setMobileOpen(false);
   }, [location.pathname]);
 
-  // Add shadow on scroll
+  // Add shadow on scroll (debounced)
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          setScrolled(window.scrollY > 10);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -166,7 +173,7 @@ export default function MarketingHeader() {
         role="dialog"
         aria-modal="true"
         aria-label="Mobile navigation menu"
-        className={`fixed top-16 right-0 bottom-0 w-full max-w-sm bg-white dark:bg-gray-950 z-50 md:hidden transform transition-transform duration-300 ease-out overflow-y-auto ${
+        className={`fixed top-16 right-0 bottom-0 w-[90vw] max-w-sm bg-white dark:bg-gray-950 z-50 md:hidden transform transition-transform duration-300 ease-out overflow-y-auto ${
           mobileOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -180,7 +187,7 @@ export default function MarketingHeader() {
                 <Link
                   key={link.to}
                   to={link.to}
-                  className={`px-4 py-3 text-base font-medium rounded-xl transition-colors ${
+                  className={`px-4 py-3 min-h-[44px] text-base font-medium rounded-xl transition-colors flex items-center ${
                     isActive
                       ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50"
                       : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -195,13 +202,13 @@ export default function MarketingHeader() {
           <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800 flex flex-col gap-3">
             <Link
               to="/login"
-              className="px-4 py-3 text-base font-medium text-gray-700 dark:text-gray-300 text-center rounded-xl border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="px-4 py-3 min-h-[44px] text-base font-medium text-gray-700 dark:text-gray-300 text-center rounded-xl border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               Log in
             </Link>
             <Link
               to="/signup"
-              className="px-4 py-3 text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 text-center rounded-xl shadow-lg shadow-indigo-500/25 transition-colors"
+              className="px-4 py-3 min-h-[44px] text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 text-center rounded-xl shadow-lg shadow-indigo-500/25 transition-colors"
             >
               Get Started Free
             </Link>
@@ -215,13 +222,13 @@ export default function MarketingHeader() {
             <div className="flex flex-col gap-1">
               <Link
                 to="/terms"
-                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                className="px-4 py-2.5 min-h-[44px] flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
               >
                 Terms of Service
               </Link>
               <Link
                 to="/privacy"
-                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                className="px-4 py-2.5 min-h-[44px] flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
               >
                 Privacy Policy
               </Link>
