@@ -30,7 +30,7 @@ const FEATURES = [
       </svg>
     ),
     title: "Multi-Step Forms",
-    description: "Wizard-style forms engineered for high completion rates across every device.",
+    description: "Step-by-step forms that guide visitors to completion. Built for every device.",
   },
   {
     icon: (
@@ -101,9 +101,9 @@ export default function HomePage() {
   const [showTyping, setShowTyping] = useState(false);
 
   useSEO({
-    title: "Site2CRM — AI-Powered Lead Capture & CRM Sync | Axion Deep Labs",
+    title: "Site2CRM — AI-Powered Lead Capture & CRM Sync",
     description:
-      "AI chat agents and lead forms that sync to your CRM in real-time. Capture leads 24/7 with AI that handles objections. Built by Axion Deep Labs.",
+      "AI chat agents and lead forms that sync to your CRM in real-time. Capture leads 24/7 with AI that handles objections. 14-day free trial.",
     path: "/",
     jsonLd: schemas.organization,
   });
@@ -141,7 +141,7 @@ export default function HomePage() {
               <div className="opacity-0 animate-fade-up">
                 <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-wider">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Built by Axion Deep Labs
+                  AI-Powered Lead Capture
                 </span>
               </div>
 
@@ -169,13 +169,13 @@ export default function HomePage() {
                   to="/signup"
                   className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] text-base font-semibold rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-white shadow-lg shadow-violet-500/25 transition-all hover:shadow-xl hover:shadow-violet-500/30 flex items-center justify-center"
                 >
-                  Deploy Your AI Agent
+                  Start Free Trial
                 </Link>
                 <Link
                   to="/features"
                   className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] text-base font-semibold rounded-xl border border-white/20 text-gray-300 hover:bg-white/5 hover:border-white/30 transition-all flex items-center justify-center"
                 >
-                  Explore the Platform
+                  See How It Works
                 </Link>
               </div>
 
@@ -183,7 +183,7 @@ export default function HomePage() {
               <div className="mt-8 sm:mt-12 inline-flex items-center gap-4 sm:gap-6 px-4 sm:px-6 py-3 rounded-full bg-white/5 border border-white/10 opacity-0 animate-fade-up-4">
                 <div className="text-center">
                   <div className="text-xl sm:text-2xl font-bold text-white">24/7</div>
-                  <div className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider">Autonomous</div>
+                  <div className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider">Always On</div>
                 </div>
                 <div className="w-px h-8 bg-white/10" />
                 <div className="text-center">
@@ -283,7 +283,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Autonomous Sales Intelligence Section */}
+      {/* AI Sales Section */}
       <section className="py-12 sm:py-20 bg-gradient-to-br from-gray-50 via-indigo-50/50 to-violet-50/50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 items-center">
@@ -292,10 +292,10 @@ export default function HomePage() {
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                Core Technology
+                Site2CRM AI
               </div>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
-                Autonomous Sales Intelligence
+                AI That Sells While You Sleep
               </h2>
               <p className="mt-4 text-base sm:text-lg text-gray-600 dark:text-gray-400">
                 Our AI agents don't follow scripts — they have real conversations, handle objections, and keep pushing toward a goal you set.
@@ -363,15 +363,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Three Steps to Deployment */}
+      {/* How It Works */}
       <section className="py-12 sm:py-20 bg-white dark:bg-gray-950">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
-              Three Steps to Deployment
+              How It Works
             </h2>
             <p className="mt-3 text-base sm:text-lg text-gray-600 dark:text-gray-400">
-              From configuration to live capture in under five minutes
+              Get started in minutes, not hours
             </p>
           </div>
 
@@ -398,12 +398,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* The Full Stack */}
+      {/* Everything You Need */}
       <section className="py-12 sm:py-20 bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
-              The Full Stack
+              Everything You Need
             </h2>
             <p className="mt-3 text-base sm:text-lg text-gray-600 dark:text-gray-400">
               Powerful features to capture and convert more leads
@@ -484,7 +484,7 @@ export default function HomePage() {
       <section className="py-12 sm:py-20 bg-gray-950">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white">
-            Deploy Your AI Agent
+            Ready to Capture More Leads?
           </h2>
           <p className="mt-4 text-base sm:text-lg text-gray-400">
             14-day free trial. No credit card required. Set up in under 5 minutes.

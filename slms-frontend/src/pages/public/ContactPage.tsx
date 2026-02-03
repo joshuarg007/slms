@@ -5,7 +5,7 @@ export default function ContactPage() {
   useSEO({
     title: "Contact — Get in Touch With the Team | Site2CRM",
     description:
-      "Questions about Site2CRM? Contact our engineering team. Custom deployments, integrations, and enterprise configurations.",
+      "Questions about Site2CRM? Contact our team. We typically respond within 24 hours.",
     path: "/contact",
   });
 

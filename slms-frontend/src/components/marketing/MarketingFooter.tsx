@@ -37,7 +37,7 @@ export default function MarketingFooter() {
               <Logo linkTo="/" size="sm" forceDark />
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Precision-engineered lead capture. Built by Axion Deep Labs.
+              AI-powered lead capture and CRM sync. An Axion Deep product.
             </p>
           </div>
 
