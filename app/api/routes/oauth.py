@@ -22,7 +22,8 @@ from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
 from app.db import models
-from app.api.routes.auth import get_current_user, verify_password
+from app.api.routes.auth import get_current_user
+from app.core.security import verify_password
 
 logger = logging.getLogger(__name__)
 
