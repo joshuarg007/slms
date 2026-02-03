@@ -83,6 +83,104 @@
     const botBubbleColor = cfg.bot_bubble_color || "#1e1e3f";
     const btnSize = buttonSizes[cfg.button_size] || buttonSizes.medium;
 
+    // Appearance config
+    const buttonShape = cfg.button_shape || "bubble";
+    const gradientType = cfg.gradient_type || "none";
+    const gradColor1 = cfg.gradient_color_1 || primaryColor;
+    const gradColor2 = cfg.gradient_color_2 || "#8b5cf6";
+    const gradColor3 = cfg.gradient_color_3 || "#a855f7";
+    const gradientAngle = cfg.gradient_angle != null ? cfg.gradient_angle : 135;
+    const buttonOpacity = cfg.button_opacity != null ? cfg.button_opacity : 1.0;
+    const blurBackground = cfg.blur_background || false;
+    const attentionEffect = cfg.attention_effect || "none";
+    const shadowStyle = cfg.shadow_style || "elevated";
+    const entryAnimation = cfg.entry_animation || "scale";
+
+    // Button shape → border-radius
+    const shapeRadius = {
+      bubble: "20px",
+      circle: "50%",
+      rounded: "16px",
+      square: "8px",
+    };
+    const bubbleRadius = shapeRadius[buttonShape] || "20px";
+
+    // Bubble background
+    let bubbleBg;
+    if (gradientType === "linear") {
+      bubbleBg = `linear-gradient(${gradientAngle}deg, ${gradColor1} 0%, ${gradColor2} 50%, ${gradColor3} 100%)`;
+    } else if (gradientType === "radial") {
+      bubbleBg = `radial-gradient(circle, ${gradColor1} 0%, ${gradColor2} 50%, ${gradColor3} 100%)`;
+    } else {
+      bubbleBg = primaryColor;
+    }
+
+    // Shadow style
+    const shadows = {
+      none: "none",
+      subtle: `0 2px 8px rgba(0,0,0,0.15)`,
+      elevated: `0 8px 32px rgba(99, 102, 241, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset, 0 2px 4px rgba(0, 0, 0, 0.1)`,
+      glow: `0 0 20px ${primaryColor}80, 0 0 40px ${primaryColor}40, 0 8px 32px rgba(0,0,0,0.3)`,
+      neon: `0 0 10px ${primaryColor}, 0 0 30px ${primaryColor}80, 0 0 60px ${primaryColor}40`,
+    };
+    const bubbleShadow = shadows[shadowStyle] || shadows.elevated;
+    const bubbleHoverShadow = shadowStyle === "none" ? "none"
+      : shadowStyle === "glow" ? `0 0 30px ${primaryColor}90, 0 0 60px ${primaryColor}60, 0 12px 40px rgba(0,0,0,0.3)`
+      : shadowStyle === "neon" ? `0 0 15px ${primaryColor}, 0 0 40px ${primaryColor}90, 0 0 80px ${primaryColor}50`
+      : `0 12px 40px rgba(99, 102, 241, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.15) inset, 0 4px 8px rgba(0, 0, 0, 0.15)`;
+
+    // Attention effect → animation on ::after
+    let attentionAnimation = "none";
+    let attentionKeyframes = "";
+    if (attentionEffect === "pulse") {
+      attentionAnimation = "s2c-pulse 2s ease-out infinite";
+      attentionKeyframes = `
+        @keyframes s2c-pulse {
+          0% { transform: scale(1); opacity: 0.5; }
+          100% { transform: scale(1.4); opacity: 0; }
+        }`;
+    } else if (attentionEffect === "bounce") {
+      attentionAnimation = "s2c-bounce 2s ease-in-out infinite";
+      attentionKeyframes = `
+        @keyframes s2c-bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }`;
+    } else if (attentionEffect === "shake") {
+      attentionAnimation = "s2c-shake 3s ease-in-out infinite";
+      attentionKeyframes = `
+        @keyframes s2c-shake {
+          0%, 90%, 100% { transform: rotate(0); }
+          92% { transform: rotate(-8deg); }
+          94% { transform: rotate(8deg); }
+          96% { transform: rotate(-6deg); }
+          98% { transform: rotate(6deg); }
+        }`;
+    }
+
+    // Entry animation for chat window
+    let windowAnimation = "s2c-slide-up";
+    let windowKeyframes = `
+      @keyframes s2c-slide-up {
+        from { opacity: 0; transform: translateY(24px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }`;
+    if (entryAnimation === "fade") {
+      windowAnimation = "s2c-fade-in";
+      windowKeyframes = `
+        @keyframes s2c-fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }`;
+    } else if (entryAnimation === "slide") {
+      windowAnimation = "s2c-slide-in";
+      windowKeyframes = `
+        @keyframes s2c-slide-in {
+          from { opacity: 0; transform: translateY(40px); }
+          to { opacity: 1; transform: translateY(0); }
+        }`;
+    }
+
     return `
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
@@ -97,26 +195,24 @@
       position: fixed;
       width: ${btnSize.size}px;
       height: ${btnSize.size}px;
-      border-radius: 20px;
+      border-radius: ${bubbleRadius};
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       z-index: 999998;
-      background: linear-gradient(135deg, ${primaryColor} 0%, #8b5cf6 50%, #a855f7 100%);
-      box-shadow:
-        0 8px 32px rgba(99, 102, 241, 0.4),
-        0 0 0 1px rgba(255, 255, 255, 0.1) inset,
-        0 2px 4px rgba(0, 0, 0, 0.1);
-      backdrop-filter: blur(10px);
+      background: ${bubbleBg};
+      opacity: ${buttonOpacity};
+      box-shadow: ${bubbleShadow};
+      ${blurBackground ? "backdrop-filter: blur(10px);" : ""}
     }
 
     .s2c-bubble::before {
       content: '';
       position: absolute;
       inset: 0;
-      border-radius: 20px;
+      border-radius: ${bubbleRadius};
       padding: 1px;
       background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.05));
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -128,10 +224,7 @@
 
     .s2c-bubble:hover {
       transform: scale(1.1) translateY(-2px);
-      box-shadow:
-        0 12px 40px rgba(99, 102, 241, 0.5),
-        0 0 0 1px rgba(255, 255, 255, 0.15) inset,
-        0 4px 8px rgba(0, 0, 0, 0.15);
+      box-shadow: ${bubbleHoverShadow};
     }
 
     .s2c-bubble:active {
@@ -160,28 +253,19 @@
       left: 24px;
     }
 
-    /* Pulse animation for attention */
+    /* Attention effect */
     .s2c-bubble::after {
       content: '';
       position: absolute;
       width: 100%;
       height: 100%;
-      border-radius: 20px;
+      border-radius: ${bubbleRadius};
       background: inherit;
-      animation: s2c-pulse 2s ease-out infinite;
+      animation: ${attentionAnimation};
       z-index: -1;
     }
 
-    @keyframes s2c-pulse {
-      0% {
-        transform: scale(1);
-        opacity: 0.5;
-      }
-      100% {
-        transform: scale(1.4);
-        opacity: 0;
-      }
-    }
+    ${attentionKeyframes}
 
     .s2c-window {
       position: fixed;
@@ -202,19 +286,10 @@
 
     .s2c-window.open {
       display: flex;
-      animation: s2c-slide-up 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      animation: ${windowAnimation} 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
-    @keyframes s2c-slide-up {
-      from {
-        opacity: 0;
-        transform: translateY(24px) scale(0.95);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-    }
+    ${windowKeyframes}
 
     .s2c-window.bottom-right {
       bottom: ${btnSize.size + 40}px;
