@@ -103,7 +103,7 @@ export default function HomePage() {
   useSEO({
     title: "Site2CRM — AI-Powered Lead Capture & CRM Sync | Axion Deep Labs",
     description:
-      "Precision-engineered AI chat agents and lead forms that sync to your CRM in real-time. Goal-driven AI that handles objections. Built by Axion Deep Labs.",
+      "AI chat agents and lead forms that sync to your CRM in real-time. Capture leads 24/7 with AI that handles objections. Built by Axion Deep Labs.",
     path: "/",
     jsonLd: schemas.organization,
   });
@@ -161,7 +161,7 @@ export default function HomePage() {
               </h1>
 
               <p className="mt-5 sm:mt-6 text-base sm:text-lg text-gray-400 max-w-xl mx-auto lg:mx-0 opacity-0 animate-fade-up-2">
-                Precision-engineered AI chat agents that qualify, persist, and convert. Every conversation syncs to your CRM instantly.
+                AI chat agents that qualify leads, handle objections, and never take a day off. Every conversation syncs to your CRM instantly.
               </p>
 
               <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 justify-center lg:justify-start opacity-0 animate-fade-up-3">
@@ -264,7 +264,7 @@ export default function HomePage() {
       <section className="py-10 sm:py-12 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
         <div className="max-w-7xl mx-auto px-6">
           <p className="text-center text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-6 uppercase tracking-wider">
-            Engineered for teams using
+            Integrates with
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 md:gap-12">
             {CRM_LOGOS.map((crm) => (
@@ -298,13 +298,13 @@ export default function HomePage() {
                 Autonomous Sales Intelligence
               </h2>
               <p className="mt-4 text-base sm:text-lg text-gray-600 dark:text-gray-400">
-                Our AI agents don't follow scripts — they reason, adapt, and persist through objections using goal-driven conversation architecture.
+                Our AI agents don't follow scripts — they have real conversations, handle objections, and keep pushing toward a goal you set.
               </p>
               <ul className="mt-6 sm:mt-8 space-y-3 sm:space-y-4">
                 {[
-                  { title: "Goal-Driven Architecture", desc: "Capture emails, book demos, start trials, or collect quotes" },
-                  { title: "Objection Persistence", desc: "Configurable rebuttal strategies with up to 5 escalation attempts" },
-                  { title: "Industry Configurations", desc: "Pre-tuned profiles for SaaS, Agency, and E-commerce" },
+                  { title: "Set Your Goal", desc: "Capture emails, book demos, start trials, or collect quotes" },
+                  { title: "Handles Objections", desc: "Up to 5 follow-ups before gracefully backing off — like a real salesperson" },
+                  { title: "Industry Templates", desc: "Ready-to-go profiles for SaaS, Agency, and E-commerce" },
                   { title: "Full Brand Control", desc: "Custom colors, headers, quick replies, and conversation tone" },
                 ].map((item) => (
                   <li key={item.title} className="flex items-start gap-3">
@@ -406,7 +406,7 @@ export default function HomePage() {
               The Full Stack
             </h2>
             <p className="mt-3 text-base sm:text-lg text-gray-600 dark:text-gray-400">
-              Every component engineered for conversion
+              Powerful features to capture and convert more leads
             </p>
           </div>
 
@@ -434,7 +434,7 @@ export default function HomePage() {
               to="/features"
               className="inline-flex items-center gap-2 text-violet-600 dark:text-violet-400 font-medium hover:gap-3 transition-all"
             >
-              Explore the full platform
+              See all features
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
@@ -487,7 +487,7 @@ export default function HomePage() {
             Deploy Your AI Agent
           </h2>
           <p className="mt-4 text-base sm:text-lg text-gray-400">
-            14-day trial. No credit card. Full access to the platform.
+            14-day free trial. No credit card required. Set up in under 5 minutes.
           </p>
           <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <Link

@@ -6,7 +6,7 @@ const PLANS = [
     name: "Site2CRM",
     price: "$29",
     period: "/month",
-    description: "Core AI chat agent and form capabilities with CRM sync.",
+    description: "Everything you need to start capturing leads and syncing to your CRM.",
     features: [
       "1 embedded form",
       "Up to 100 leads/month",
@@ -23,7 +23,7 @@ const PLANS = [
     name: "Site2CRM PRO",
     price: "$79",
     period: "/month",
-    description: "Full platform access with advanced AI agents, branding control, and priority support.",
+    description: "Unlock the full platform — more AI agents, custom branding, and priority support.",
     features: [
       "Unlimited forms",
       "Up to 1,000 leads/month",
@@ -45,7 +45,7 @@ const PLANS = [
     name: "Site2CRM Enterprise",
     price: "Custom",
     period: "",
-    description: "Custom deployment with dedicated engineering support and SLA guarantees.",
+    description: "For larger teams that need custom integrations, SLAs, and a dedicated account manager.",
     features: [
       "Everything in PRO",
       "Unlimited leads",
@@ -152,9 +152,9 @@ export default function PricingPage() {
   };
 
   useSEO({
-    title: "Pricing — AI Lead Capture Platform | Site2CRM",
+    title: "Pricing — AI Chat + Lead Forms + CRM Sync | Site2CRM",
     description:
-      "Site2CRM pricing: AI chat agents + intelligent lead forms + real-time CRM sync. Starter $29/mo, Pro $79/mo. 14-day free trial. Built by Axion Deep Labs.",
+      "Site2CRM pricing: AI chat agents + lead forms + real-time CRM sync. Starter $29/mo, Pro $79/mo. 14-day free trial, no credit card required.",
     path: "/pricing",
     jsonLd: combinedSchema,
   });
@@ -165,10 +165,10 @@ export default function PricingPage() {
       <section className="py-12 sm:py-20 bg-gradient-to-b from-violet-50 to-white dark:from-gray-900 dark:to-gray-950">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">
-            Platform Access
+            Simple, Transparent Pricing
           </h1>
           <p className="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Transparent pricing. Full platform capabilities from day one.
+            Start capturing leads in minutes. No hidden fees, no surprises.
           </p>
         </div>
       </section>
@@ -300,7 +300,7 @@ export default function PricingPage() {
             Still have questions?
           </h2>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Our engineering team can help you find the right configuration.
+            Our team is here to help you find the right plan for your business.
           </p>
           <Link
             to="/contact"

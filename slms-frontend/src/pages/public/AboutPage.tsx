@@ -53,7 +53,7 @@ export default function AboutPage() {
   useSEO({
     title: "About — Built by Axion Deep Labs | Site2CRM",
     description:
-      "Site2CRM: precision-engineered AI chat and lead capture systems, built by Axion Deep Labs. Autonomous sales intelligence that reasons through objections and captures leads around the clock.",
+      "Site2CRM: AI chat agents and lead capture forms that sync to your CRM in real-time. Built by Axion Deep Labs, an R&D company focused on AI implementation and intelligent automation.",
     path: "/about",
   });
 
@@ -71,7 +71,7 @@ export default function AboutPage() {
             About Site2CRM
           </h1>
           <p className="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Precision-engineered AI systems for autonomous lead capture and CRM synchronization. A product of Axion Deep Labs.
+            AI-powered lead capture and CRM sync, built by Axion Deep Labs — a research and development company focused on intelligent automation.
           </p>
         </div>
       </section>

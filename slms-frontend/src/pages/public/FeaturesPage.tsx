@@ -11,23 +11,23 @@ const FEATURE_SECTIONS = [
   {
     title: "Site2CRM AI",
     description:
-      "Deploy autonomous AI chat agents that qualify leads 24/7 using goal-driven conversation architecture and configurable persistence strategies.",
+      "AI chat agents that qualify leads on your website 24/7. Set a goal, choose a persistence level, and let the AI handle the rest.",
     features: [
       {
         title: "Goal-Driven Conversations",
-        description: "Define discrete conversion objectives -- email capture, demo booking, trial activation, or quote collection -- each with its own conversation policy.",
+        description: "Choose what you want the AI to do — capture emails, book demos, start trials, or collect quotes. Each goal gets its own conversation flow.",
       },
       {
         title: "Persistent Sales AI",
-        description: "Configurable persistence depth with up to 5 rebuttal layers. The agent handles objections methodically, then disengages on policy.",
+        description: "Your AI doesn't give up after one 'no.' Set how persistent it should be — up to 5 follow-ups before gracefully backing off.",
       },
       {
         title: "Industry Templates",
-        description: "Pre-trained conversation blueprints for SaaS, Agency, E-commerce, and other verticals. Deploy in minutes.",
+        description: "Ready-to-go conversation templates for SaaS, Agency, E-commerce, and more. Get started in minutes, not hours.",
       },
       {
         title: "Full Branding Control",
-        description: "Pixel-level control over colors, headers, button dimensions, quick-reply prompts, and welcome sequences.",
+        description: "Match your brand exactly — custom colors, headers, button styles, quick-reply prompts, and welcome messages.",
       },
     ],
     media: { type: "video" as const, src: features1Video },
@@ -35,23 +35,23 @@ const FEATURE_SECTIONS = [
   {
     title: "Beautiful Multi-Step Forms",
     description:
-      "Wizard-architecture form engine with step-level analytics and field-level validation, engineered for maximum completion rates.",
+      "Multi-step forms that guide visitors through a smooth completion flow. Built-in validation and analytics so you know exactly where leads drop off.",
     features: [
       {
         title: "Progress Indicators",
-        description: "Deterministic progress rendering keeps users oriented and reduces abandonment at every step.",
+        description: "Show visitors exactly where they are in the form. Reduces drop-off and keeps people moving forward.",
       },
       {
         title: "Smart Field Validation",
-        description: "Inline validation engine catches malformed input pre-submission, eliminating round-trip error states.",
+        description: "Catch errors as visitors type — no more submitting a form just to find out something's wrong.",
       },
       {
         title: "Mobile Optimized",
-        description: "Responsive rendering pipeline adapts layout and touch targets across viewports, from 320px to ultrawide.",
+        description: "Looks great on every screen. Forms adapt automatically to phones, tablets, and desktops.",
       },
       {
         title: "Review Step",
-        description: "Built-in confirmation step lets users audit their input before final submission, reducing error rates.",
+        description: "Let visitors review everything before they hit submit. Fewer mistakes, higher quality leads.",
       },
     ],
     media: { type: "video" as const, src: features2Video },
@@ -59,27 +59,27 @@ const FEATURE_SECTIONS = [
   {
     title: "Powerful CRM Integrations",
     description:
-      "Real-time bidirectional sync layer with fault-tolerant delivery and automatic retry. Zero leads lost.",
+      "Every lead syncs to your CRM the moment it's captured. If something fails, we retry automatically. Zero leads lost.",
     features: [
       {
         title: "HubSpot",
-        description: "Full object mapping to HubSpot contacts, deals, and custom properties with field-level sync control.",
+        description: "Sync leads directly to HubSpot contacts, deals, and custom properties. Map any field you need.",
       },
       {
         title: "Salesforce",
-        description: "Direct API integration with Salesforce lead and custom object schemas, including field mapping and deduplication.",
+        description: "Push leads straight into Salesforce with custom field mapping and automatic deduplication.",
       },
       {
         title: "Pipedrive",
-        description: "Structured sync to Pipedrive persons, organizations, and deal stages with pipeline-aware routing.",
+        description: "Create persons, organizations, and deals in Pipedrive automatically. Leads land right in your pipeline.",
       },
       {
         title: "Zoho CRM",
-        description: "Native Zoho CRM module integration with configurable field mapping and layout-aware record creation.",
+        description: "Native Zoho CRM integration with flexible field mapping. Leads appear exactly where you need them.",
       },
       {
         title: "Nutshell",
-        description: "Automated lead and company synchronization to Nutshell with real-time delivery.",
+        description: "Leads and companies sync to Nutshell in real-time. Set it up once, never think about it again.",
       },
     ],
     media: { type: "video" as const, src: features3Video },
@@ -87,23 +87,23 @@ const FEATURE_SECTIONS = [
   {
     title: "Complete Customization",
     description:
-      "Comprehensive theming engine with full visual override capabilities. Precision-match any brand system.",
+      "Make it yours. Customize every detail to match your brand — colors, labels, fields, and more.",
     features: [
       {
         title: "Custom Fields",
-        description: "Extensible field type system: dropdowns, checkboxes, text areas, file uploads, and custom input components.",
+        description: "Add dropdowns, checkboxes, text areas, file uploads, and more. Build the exact form you need.",
       },
       {
         title: "Brand Colors",
-        description: "Visual style editor with hex/RGB input, contrast-ratio validation, and live preview rendering.",
+        description: "Pick your exact brand colors with a visual editor and see changes in real-time.",
       },
       {
         title: "Custom Labels",
-        description: "Full copy control over field labels, placeholder text, button copy, and validation messages.",
+        description: "Change any label, placeholder, button text, or error message to say exactly what you want.",
       },
       {
         title: "Embed Anywhere",
-        description: "Single-script embed compatible with WordPress, Webflow, Squarespace, and any custom HTML environment.",
+        description: "One line of code. Works with WordPress, Webflow, Squarespace, or any website.",
       },
     ],
     media: { type: "video" as const, src: features4Image },
@@ -111,23 +111,23 @@ const FEATURE_SECTIONS = [
   {
     title: "Analytics & Insights",
     description:
-      "Instrumented analytics pipeline with step-level funnel metrics, source attribution, and field-level drop-off analysis.",
+      "See exactly what's working. Track conversions, lead sources, and where visitors drop off — all in one dashboard.",
     features: [
       {
         title: "Conversion Tracking",
-        description: "End-to-end funnel visibility: impression, start, step progression, and completion metrics.",
+        description: "See your full funnel — from first impression to completed submission. Know your conversion rate at every step.",
       },
       {
         title: "Lead Sources",
-        description: "Automatic UTM parameter extraction and source attribution across all acquisition channels.",
+        description: "Automatically track where your leads come from — UTMs, referrers, and channels all captured.",
       },
       {
         title: "Field Analytics",
-        description: "Per-field abandonment analysis pinpoints friction points in your capture flow.",
+        description: "Find out which fields cause visitors to leave. Fix the friction, capture more leads.",
       },
       {
         title: "Export Reports",
-        description: "Structured CSV export for offline analysis, BI tool ingestion, or compliance archival.",
+        description: "Export your data as CSV anytime. Use it in spreadsheets, BI tools, or for your records.",
       },
     ],
     media: { type: "video" as const, src: features1Video },
@@ -142,7 +142,7 @@ const ADDITIONAL_FEATURES = [
       </svg>
     ),
     title: "AI Chat Agents",
-    description: "Deploy multiple autonomous agents, each with distinct conversion objectives and conversation policies.",
+    description: "Run multiple AI agents on your site, each with its own goal — demos, trials, quotes, or email capture.",
   },
   {
     icon: (
@@ -151,7 +151,7 @@ const ADDITIONAL_FEATURES = [
       </svg>
     ),
     title: "Persistent AI Sales",
-    description: "Configurable persistence depth with graduated rebuttal strategies and policy-driven disengagement.",
+    description: "Your AI handles objections like a real salesperson — up to 5 follow-ups before politely stepping back.",
   },
   {
     icon: (
@@ -160,7 +160,7 @@ const ADDITIONAL_FEATURES = [
       </svg>
     ),
     title: "Instant Notifications",
-    description: "Sub-second webhook and email notifications on lead capture events.",
+    description: "Get notified the instant a lead comes in — by email or webhook. Never miss an opportunity.",
   },
   {
     icon: (
@@ -169,7 +169,7 @@ const ADDITIONAL_FEATURES = [
       </svg>
     ),
     title: "Enterprise Security",
-    description: "SOC 2 compliant infrastructure with AES-256 encryption at rest and TLS 1.3 in transit.",
+    description: "Your data is encrypted, SOC 2 compliant, and never sold. Enterprise-ready from day one.",
   },
   {
     icon: (
@@ -178,7 +178,7 @@ const ADDITIONAL_FEATURES = [
       </svg>
     ),
     title: "Team Management",
-    description: "Role-based access control with granular permission scoping per team member.",
+    description: "Invite your team and control who can see, edit, or manage leads and settings.",
   },
   {
     icon: (
@@ -187,7 +187,7 @@ const ADDITIONAL_FEATURES = [
       </svg>
     ),
     title: "Auto-Retry Sync",
-    description: "Fault-tolerant delivery with exponential backoff retry and dead-letter logging. Zero data loss.",
+    description: "If a CRM sync fails, we retry automatically until it goes through. Zero data loss, guaranteed.",
   },
   {
     icon: (
@@ -196,7 +196,7 @@ const ADDITIONAL_FEATURES = [
       </svg>
     ),
     title: "White Label",
-    description: "Full brand removal on PRO and Enterprise tiers. Ship under your own identity.",
+    description: "Remove Site2CRM branding on PRO and Enterprise plans. Your forms, your brand.",
   },
   {
     icon: (
@@ -205,15 +205,15 @@ const ADDITIONAL_FEATURES = [
       </svg>
     ),
     title: "Developer API",
-    description: "Documented REST API with OAuth 2.0 authentication for programmatic access and custom integrations.",
+    description: "Full REST API with documentation. Build custom integrations or connect to your own tools.",
   },
 ];
 
 export default function FeaturesPage() {
   useSEO({
-    title: "Platform Features — AI Chat Agents, Forms & CRM Integration | Site2CRM",
+    title: "Features — AI Chat Agents, Lead Forms & CRM Sync | Site2CRM",
     description:
-      "Site2CRM platform: autonomous AI chat agents with goal-driven conversation architecture, multi-step forms, real-time CRM sync to HubSpot, Salesforce, Pipedrive, Zoho. Built by Axion Deep Labs.",
+      "Site2CRM features: AI chat agents that capture leads 24/7, multi-step forms, and real-time CRM sync to HubSpot, Salesforce, Pipedrive, Zoho. 14-day free trial.",
     path: "/features",
   });
 
@@ -226,7 +226,7 @@ export default function FeaturesPage() {
             The Site2CRM Platform
           </h1>
           <p className="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Research-grade AI chat agents and intelligent form systems, engineered for production environments.
+            AI chat agents, multi-step forms, and real-time CRM sync — everything you need to capture and convert more leads.
           </p>
         </div>
       </section>
@@ -293,7 +293,7 @@ export default function FeaturesPage() {
       <section className="py-12 sm:py-20 bg-white dark:bg-gray-950">
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-8 sm:mb-12">
-            Platform Capabilities
+            Everything You Need
           </h2>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
