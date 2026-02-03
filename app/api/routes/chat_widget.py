@@ -6,7 +6,7 @@ import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import FileResponse
 from pathlib import Path
 from pydantic import BaseModel, Field
@@ -16,6 +16,7 @@ from sqlalchemy import func
 from app.api.deps.auth import get_db, get_current_user
 from app.db import models
 from app.core.plans import get_plan_limits, validate_message_tokens, validate_conversation_turns
+from app.core.rate_limit import check_chat_widget_rate_limit
 from app.services.ai_chat import (
     chat_completion,
     extract_email_from_message,
@@ -1083,9 +1084,23 @@ def get_public_widget_config(
 async def send_chat_message(
     widget_key: str,
     req: ChatMessageRequest,
+    request: Request,
     db: Session = Depends(get_db),
 ):
     """Send a message and get an AI response."""
+    # =========================================================================
+    # RATE LIMITING - Prevent spam/abuse (20 messages per minute per IP)
+    # =========================================================================
+    is_rate_limited, friendly_message = check_chat_widget_rate_limit(request)
+    if is_rate_limited:
+        # Return friendly AI message instead of error - better UX
+        return ChatMessageResponse(
+            response=friendly_message,
+            lead_captured=False,
+            captured_email=None,
+            captured_phone=None,
+        )
+
     # Look up widget config by widget_key
     config = (
         db.query(models.ChatWidgetConfig)

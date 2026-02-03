@@ -89,8 +89,41 @@ RATE_LIMITS = {
     "signup": {"max_requests": 5, "window_seconds": 3600},       # 5 per hour
     "public_form": {"max_requests": 30, "window_seconds": 60},   # 30 per minute
     "public_api": {"max_requests": 60, "window_seconds": 60},    # 60 per minute (API key based)
+    "chat_widget": {"max_requests": 20, "window_seconds": 60},   # 20 messages per minute per IP
     "default": {"max_requests": 100, "window_seconds": 60},      # 100 per minute
 }
+
+
+# Friendly AI-style rate limit messages for chat widget
+CHAT_RATE_LIMIT_MESSAGES = [
+    "Hmm, my memory isn't what it used to be... Give me a moment to catch up! 🤔",
+    "Whoa, you're fast! Let me take a quick breather and I'll be right with you. ⏳",
+    "I'm thinking really hard here! Mind waiting just a few seconds? 🧠",
+    "Hold that thought! I need a quick moment to process everything. 💭",
+    "You're keeping me on my toes! Let me catch my breath real quick. 😅",
+]
+
+
+def check_chat_widget_rate_limit(request: Request) -> tuple[bool, Optional[str]]:
+    """
+    Check rate limit for chat widget. Returns friendly AI message if limited.
+
+    Returns:
+        (is_limited, friendly_message) - message is None if not limited
+    """
+    import random
+
+    config = RATE_LIMITS["chat_widget"]
+    key = rate_limiter.get_client_key(request, "chat_widget")
+    is_limited, count, retry_after = rate_limiter.is_rate_limited(
+        key, config["max_requests"], config["window_seconds"]
+    )
+
+    if is_limited:
+        message = random.choice(CHAT_RATE_LIMIT_MESSAGES)
+        return True, message
+
+    return False, None
 
 
 def check_rate_limit(
