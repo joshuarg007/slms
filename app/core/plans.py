@@ -35,9 +35,9 @@ AI_FEATURE_CUSTOM = "custom"          # Custom prompts (enterprise)
 
 # Plan limit definitions
 PLAN_LIMITS: Dict[str, PlanLimits] = {
-    # Free tier - very limited, no AI, analytics grayed out
+    # Free tier - limited, no AI, analytics grayed out
     "free": PlanLimits(
-        leads_per_month=10,
+        leads_per_month=100,
         forms=1,
         crm_integrations=1,
         ai_messages_per_month=0,
