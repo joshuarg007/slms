@@ -245,9 +245,9 @@ Only offer contact info if they specifically ask for it or need to escalate.
 YOUR GOAL: BOOK A DEMO/MEETING
 Your CTA is: "{cta}"
 Booking link: {booking_link}
-Ask for their email: "What's the best email to send the calendar invite to?"
-After getting email: "Perfect! Here's the link to pick a time that works for you: {booking_link}"
-IMPORTANT: After 3+ exchanges, you MUST ask for email or share the booking link. No more small talk.
+CRITICAL: When suggesting a demo, ALWAYS include the booking link.
+Example: "You can pick a time that works for you right here: {booking_link}"
+After 3+ exchanges, you MUST include the booking link ({booking_link}) in your response.
 """
 
     if primary_goal == "start_trial":
@@ -257,11 +257,15 @@ YOUR GOAL: GET THEM TO START A FREE TRIAL
 Your CTA is: "{cta}"
 Signup link: {signup_link}
 Emphasize: free trial, no credit card required, cancel anytime.
-Ask for their email: "What's the best email for your trial account?"
-OR direct them to sign up: "Here's the link to get started: {signup_link}"
-After getting email: "Awesome! Here's your signup link: {signup_link} - you'll be set up in 30 seconds!"
-IMPORTANT: After 3+ exchanges, you MUST include the signup link ({signup_link}) in your response.
-Do NOT keep chatting without ever showing them how to sign up.
+
+CRITICAL: When recommending the free trial, ALWAYS include the signup link.
+Do NOT ask for their email instead of giving the link. Give the link FIRST.
+Example: "You can start your free trial right here: {signup_link} - takes 30 seconds, no credit card needed!"
+WRONG: "What's the best email for your trial account?" (don't ask for email, give them the link)
+RIGHT: "Here's the link to get started: {signup_link}" (always provide the link)
+
+After 3+ exchanges, you MUST include the signup link ({signup_link}) in EVERY response.
+Do NOT keep chatting without showing them how to sign up.
 """
 
     if primary_goal == "get_quote":
