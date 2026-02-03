@@ -1,6 +1,7 @@
 /**
  * Site2CRM AI Chat Widget
  * Embeddable chat widget powered by DeepSeek AI
+ * Next-Gen Design v2.0
  *
  * Usage:
  * <script src="https://api.site2crm.io/api/public/chat-widget/widget.js" data-widget-key="YOUR_KEY" async></script>
@@ -23,7 +24,6 @@
     const currentPath = window.location.pathname;
     const patterns = excludePaths.split(",").map(p => p.trim());
     for (const pattern of patterns) {
-      // Support wildcards: /app/* matches /app/anything
       if (pattern.endsWith("*")) {
         const prefix = pattern.slice(0, -1);
         if (currentPath.startsWith(prefix)) {
@@ -38,7 +38,6 @@
   }
 
   // Check for auth cookie/localStorage - if set, hide widget
-  // Customers can set: localStorage.setItem('site2crm_hide_chat', 'true') or document.cookie = 'site2crm_hide_chat=true'
   const hideFromStorage = localStorage.getItem("site2crm_hide_chat") === "true";
   const hideFromCookie = document.cookie.includes("site2crm_hide_chat=true");
   if (hideFromStorage || hideFromCookie) {
@@ -53,11 +52,7 @@
   function generateSessionId() {
     const stored = sessionStorage.getItem("s2c_chat_session");
     if (stored) return stored;
-    const id =
-      "s2c_" +
-      Date.now().toString(36) +
-      "_" +
-      Math.random().toString(36).substr(2, 9);
+    const id = "s2c_" + Date.now().toString(36) + "_" + Math.random().toString(36).substr(2, 9);
     sessionStorage.setItem("s2c_chat_session", id);
     return id;
   }
@@ -75,23 +70,25 @@
 
   // Button sizes
   const buttonSizes = {
-    small: { size: 48, icon: 24 },
-    medium: { size: 60, icon: 28 },
-    large: { size: 72, icon: 32 },
+    small: { size: 52, icon: 26 },
+    medium: { size: 64, icon: 30 },
+    large: { size: 76, icon: 36 },
   };
 
   // Generate dynamic styles based on config
   function generateStyles(cfg) {
-    const primaryColor = cfg.primary_color || "#4f46e5";
-    const chatBgColor = cfg.chat_bg_color || "#1e1b4b";
+    const primaryColor = cfg.primary_color || "#6366f1";
+    const chatBgColor = cfg.chat_bg_color || "#0f0f23";
     const userBubbleColor = cfg.user_bubble_color || primaryColor;
-    const botBubbleColor = cfg.bot_bubble_color || "#2d2a5e";
+    const botBubbleColor = cfg.bot_bubble_color || "#1e1e3f";
     const btnSize = buttonSizes[cfg.button_size] || buttonSizes.medium;
 
     return `
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
     .s2c-widget * {
       box-sizing: border-box;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       margin: 0;
       padding: 0;
     }
@@ -100,26 +97,57 @@
       position: fixed;
       width: ${btnSize.size}px;
       height: ${btnSize.size}px;
-      border-radius: 50%;
+      border-radius: 20px;
       cursor: pointer;
-      box-shadow: 0 4px 20px rgba(79, 70, 229, 0.4);
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       z-index: 999998;
-      background: linear-gradient(135deg, ${primaryColor} 0%, #7c3aed 100%);
+      background: linear-gradient(135deg, ${primaryColor} 0%, #8b5cf6 50%, #a855f7 100%);
+      box-shadow:
+        0 8px 32px rgba(99, 102, 241, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+        0 2px 4px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
+    }
+
+    .s2c-bubble::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.05));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
     }
 
     .s2c-bubble:hover {
-      transform: scale(1.08);
-      box-shadow: 0 6px 25px rgba(79, 70, 229, 0.5);
+      transform: scale(1.1) translateY(-2px);
+      box-shadow:
+        0 12px 40px rgba(99, 102, 241, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.15) inset,
+        0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .s2c-bubble:active {
+      transform: scale(1.05);
     }
 
     .s2c-bubble svg {
       width: ${btnSize.icon}px;
       height: ${btnSize.icon}px;
       fill: white;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+      transition: transform 0.3s ease;
+    }
+
+    .s2c-bubble:hover svg {
+      transform: scale(1.1);
     }
 
     .s2c-bubble.bottom-right {
@@ -132,112 +160,165 @@
       left: 24px;
     }
 
+    /* Pulse animation for attention */
+    .s2c-bubble::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 20px;
+      background: inherit;
+      animation: s2c-pulse 2s ease-out infinite;
+      z-index: -1;
+    }
+
+    @keyframes s2c-pulse {
+      0% {
+        transform: scale(1);
+        opacity: 0.5;
+      }
+      100% {
+        transform: scale(1.4);
+        opacity: 0;
+      }
+    }
+
     .s2c-window {
       position: fixed;
-      width: 380px;
-      height: 520px;
+      width: 400px;
+      height: 560px;
       max-height: calc(100vh - 100px);
-      border-radius: 16px;
-      background: #1e1b4b;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+      border-radius: 24px;
+      background: linear-gradient(180deg, ${chatBgColor} 0%, #0a0a1a 100%);
+      box-shadow:
+        0 32px 64px -12px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        0 0 80px rgba(99, 102, 241, 0.15);
       display: none;
       flex-direction: column;
       overflow: hidden;
       z-index: 999999;
-      border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .s2c-window.open {
       display: flex;
-      animation: s2c-slide-up 0.3s ease;
+      animation: s2c-slide-up 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     @keyframes s2c-slide-up {
       from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(24px) scale(0.95);
       }
       to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
       }
     }
 
     .s2c-window.bottom-right {
-      bottom: ${btnSize.size + 35}px;
+      bottom: ${btnSize.size + 40}px;
       right: 24px;
     }
 
     .s2c-window.bottom-left {
-      bottom: ${btnSize.size + 35}px;
+      bottom: ${btnSize.size + 40}px;
       left: 24px;
     }
 
     @media (max-width: 480px) {
       .s2c-window {
-        width: calc(100vw - 20px);
-        height: calc(100vh - 120px);
-        bottom: ${btnSize.size + 35}px;
-        right: 10px;
-        left: 10px;
-        border-radius: 16px;
+        width: calc(100vw - 16px);
+        height: calc(100vh - 100px);
+        bottom: 80px !important;
+        right: 8px !important;
+        left: 8px !important;
+        border-radius: 20px;
+      }
+      .s2c-bubble {
+        bottom: 16px !important;
+        right: 16px !important;
       }
     }
 
     .s2c-header {
-      padding: 16px 20px;
-      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      padding: 20px 24px;
+      background: linear-gradient(135deg, ${primaryColor} 0%, #8b5cf6 50%, #a855f7 100%);
       color: white;
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .s2c-header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+      pointer-events: none;
     }
 
     .s2c-header-info {
       display: flex;
       flex-direction: column;
+      position: relative;
+      z-index: 1;
     }
 
     .s2c-header-title {
-      font-size: 16px;
-      font-weight: 600;
+      font-size: 17px;
+      font-weight: 700;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      letter-spacing: -0.02em;
     }
 
-    .s2c-header-title::before {
-      content: '';
-      width: 8px;
-      height: 8px;
+    .s2c-status-dot {
+      width: 10px;
+      height: 10px;
       background: #22c55e;
       border-radius: 50%;
       flex-shrink: 0;
-      box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.3);
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25), 0 0 12px rgba(34, 197, 94, 0.5);
+      animation: s2c-status-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes s2c-status-pulse {
+      0%, 100% { box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25), 0 0 12px rgba(34, 197, 94, 0.5); }
+      50% { box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.15), 0 0 20px rgba(34, 197, 94, 0.6); }
     }
 
     .s2c-header-subtitle {
       font-size: 13px;
       opacity: 0.9;
-      margin-top: 2px;
-      margin-left: 16px;
+      margin-top: 4px;
+      margin-left: 20px;
+      font-weight: 500;
     }
 
     .s2c-close {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.15);
       border: none;
       color: white;
       cursor: pointer;
-      padding: 6px;
-      border-radius: 8px;
-      opacity: 0.9;
-      transition: all 0.2s;
+      padding: 8px;
+      border-radius: 12px;
+      transition: all 0.2s ease;
+      position: relative;
+      z-index: 1;
+      backdrop-filter: blur(10px);
     }
 
     .s2c-close:hover {
-      opacity: 1;
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.25);
+      transform: scale(1.05);
     }
 
     .s2c-close svg {
@@ -248,181 +329,214 @@
 
     .s2c-messages {
       flex: 1;
-      padding: 16px;
+      padding: 20px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 16px;
       background: ${chatBgColor};
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.1) transparent;
+    }
+
+    .s2c-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .s2c-messages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .s2c-messages::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
     }
 
     .s2c-message {
-      max-width: 80%;
-      padding: 12px 16px;
+      max-width: 85%;
+      padding: 14px 18px;
       font-size: 14px;
-      line-height: 1.5;
-      animation: s2c-fade-in 0.2s ease;
+      line-height: 1.6;
+      animation: s2c-message-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      letter-spacing: -0.01em;
     }
 
-    @keyframes s2c-fade-in {
+    @keyframes s2c-message-in {
       from {
         opacity: 0;
-        transform: translateY(8px);
+        transform: translateY(12px) scale(0.95);
       }
       to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
       }
     }
 
     .s2c-message.user {
       align-self: flex-end;
-      background: ${userBubbleColor};
+      background: linear-gradient(135deg, ${userBubbleColor} 0%, #8b5cf6 100%);
       color: white;
-      border-radius: 16px 16px 4px 16px;
+      border-radius: 20px 20px 6px 20px;
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
     }
 
     .s2c-message.assistant {
       align-self: flex-start;
       background: ${botBubbleColor};
       color: #e5e7eb;
-      border-radius: 16px 16px 16px 4px;
+      border-radius: 20px 20px 20px 6px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
 
     .s2c-typing {
       display: flex;
-      gap: 4px;
-      padding: 14px 18px;
+      gap: 6px;
+      padding: 16px 20px;
       align-self: flex-start;
       background: ${botBubbleColor};
-      border-radius: 16px 16px 16px 4px;
+      border-radius: 20px 20px 20px 6px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .s2c-typing-dot {
       width: 8px;
       height: 8px;
-      background: #9ca3af;
+      background: linear-gradient(135deg, ${primaryColor}, #a855f7);
       border-radius: 50%;
-      animation: s2c-typing 1.2s ease-in-out infinite;
+      animation: s2c-typing 1.4s ease-in-out infinite;
     }
 
     .s2c-typing-dot:nth-child(2) {
-      animation-delay: 0.15s;
+      animation-delay: 0.2s;
     }
 
     .s2c-typing-dot:nth-child(3) {
-      animation-delay: 0.3s;
+      animation-delay: 0.4s;
     }
 
     @keyframes s2c-typing {
       0%, 100% {
-        opacity: 0.4;
-        transform: scale(0.8);
+        opacity: 0.3;
+        transform: scale(0.8) translateY(0);
       }
       50% {
         opacity: 1;
-        transform: scale(1);
+        transform: scale(1) translateY(-4px);
       }
     }
 
     .s2c-quick-replies {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      padding: 0 16px 12px;
+      gap: 10px;
+      padding: 0 20px 16px;
       background: ${chatBgColor};
     }
 
     .s2c-quick-reply {
-      padding: 8px 16px;
-      background: #2d2a5e;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 20px;
+      padding: 10px 18px;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 24px;
       font-size: 13px;
-      color: #e5e7eb;
+      color: #c4b5fd;
       cursor: pointer;
-      transition: all 0.2s;
-      font-weight: 500;
+      transition: all 0.25s ease;
+      font-weight: 600;
+      letter-spacing: -0.01em;
     }
 
     .s2c-quick-reply:hover {
-      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      background: linear-gradient(135deg, ${primaryColor} 0%, #8b5cf6 100%);
       color: white;
       border-color: transparent;
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
     }
 
     .s2c-input-area {
-      padding: 16px;
+      padding: 16px 20px 20px;
       display: flex;
-      gap: 10px;
-      background: #1e1b4b;
+      gap: 12px;
+      background: linear-gradient(180deg, ${chatBgColor} 0%, #080814 100%);
       flex-shrink: 0;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .s2c-input {
       flex: 1;
-      padding: 12px 18px;
-      border: none;
-      border-radius: 24px;
+      padding: 14px 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
       font-size: 14px;
       outline: none;
-      transition: all 0.2s;
-      color: #e5e7eb;
-      background: #2d2a5e;
+      transition: all 0.25s ease;
+      color: #f3f4f6;
+      background: rgba(255, 255, 255, 0.05);
+      font-weight: 500;
     }
 
     .s2c-input:focus {
-      background: #3d3a6e;
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(99, 102, 241, 0.5);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
     }
 
     .s2c-input::placeholder {
-      color: #9ca3af;
+      color: #6b7280;
     }
 
     .s2c-send {
-      width: 44px;
-      height: 44px;
+      width: 48px;
+      height: 48px;
       border: none;
-      border-radius: 50%;
+      border-radius: 16px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s;
-      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      transition: all 0.25s ease;
+      background: linear-gradient(135deg, ${primaryColor} 0%, #8b5cf6 100%);
       flex-shrink: 0;
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
     }
 
     .s2c-send:disabled {
       opacity: 0.5;
       cursor: not-allowed;
+      box-shadow: none;
     }
 
     .s2c-send:not(:disabled):hover {
-      transform: scale(1.05);
-      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+      transform: scale(1.05) translateY(-1px);
+      box-shadow: 0 6px 24px rgba(99, 102, 241, 0.45);
+    }
+
+    .s2c-send:not(:disabled):active {
+      transform: scale(0.98);
     }
 
     .s2c-send svg {
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
       fill: white;
     }
 
     .s2c-powered {
-      padding: 10px;
+      padding: 12px;
       text-align: center;
       font-size: 11px;
-      color: #9ca3af;
-      background: #1e1b4b;
+      color: #6b7280;
+      background: #080814;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
     }
 
     .s2c-powered a {
       color: #a5b4fc;
       text-decoration: none;
-      font-weight: 500;
+      font-weight: 600;
+      transition: color 0.2s;
     }
 
     .s2c-powered a:hover {
@@ -434,42 +548,84 @@
     }
 
     .s2c-link-btn {
-      display: inline-block;
-      margin-top: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
       padding: 12px 24px;
-      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      background: linear-gradient(135deg, ${primaryColor} 0%, #8b5cf6 100%);
       color: white !important;
       text-decoration: none;
-      border-radius: 24px;
-      font-weight: 600;
+      border-radius: 14px;
+      font-weight: 700;
       font-size: 14px;
-      transition: all 0.2s;
-      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+      letter-spacing: -0.01em;
     }
 
     .s2c-link-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.45);
+    }
+
+    .s2c-link-btn svg {
+      width: 16px;
+      height: 16px;
     }
   `;
   }
 
-  // Icons - multiple options for the bubble
+  // Modern Icons - Next-Gen Design
   const bubbleIcons = {
-    chat: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.53 3.57 1.42 5.04L2 22l4.96-1.42C8.43 21.47 10.15 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.61 0-3.11-.46-4.38-1.25l-.31-.19-3.23.92.92-3.23-.19-.31A7.932 7.932 0 014 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/></svg>`,
-    message: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z"/></svg>`,
-    support: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>`,
-    robot: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 9V7c0-1.1-.9-2-2-2h-3c0-1.66-1.34-3-3-3S9 3.34 9 5H6c-1.1 0-2 .9-2 2v2c-1.66 0-3 1.34-3 3s1.34 3 3 3v4c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-4c1.66 0 3-1.34 3-3s-1.34-3-3-3zM7.5 11.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5S9.83 13 9 13s-1.5-.67-1.5-1.5zM16 17H8v-2h8v2zm-1-4c-.83 0-1.5-.67-1.5-1.5S14.17 10 15 10s1.5.67 1.5 1.5S15.83 13 15 13z"/></svg>`,
-    sparkle: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2zm0 4.4l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4l-3.77 2.58 1-4.28-3.32-2.88 4.38-.38L12 6.4z"/></svg>`,
-    wave: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l3-8H7z"/></svg>`,
+    chat: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+    </svg>`,
+    message: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+      <polyline points="22,6 12,13 2,6"/>
+    </svg>`,
+    support: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+      <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>`,
+    robot: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="10" rx="2"/>
+      <circle cx="12" cy="5" r="2"/>
+      <path d="M12 7v4"/>
+      <line x1="8" y1="16" x2="8" y2="16"/>
+      <line x1="16" y1="16" x2="16" y2="16"/>
+    </svg>`,
+    sparkle: `<svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 0L14.59 8.41L23 11L14.59 13.59L12 22L9.41 13.59L1 11L9.41 8.41L12 0Z"/>
+      <path d="M5 2L6 5L9 6L6 7L5 10L4 7L1 6L4 5L5 2Z" opacity="0.6"/>
+      <path d="M19 14L20 17L23 18L20 19L19 22L18 19L15 18L18 17L19 14Z" opacity="0.6"/>
+    </svg>`,
+    wave: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18.37 2.63L14 7l-1.59-1.59a2 2 0 0 0-2.82 0L8 7l9 9 1.59-1.59a2 2 0 0 0 0-2.82L17 10l4.37-4.37a2.12 2.12 0 1 0-3-3Z"/>
+      <path d="M9 8c-2 3-4 3.5-7 4l8 10c2-1 6-5 6-10"/>
+      <path d="M14.5 17.5L4.5 15"/>
+    </svg>`,
+    ai: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/>
+      <path d="M16 10v2a4 4 0 0 1-8 0v-2"/>
+      <circle cx="12" cy="18" r="4"/>
+      <path d="M12 14v0"/>
+      <path d="M7.5 6.5L5 4"/>
+      <path d="M16.5 6.5L19 4"/>
+    </svg>`,
   };
-  const closeIcon = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`;
-  const sendIcon = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>`;
+
+  const closeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+
+  const sendIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
+
+  const arrowIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`;
 
   // Initialize widget
   async function init() {
     try {
-      // Fetch config
       const res = await fetch(`${API_BASE}/config/${widgetKey}`);
       if (!res.ok) {
         console.warn("Site2CRM Chat Widget: Unable to load config");
@@ -477,12 +633,10 @@
       }
       config = await res.json();
 
-      // Inject dynamic styles
       const styleEl = document.createElement("style");
       styleEl.textContent = generateStyles(config);
       document.head.appendChild(styleEl);
 
-      // Create widget
       createWidget();
     } catch (err) {
       console.error("Site2CRM Chat Widget: Init failed", err);
@@ -491,33 +645,32 @@
 
   function createWidget() {
     const position = config.widget_position || "bottom-right";
-    const primaryColor = config.primary_color || "#4f46e5";
-    const iconName = config.bubble_icon || "chat";
-    const bubbleIcon = bubbleIcons[iconName] || bubbleIcons.chat;
+    const iconName = config.bubble_icon || "sparkle";
+    const bubbleIcon = bubbleIcons[iconName] || bubbleIcons.sparkle;
     const headerTitle = config.header_title || config.business_name;
-    const headerSubtitle = config.header_subtitle || "";
+    const headerSubtitle = config.header_subtitle || "Typically replies instantly";
     const showBranding = config.show_branding !== false;
 
-    // Container
     container = document.createElement("div");
     container.className = "s2c-widget";
+    container.id = "site2crm-chat-widget";
 
-    // Bubble
     bubble = document.createElement("div");
     bubble.className = `s2c-bubble ${position}`;
     bubble.innerHTML = bubbleIcon;
     bubble.addEventListener("click", toggleChat);
 
-    // Build header HTML
     let headerHtml = `
       <div class="s2c-header-info">
-        <div class="s2c-header-title">${escapeHtml(headerTitle)}</div>
+        <div class="s2c-header-title">
+          <span class="s2c-status-dot"></span>
+          ${escapeHtml(headerTitle)}
+        </div>
         ${headerSubtitle ? `<div class="s2c-header-subtitle">${escapeHtml(headerSubtitle)}</div>` : ""}
       </div>
       <button class="s2c-close">${closeIcon}</button>
     `;
 
-    // Build quick replies HTML
     let quickRepliesHtml = "";
     if (config.quick_replies && config.quick_replies.length > 0) {
       quickRepliesHtml = `
@@ -527,12 +680,10 @@
       `;
     }
 
-    // Build branding HTML
     const brandingHtml = showBranding
       ? `<div class="s2c-powered">Powered by <a href="https://site2crm.io" target="_blank" rel="noopener">Site2CRM</a></div>`
       : `<div class="s2c-powered hidden"></div>`;
 
-    // Chat window
     chatWindow = document.createElement("div");
     chatWindow.className = `s2c-window ${position}`;
     chatWindow.innerHTML = `
@@ -540,20 +691,18 @@
       <div class="s2c-messages"></div>
       ${quickRepliesHtml}
       <div class="s2c-input-area">
-        <input type="text" class="s2c-input" placeholder="Type a message..." />
+        <input type="text" class="s2c-input" placeholder="Type your message..." />
         <button class="s2c-send">${sendIcon}</button>
       </div>
       ${brandingHtml}
     `;
 
-    // Get elements
     messagesContainer = chatWindow.querySelector(".s2c-messages");
     inputField = chatWindow.querySelector(".s2c-input");
     sendBtn = chatWindow.querySelector(".s2c-send");
     quickRepliesContainer = chatWindow.querySelector(".s2c-quick-replies");
     const closeBtn = chatWindow.querySelector(".s2c-close");
 
-    // Event listeners
     closeBtn.addEventListener("click", toggleChat);
     sendBtn.addEventListener("click", sendMessage);
     inputField.addEventListener("keypress", (e) => {
@@ -563,24 +712,20 @@
       }
     });
 
-    // Quick reply click handlers
     if (quickRepliesContainer) {
       quickRepliesContainer.querySelectorAll(".s2c-quick-reply").forEach((btn) => {
         btn.addEventListener("click", () => {
           inputField.value = btn.textContent;
           sendMessage();
-          // Hide quick replies after use
           quickRepliesContainer.style.display = "none";
         });
       });
     }
 
-    // Append to DOM
     container.appendChild(bubble);
     container.appendChild(chatWindow);
     document.body.appendChild(container);
 
-    // Add initial greeting
     if (config.greeting) {
       addMessage("assistant", config.greeting);
     }
@@ -589,7 +734,6 @@
   function toggleChat() {
     isOpen = !isOpen;
     chatWindow.classList.toggle("open", isOpen);
-
     if (isOpen) {
       inputField.focus();
     }
@@ -601,7 +745,6 @@
     const msgEl = document.createElement("div");
     msgEl.className = `s2c-message ${role}`;
 
-    // For assistant messages, convert URLs to clickable buttons
     if (role === "assistant") {
       msgEl.innerHTML = formatMessageWithLinks(content);
     } else {
@@ -609,29 +752,22 @@
     }
 
     messagesContainer.appendChild(msgEl);
-
-    // Scroll to bottom
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
 
   function formatMessageWithLinks(text) {
-    // URL regex pattern
     const urlPattern = /(https?:\/\/[^\s<]+[^\s<.,;:'")\]])/g;
-
-    // Escape HTML first
     let escaped = escapeHtml(text);
 
-    // Replace URLs with styled buttons
     escaped = escaped.replace(urlPattern, (url) => {
-      // Determine button text based on URL
-      let buttonText = "Click here";
+      let buttonText = "Learn More";
       if (url.includes("/signup")) buttonText = "Sign Up Free";
       else if (url.includes("/pricing")) buttonText = "View Pricing";
       else if (url.includes("/demo") || url.includes("calendly") || url.includes("cal.com")) buttonText = "Book Demo";
       else if (url.includes("/trial")) buttonText = "Start Free Trial";
       else if (url.includes("/contact")) buttonText = "Contact Us";
 
-      return `<a href="${url}" target="_blank" rel="noopener" class="s2c-link-btn">${buttonText}</a>`;
+      return `<a href="${url}" target="_blank" rel="noopener" class="s2c-link-btn">${buttonText} ${arrowIcon}</a>`;
     });
 
     return escaped;
@@ -659,12 +795,10 @@
     const message = inputField.value.trim();
     if (!message || isLoading) return;
 
-    // Hide quick replies after first message
     if (quickRepliesContainer) {
       quickRepliesContainer.style.display = "none";
     }
 
-    // Add user message
     addMessage("user", message);
     inputField.value = "";
     inputField.disabled = true;
@@ -693,19 +827,12 @@
       const data = await res.json();
       addMessage("assistant", data.response);
 
-      // Show capture notification if lead was captured
       if (data.lead_captured) {
-        console.log(
-          "Site2CRM: Lead captured",
-          data.captured_email || data.captured_phone
-        );
+        console.log("Site2CRM: Lead captured", data.captured_email || data.captured_phone);
       }
     } catch (err) {
       hideTyping();
-      addMessage(
-        "assistant",
-        "Sorry, I'm having trouble connecting. Please try again in a moment."
-      );
+      addMessage("assistant", "Sorry, I'm having trouble connecting. Please try again in a moment.");
       console.error("Site2CRM Chat Widget: Send failed", err);
     } finally {
       inputField.disabled = false;
