@@ -243,6 +243,7 @@ class ChatMessageRequest(BaseModel):
     session_id: str = Field(..., min_length=10, max_length=100)
     message: str = Field(..., min_length=1, max_length=2000)
     page_url: Optional[str] = Field(None, max_length=2048)
+    timezone: Optional[str] = Field(None, max_length=100)  # e.g., "America/Denver"
 
 
 class ChatMessageResponse(BaseModel):
@@ -1002,6 +1003,7 @@ async def send_chat_message(
             config=config,
             messages=api_messages,
             max_tokens=256,
+            timezone=req.timezone,
         )
     except Exception as e:
         logger.error(f"Chat completion failed: {e}")

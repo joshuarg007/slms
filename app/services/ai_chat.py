@@ -2,9 +2,11 @@
 
 import json
 import logging
+from datetime import datetime
 from typing import Optional
 
 import httpx
+import pytz
 
 from app.core.config import settings
 from app.db.models import ChatWidgetConfig
@@ -62,8 +64,25 @@ async def _cloudflare_completion(
             raise Exception(f"Cloudflare API error: {error_msg}")
 
 
-def build_system_prompt(config: ChatWidgetConfig) -> str:
+def build_system_prompt(config: ChatWidgetConfig, timezone: str = None) -> str:
     """Build the system prompt from chat widget configuration."""
+
+    # Get current time in user's timezone for appropriate greetings
+    time_context = ""
+    if timezone:
+        try:
+            tz = pytz.timezone(timezone)
+            user_time = datetime.now(tz)
+            hour = user_time.hour
+            if hour < 12:
+                time_of_day = "morning"
+            elif hour < 17:
+                time_of_day = "afternoon"
+            else:
+                time_of_day = "evening"
+            time_context = f"\nCURRENT TIME: It is {time_of_day} for the user ({user_time.strftime('%I:%M %p')} their local time). Use appropriate greetings.\n"
+        except Exception:
+            pass  # Invalid timezone, skip time context
 
     tone_descriptions = {
         "friendly": "Friendly, warm, and approachable. Like a helpful colleague.",
@@ -130,7 +149,7 @@ After their THIRD "no" -> Try again (ask what's holding them back)
 ONLY after {rebuttal_count} separate rejections can you say goodbye.
 
 ##########################################################################
-
+{time_context}
 ABOUT US:
 {config.business_description}
 
@@ -365,6 +384,7 @@ async def chat_completion(
     config: ChatWidgetConfig,
     messages: list[dict],
     max_tokens: int = 256,
+    timezone: str = None,
 ) -> tuple[str, int, int]:
     """
     Send a chat completion request to DeepSeek with Cloudflare fallback.
@@ -373,7 +393,7 @@ async def chat_completion(
         tuple: (response_text, input_tokens, output_tokens)
     """
 
-    system_prompt = build_system_prompt(config)
+    system_prompt = build_system_prompt(config, timezone)
 
     # Try DeepSeek first (primary)
     if settings.DEEPSEEK_API_KEY:

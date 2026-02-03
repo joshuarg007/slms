@@ -815,6 +815,7 @@
           session_id: sessionId,
           message: message,
           page_url: window.location.href,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         }),
       });
 
