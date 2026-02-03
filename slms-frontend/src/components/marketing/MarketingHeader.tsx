@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import Logo from "@/components/Logo";
+import { useTheme, type Theme } from "@/utils/theme";
 
 // Shimmer CTA button - desktop only
 function ShimmerLink({ to, children, className }: { to: string; children: React.ReactNode; className?: string }) {
@@ -55,6 +56,28 @@ export default function MarketingHeader() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { theme, setTheme } = useTheme();
+
+  const cycleTheme = () => {
+    const next: Theme = theme === "light" ? "dark" : theme === "dark" ? "system" : "light";
+    setTheme(next);
+  };
+
+  const themeIcon = theme === "light" ? (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+    </svg>
+  ) : theme === "dark" ? (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+    </svg>
+  ) : (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25z" />
+    </svg>
+  );
+
+  const themeLabel = theme === "light" ? "Light" : theme === "dark" ? "Dark" : "System";
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -101,7 +124,7 @@ export default function MarketingHeader() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Logo linkTo="/" forceDark />
+          <Logo linkTo="/" />
 
           {/* Desktop Nav */}
           <nav role="navigation" aria-label="Main navigation" className="hidden md:flex items-center gap-1">
@@ -115,7 +138,7 @@ export default function MarketingHeader() {
                   to={link.to}
                   className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                     isActive
-                      ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50"
+                      ? "text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/50"
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
                 >
@@ -127,6 +150,13 @@ export default function MarketingHeader() {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center gap-3">
+            <button
+              onClick={cycleTheme}
+              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              title={`Theme: ${themeLabel}`}
+            >
+              {themeIcon}
+            </button>
             <Link
               to="/login"
               className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
@@ -135,7 +165,7 @@ export default function MarketingHeader() {
             </Link>
             <ShimmerLink
               to="/signup"
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-sm"
+              className="px-4 py-2 text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 rounded-lg transition-colors shadow-sm"
             >
               Get Started
             </ShimmerLink>
@@ -189,7 +219,7 @@ export default function MarketingHeader() {
                   to={link.to}
                   className={`px-4 py-3 min-h-[44px] text-base font-medium rounded-xl transition-colors flex items-center ${
                     isActive
-                      ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50"
+                      ? "text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/50"
                       : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
                 >
@@ -208,14 +238,25 @@ export default function MarketingHeader() {
             </Link>
             <Link
               to="/signup"
-              className="px-4 py-3 min-h-[44px] text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 text-center rounded-xl shadow-lg shadow-indigo-500/25 transition-colors"
+              className="px-4 py-3 min-h-[44px] text-base font-medium text-white bg-violet-600 hover:bg-violet-700 text-center rounded-xl shadow-lg shadow-violet-500/25 transition-colors"
             >
               Get Started Free
             </Link>
           </div>
 
+          {/* Theme toggle in mobile menu */}
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">
+            <button
+              onClick={cycleTheme}
+              className="w-full flex items-center gap-3 px-4 py-3 min-h-[44px] text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+            >
+              {themeIcon}
+              <span>Theme: {themeLabel}</span>
+            </button>
+          </div>
+
           {/* Quick links in mobile menu */}
-          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
+          <div className="mt-4 pt-6 border-t border-gray-200 dark:border-gray-800">
             <p className="px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
               Legal
             </p>
