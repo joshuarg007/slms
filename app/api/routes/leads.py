@@ -412,6 +412,10 @@ def public_create_lead(
                     org_name,
                 )
 
+        # Fire webhook for lead created
+        from app.services.webhook_service import fire_lead_created_webhook
+        fire_lead_created_webhook(org.id, db_lead, source="public_api", background_tasks=background_tasks)
+
     # Return appropriate message
     if is_new:
         return {"message": "Lead received", "lead_id": db_lead.id}
@@ -695,3 +699,200 @@ def dashboard_metrics(
     by_source = {k or "unknown": v for k, v in by_source_rows}
 
     return {"total": total, "by_source": by_source}
+
+
+# ---- Single lead operations ----
+
+@router.get("/leads/{lead_id}", response_model=dict)
+def get_lead(
+    lead_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get a single lead by ID."""
+    org_id = current_user.organization_id
+    if org_id is None:
+        raise HTTPException(status_code=403, detail="No organization assigned")
+
+    lead = db.query(models.Lead).filter(
+        models.Lead.id == lead_id,
+        models.Lead.organization_id == org_id,
+    ).first()
+
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    return _lead_to_dict(lead, crm_source="local", is_crm_only=False)
+
+
+@router.patch("/leads/{lead_id}", response_model=dict)
+def update_lead(
+    lead_id: int,
+    updates: dict = Body(...),
+    background_tasks: BackgroundTasks = None,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Update a lead by ID. Supports partial updates.
+
+    Accepts any of the lead fields:
+    - name, first_name, last_name
+    - email, phone, company
+    - notes, source
+    - status, deal_value
+    - utm_source, utm_medium, utm_campaign, utm_term, utm_content
+    """
+    org_id = current_user.organization_id
+    if org_id is None:
+        raise HTTPException(status_code=403, detail="No organization assigned")
+
+    lead = db.query(models.Lead).filter(
+        models.Lead.id == lead_id,
+        models.Lead.organization_id == org_id,
+    ).first()
+
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    # Track changed fields for webhook
+    changed_fields = []
+
+    # Allowed fields for update
+    allowed_fields = {
+        "name", "first_name", "last_name", "email", "phone", "company",
+        "notes", "source", "status", "deal_value",
+        "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content",
+        "referrer_url", "landing_page_url",
+    }
+
+    # Apply updates
+    for field, value in updates.items():
+        if field in allowed_fields and hasattr(lead, field):
+            old_value = getattr(lead, field)
+            if old_value != value:
+                setattr(lead, field, value)
+                changed_fields.append(field)
+
+    if changed_fields:
+        db.commit()
+        db.refresh(lead)
+
+        # Fire webhook for lead update
+        from app.services.webhook_service import fire_lead_updated_webhook
+        fire_lead_updated_webhook(org_id, lead, changed_fields, background_tasks)
+
+        logger.info(f"Lead {lead_id} updated: fields={changed_fields}")
+
+    return _lead_to_dict(lead, crm_source="local", is_crm_only=False)
+
+
+@router.post("/leads/{lead_id}/notes", response_model=dict)
+def add_note_to_lead(
+    lead_id: int,
+    note_data: dict = Body(...),
+    background_tasks: BackgroundTasks = None,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Add a note to a lead. Creates a LeadActivity record.
+
+    Body:
+    - content: str (required) - The note content
+    - subject: str (optional) - Note subject/title
+    """
+    org_id = current_user.organization_id
+    if org_id is None:
+        raise HTTPException(status_code=403, detail="No organization assigned")
+
+    lead = db.query(models.Lead).filter(
+        models.Lead.id == lead_id,
+        models.Lead.organization_id == org_id,
+    ).first()
+
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    content = note_data.get("content", "").strip()
+    if not content:
+        raise HTTPException(status_code=422, detail="Note content is required")
+
+    subject = note_data.get("subject", "").strip() or None
+
+    # Create activity record
+    activity = models.LeadActivity(
+        lead_id=lead.id,
+        user_id=current_user.id,
+        organization_id=org_id,
+        activity_type=models.ACTIVITY_NOTE,
+        subject=subject,
+        description=content,
+    )
+    db.add(activity)
+
+    # Also append to lead's notes field for backward compatibility
+    existing_notes = lead.notes or ""
+    timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
+    new_note = f"\n\n[{timestamp}] {subject + ': ' if subject else ''}{content}"
+    lead.notes = (existing_notes + new_note).strip()
+
+    db.commit()
+    db.refresh(activity)
+
+    # Fire webhook for lead update
+    from app.services.webhook_service import fire_lead_updated_webhook
+    fire_lead_updated_webhook(org_id, lead, ["notes"], background_tasks)
+
+    logger.info(f"Note added to lead {lead_id}")
+
+    return {
+        "id": activity.id,
+        "lead_id": lead.id,
+        "subject": activity.subject,
+        "content": activity.description,
+        "created_at": activity.created_at.isoformat() if activity.created_at else None,
+        "created_by": current_user.email,
+    }
+
+
+@router.get("/leads/{lead_id}/activities", response_model=dict)
+def get_lead_activities(
+    lead_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get all activities for a lead."""
+    org_id = current_user.organization_id
+    if org_id is None:
+        raise HTTPException(status_code=403, detail="No organization assigned")
+
+    lead = db.query(models.Lead).filter(
+        models.Lead.id == lead_id,
+        models.Lead.organization_id == org_id,
+    ).first()
+
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    activities = db.query(models.LeadActivity).filter(
+        models.LeadActivity.lead_id == lead_id,
+    ).order_by(models.LeadActivity.activity_at.desc()).all()
+
+    return {
+        "lead_id": lead_id,
+        "activities": [
+            {
+                "id": a.id,
+                "type": a.activity_type,
+                "subject": a.subject,
+                "description": a.description,
+                "duration_minutes": a.duration_minutes,
+                "outcome": a.outcome,
+                "activity_at": a.activity_at.isoformat() if a.activity_at else None,
+                "created_at": a.created_at.isoformat() if a.created_at else None,
+            }
+            for a in activities
+        ],
+        "total": len(activities),
+    }

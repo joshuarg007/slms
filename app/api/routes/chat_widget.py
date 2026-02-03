@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pathlib import Path
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -255,6 +255,17 @@ class ChatWidgetConfigRequest(BaseModel):
     bot_bubble_color: Optional[str] = Field(None, max_length=7)
     button_size: str = Field(default="medium")  # small, medium, large
     show_branding: bool = Field(default=True)
+    button_shape: str = Field(default="bubble")
+    gradient_type: str = Field(default="none")
+    gradient_color_1: Optional[str] = Field(None, max_length=7)
+    gradient_color_2: Optional[str] = Field(None, max_length=7)
+    gradient_color_3: Optional[str] = Field(None, max_length=7)
+    gradient_angle: int = Field(default=135, ge=0, le=360)
+    button_opacity: float = Field(default=1.0, ge=0.0, le=1.0)
+    blur_background: bool = Field(default=False)
+    attention_effect: str = Field(default="none")
+    shadow_style: str = Field(default="elevated")
+    entry_animation: str = Field(default="scale")
 
     is_active: bool = True
 
@@ -298,6 +309,17 @@ class ChatWidgetConfigResponse(BaseModel):
     bot_bubble_color: Optional[str]
     button_size: str
     show_branding: bool
+    button_shape: str = "bubble"
+    gradient_type: str = "none"
+    gradient_color_1: Optional[str] = None
+    gradient_color_2: Optional[str] = None
+    gradient_color_3: Optional[str] = None
+    gradient_angle: int = 135
+    button_opacity: float = 1.0
+    blur_background: bool = False
+    attention_effect: str = "none"
+    shadow_style: str = "elevated"
+    entry_animation: str = "scale"
 
     is_active: bool
     created_at: datetime
@@ -364,6 +386,17 @@ class PublicWidgetConfigResponse(BaseModel):
     bot_bubble_color: Optional[str]
     button_size: str
     show_branding: bool
+    button_shape: str = "bubble"
+    gradient_type: str = "none"
+    gradient_color_1: Optional[str] = None
+    gradient_color_2: Optional[str] = None
+    gradient_color_3: Optional[str] = None
+    gradient_angle: int = 135
+    button_opacity: float = 1.0
+    blur_background: bool = False
+    attention_effect: str = "none"
+    shadow_style: str = "elevated"
+    entry_animation: str = "scale"
 
     # Quick replies
     quick_replies: Optional[list[str]]
@@ -437,6 +470,17 @@ def _config_to_response(config: models.ChatWidgetConfig) -> ChatWidgetConfigResp
         bot_bubble_color=config.bot_bubble_color,
         button_size=getattr(config, 'button_size', None) or "medium",
         show_branding=config.show_branding if hasattr(config, 'show_branding') and config.show_branding is not None else True,
+        button_shape=getattr(config, 'button_shape', None) or "bubble",
+        gradient_type=getattr(config, 'gradient_type', None) or "none",
+        gradient_color_1=getattr(config, 'gradient_color_1', None),
+        gradient_color_2=getattr(config, 'gradient_color_2', None),
+        gradient_color_3=getattr(config, 'gradient_color_3', None),
+        gradient_angle=getattr(config, 'gradient_angle', None) or 135,
+        button_opacity=getattr(config, 'button_opacity', None) if getattr(config, 'button_opacity', None) is not None else 1.0,
+        blur_background=getattr(config, 'blur_background', None) if getattr(config, 'blur_background', None) is not None else False,
+        attention_effect=getattr(config, 'attention_effect', None) or "none",
+        shadow_style=getattr(config, 'shadow_style', None) or "elevated",
+        entry_animation=getattr(config, 'entry_animation', None) or "scale",
         is_active=config.is_active,
         created_at=config.created_at,
         updated_at=config.updated_at,
@@ -655,6 +699,17 @@ def create_chat_widget_config(
         bot_bubble_color=req.bot_bubble_color,
         button_size=req.button_size,
         show_branding=req.show_branding,
+        button_shape=req.button_shape,
+        gradient_type=req.gradient_type,
+        gradient_color_1=req.gradient_color_1,
+        gradient_color_2=req.gradient_color_2,
+        gradient_color_3=req.gradient_color_3,
+        gradient_angle=req.gradient_angle,
+        button_opacity=req.button_opacity,
+        blur_background=req.blur_background,
+        attention_effect=req.attention_effect,
+        shadow_style=req.shadow_style,
+        entry_animation=req.entry_animation,
         is_active=req.is_active,
     )
     db.add(config)
@@ -714,6 +769,17 @@ def update_chat_widget_config(
     config.bot_bubble_color = req.bot_bubble_color
     config.button_size = req.button_size
     config.show_branding = req.show_branding
+    config.button_shape = req.button_shape
+    config.gradient_type = req.gradient_type
+    config.gradient_color_1 = req.gradient_color_1
+    config.gradient_color_2 = req.gradient_color_2
+    config.gradient_color_3 = req.gradient_color_3
+    config.gradient_angle = req.gradient_angle
+    config.button_opacity = req.button_opacity
+    config.blur_background = req.blur_background
+    config.attention_effect = req.attention_effect
+    config.shadow_style = req.shadow_style
+    config.entry_animation = req.entry_animation
     config.is_active = req.is_active
     config.updated_at = datetime.utcnow()
 
@@ -1061,7 +1127,7 @@ def get_public_widget_config(
         }
         greeting = greetings.get(config.tone, greetings["friendly"])
 
-    return PublicWidgetConfigResponse(
+    data = PublicWidgetConfigResponse(
         business_name=config.business_name,
         primary_color=config.primary_color,
         widget_position=config.widget_position,
@@ -1076,7 +1142,22 @@ def get_public_widget_config(
         bot_bubble_color=config.bot_bubble_color,
         button_size=getattr(config, 'button_size', None) or "medium",
         show_branding=config.show_branding if hasattr(config, 'show_branding') and config.show_branding is not None else True,
+        button_shape=getattr(config, 'button_shape', None) or "bubble",
+        gradient_type=getattr(config, 'gradient_type', None) or "none",
+        gradient_color_1=getattr(config, 'gradient_color_1', None),
+        gradient_color_2=getattr(config, 'gradient_color_2', None),
+        gradient_color_3=getattr(config, 'gradient_color_3', None),
+        gradient_angle=getattr(config, 'gradient_angle', None) or 135,
+        button_opacity=getattr(config, 'button_opacity', None) or 1.0,
+        blur_background=getattr(config, 'blur_background', None) or False,
+        attention_effect=getattr(config, 'attention_effect', None) or "none",
+        shadow_style=getattr(config, 'shadow_style', None) or "elevated",
+        entry_animation=getattr(config, 'entry_animation', None) or "scale",
         quick_replies=_parse_quick_replies(config.quick_replies),
+    )
+    return JSONResponse(
+        content=data.model_dump(),
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
     )
 
 
@@ -1131,9 +1212,11 @@ async def send_chat_message(
     )
 
     # Now safe to create conversation if it doesn't exist
+    is_new_conversation = False
     if existing_conversation:
         conversation = existing_conversation
     else:
+        is_new_conversation = True
         conversation = models.ChatWidgetConversation(
             config_id=config.id,
             session_id=req.session_id,
@@ -1146,6 +1229,15 @@ async def send_chat_message(
         db.add(conversation)
         db.commit()
         db.refresh(conversation)
+
+        # Fire webhook for new chat conversation
+        from app.services.webhook_service import fire_chat_started_webhook
+        fire_chat_started_webhook(
+            org_id=config.organization_id,
+            conversation=conversation,
+            config=config,
+            background_tasks=None,  # Fire synchronously for simplicity
+        )
 
     # Parse existing transcript
     try:
@@ -1216,7 +1308,26 @@ async def send_chat_message(
     # Only attempt if we just captured new contact info
     if lead_captured or name:
         try:
-            create_lead_from_conversation(db, config, conversation)
+            created_lead = create_lead_from_conversation(db, config, conversation)
+
+            # Fire webhooks for lead capture
+            if lead_captured:
+                from app.services.webhook_service import fire_chat_lead_captured_webhook, fire_lead_created_webhook
+                fire_chat_lead_captured_webhook(
+                    org_id=config.organization_id,
+                    conversation=conversation,
+                    config=config,
+                    background_tasks=None,
+                )
+
+                # Also fire lead.created if we actually created a new lead
+                if created_lead:
+                    fire_lead_created_webhook(
+                        org_id=config.organization_id,
+                        lead=created_lead,
+                        source="chat_widget",
+                        background_tasks=None,
+                    )
         except Exception as e:
             # Log but don't fail the chat - lead creation is secondary
             logger.error(f"Failed to create lead from conversation: {e}")
@@ -1254,5 +1365,5 @@ def get_widget_js():
     return FileResponse(
         widget_path,
         media_type="application/javascript",
-        headers={"Cache-Control": "public, max-age=3600"},
+        headers={"Cache-Control": "public, max-age=300"},
     )

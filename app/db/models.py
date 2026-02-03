@@ -644,6 +644,17 @@ class ChatWidgetConfig(Base):
     bot_bubble_color = Column(String(7), nullable=True)  # Bot message color
     button_size = Column(String(10), nullable=False, default="medium")  # small, medium, large
     show_branding = Column(Boolean, nullable=False, default=True)  # Show "Powered by Site2CRM"
+    button_shape = Column(String(20), nullable=False, default="bubble")  # bubble, pill, square, tab, bar
+    gradient_type = Column(String(20), nullable=False, default="none")  # none, sunset, ocean, forest, etc.
+    gradient_color_1 = Column(String(7), nullable=True)
+    gradient_color_2 = Column(String(7), nullable=True)
+    gradient_color_3 = Column(String(7), nullable=True)
+    gradient_angle = Column(Integer, nullable=False, default=135)
+    button_opacity = Column(Float, nullable=False, default=1.0)
+    blur_background = Column(Boolean, nullable=False, default=False)
+    attention_effect = Column(String(20), nullable=False, default="none")  # none, pulse, bounce, glow, shake, ring
+    shadow_style = Column(String(20), nullable=False, default="elevated")  # none, subtle, elevated, dramatic, glow
+    entry_animation = Column(String(20), nullable=False, default="scale")  # none, fade, slide, scale, bounce
 
     # State
     is_active = Column(Boolean, nullable=False, default=True)
@@ -723,3 +734,170 @@ class FormVariant(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     ab_test = relationship("ABTest", back_populates="variants")
+
+
+# Webhook event types
+WEBHOOK_EVENT_LEAD_CREATED = "lead.created"
+WEBHOOK_EVENT_LEAD_UPDATED = "lead.updated"
+WEBHOOK_EVENT_FORM_SUBMITTED = "form.submitted"
+WEBHOOK_EVENT_CHAT_STARTED = "chat.started"
+WEBHOOK_EVENT_CHAT_LEAD_CAPTURED = "chat.lead_captured"
+
+WEBHOOK_EVENTS = [
+    WEBHOOK_EVENT_LEAD_CREATED,
+    WEBHOOK_EVENT_LEAD_UPDATED,
+    WEBHOOK_EVENT_FORM_SUBMITTED,
+    WEBHOOK_EVENT_CHAT_STARTED,
+    WEBHOOK_EVENT_CHAT_LEAD_CAPTURED,
+]
+
+
+class Webhook(Base):
+    """Webhook subscriptions for Zapier and other integrations."""
+
+    __tablename__ = "webhooks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+
+    # Webhook configuration
+    url = Column(String(2048), nullable=False)  # Target URL to POST to
+    event = Column(String(50), nullable=False, index=True)  # lead.created, form.submitted, etc.
+    secret = Column(String(100), nullable=True)  # Shared secret for signature verification
+
+    # State
+    is_active = Column(Boolean, nullable=False, default=True)
+
+    # Metadata
+    description = Column(String(255), nullable=True)  # Optional description
+    created_by_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    # Delivery stats (denormalized for fast reads)
+    total_deliveries = Column(Integer, nullable=False, default=0)
+    successful_deliveries = Column(Integer, nullable=False, default=0)
+    failed_deliveries = Column(Integer, nullable=False, default=0)
+    last_delivery_at = Column(DateTime, nullable=True)
+    last_success_at = Column(DateTime, nullable=True)
+    last_failure_at = Column(DateTime, nullable=True)
+    last_failure_reason = Column(String(500), nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    organization = relationship("Organization", backref="webhooks")
+    created_by = relationship("User", backref="created_webhooks")
+    deliveries = relationship("WebhookDelivery", back_populates="webhook", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        # Unique constraint: one webhook per URL+event per org
+        UniqueConstraint("organization_id", "url", "event", name="uq_org_url_event"),
+    )
+
+
+class WebhookDelivery(Base):
+    """Log of webhook delivery attempts for debugging."""
+
+    __tablename__ = "webhook_deliveries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    webhook_id = Column(
+        Integer,
+        ForeignKey("webhooks.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+
+    # Delivery details
+    event = Column(String(50), nullable=False)  # Event type at time of delivery
+    payload = Column(Text, nullable=False)  # JSON payload sent
+    response_status = Column(Integer, nullable=True)  # HTTP status code
+    response_body = Column(Text, nullable=True)  # Response body (truncated)
+    error_message = Column(String(500), nullable=True)  # Error if delivery failed
+
+    # Timing
+    delivered_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    duration_ms = Column(Integer, nullable=True)  # Response time in milliseconds
+
+    # Retry tracking
+    attempt_number = Column(Integer, nullable=False, default=1)
+    is_success = Column(Boolean, nullable=False, default=False)
+
+    webhook = relationship("Webhook", back_populates="deliveries")
+
+
+# ============================================================================
+# OAuth 2.0 Models (for Zapier and other integrations)
+# ============================================================================
+
+class OAuthClient(Base):
+    """Registered OAuth applications (e.g., Zapier)."""
+
+    __tablename__ = "oauth_clients"
+
+    id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(String(100), unique=True, nullable=False, index=True)
+    client_secret = Column(String(100), nullable=False)
+    name = Column(String(255), nullable=False)  # e.g., "Zapier"
+    redirect_uris = Column(Text, nullable=False)  # JSON array of allowed redirect URIs
+    scopes = Column(Text, nullable=False, default="read write")  # Space-separated scopes
+
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    tokens = relationship("OAuthToken", back_populates="client", cascade="all, delete-orphan")
+
+
+class OAuthToken(Base):
+    """OAuth access and refresh tokens."""
+
+    __tablename__ = "oauth_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(
+        Integer,
+        ForeignKey("oauth_clients.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # Tokens
+    access_token = Column(String(100), unique=True, nullable=False, index=True)
+    refresh_token = Column(String(100), unique=True, nullable=True, index=True)
+    token_type = Column(String(20), nullable=False, default="Bearer")
+    scopes = Column(Text, nullable=False, default="read write")
+
+    # Expiration
+    access_token_expires_at = Column(DateTime, nullable=False)
+    refresh_token_expires_at = Column(DateTime, nullable=True)
+
+    # Authorization code (used during OAuth flow, cleared after exchange)
+    authorization_code = Column(String(100), unique=True, nullable=True, index=True)
+    authorization_code_expires_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    client = relationship("OAuthClient", back_populates="tokens")
+    user = relationship("User", backref="oauth_tokens")
+    organization = relationship("Organization", backref="oauth_tokens")

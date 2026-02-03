@@ -971,6 +971,18 @@ export interface ChatWidgetConfig {
   bot_bubble_color: string | null;
   button_size: string;
   show_branding: boolean;
+  // Button appearance
+  button_shape: string;
+  gradient_type: string;
+  gradient_color_1: string | null;
+  gradient_color_2: string | null;
+  gradient_color_3: string | null;
+  gradient_angle: number;
+  button_opacity: number;
+  blur_background: boolean;
+  attention_effect: string;
+  shadow_style: string;
+  entry_animation: string;
   is_active: boolean;
   created_at?: string;
   updated_at?: string;
