@@ -132,67 +132,64 @@ export default function HomePage() {
 
   return (
     <div>
-      {/* Hero Section — Dark Cinematic */}
-      <section className="relative overflow-hidden bg-gray-950 py-16 sm:py-24 lg:py-32">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-violet-50 to-white dark:from-gray-900 dark:to-gray-950 py-16 sm:py-24 lg:py-32">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             {/* Left — Copy */}
             <div className="text-center lg:text-left">
               <div className="opacity-0 animate-fade-up">
-                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-wider">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-100 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800 text-xs sm:text-sm font-medium text-violet-700 dark:text-violet-300 uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   AI-Powered Lead Capture
                 </span>
               </div>
 
               <h1 className="mt-6 sm:mt-8 opacity-0 animate-fade-up-1">
-                <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-300 tracking-tight leading-tight">
+                <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-gray-300 tracking-tight leading-tight">
                   Leads captured by
                 </span>
-                <span
-                  className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-violet-400 to-fuchsia-400"
-                  style={{ textShadow: "0 0 40px rgba(139,92,246,0.3)" }}
-                >
+                <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 via-violet-500 to-fuchsia-500">
                   INTELLIGENT AI
                 </span>
-                <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-300 tracking-tight leading-tight">
+                <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-gray-300 tracking-tight leading-tight">
                   synced in real-time
                 </span>
               </h1>
 
-              <p className="mt-5 sm:mt-6 text-base sm:text-lg text-gray-400 max-w-xl mx-auto lg:mx-0 opacity-0 animate-fade-up-2">
+              <p className="mt-5 sm:mt-6 text-base sm:text-lg text-gray-600 dark:text-gray-400 max-w-xl mx-auto lg:mx-0 opacity-0 animate-fade-up-2">
                 AI chat agents that qualify leads, handle objections, and never take a day off. Every conversation syncs to your CRM instantly.
               </p>
 
               <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 justify-center lg:justify-start opacity-0 animate-fade-up-3">
                 <Link
                   to="/signup"
-                  className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] text-base font-semibold rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-white shadow-lg shadow-violet-500/25 transition-all hover:shadow-xl hover:shadow-violet-500/30 flex items-center justify-center"
+                  className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] text-base font-semibold rounded-xl bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-500/25 transition-all hover:shadow-xl hover:shadow-violet-500/30 flex items-center justify-center"
                 >
                   Start Free Trial
                 </Link>
                 <Link
                   to="/features"
-                  className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] text-base font-semibold rounded-xl border border-white/20 text-gray-300 hover:bg-white/5 hover:border-white/30 transition-all flex items-center justify-center"
+                  className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] text-base font-semibold rounded-xl border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all flex items-center justify-center"
                 >
                   See How It Works
                 </Link>
               </div>
 
               {/* Metrics strip */}
-              <div className="mt-8 sm:mt-12 inline-flex items-center gap-4 sm:gap-6 px-4 sm:px-6 py-3 rounded-full bg-white/5 border border-white/10 opacity-0 animate-fade-up-4">
+              <div className="mt-8 sm:mt-12 inline-flex items-center gap-4 sm:gap-6 px-4 sm:px-6 py-3 rounded-full bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 shadow-sm opacity-0 animate-fade-up-4">
                 <div className="text-center">
-                  <div className="text-xl sm:text-2xl font-bold text-white">24/7</div>
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">24/7</div>
                   <div className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider">Always On</div>
                 </div>
-                <div className="w-px h-8 bg-white/10" />
+                <div className="w-px h-8 bg-gray-200 dark:bg-gray-700" />
                 <div className="text-center">
-                  <div className="text-xl sm:text-2xl font-bold text-white">5x</div>
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">5x</div>
                   <div className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider">Rebuttals</div>
                 </div>
-                <div className="w-px h-8 bg-white/10" />
+                <div className="w-px h-8 bg-gray-200 dark:bg-gray-700" />
                 <div className="text-center">
-                  <div className="text-xl sm:text-2xl font-bold text-white">&lt;1s</div>
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">&lt;1s</div>
                   <div className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider">CRM Sync</div>
                 </div>
               </div>
@@ -200,14 +197,14 @@ export default function HomePage() {
 
             {/* Right — Animated Chat Mockup */}
             <div className="relative opacity-0 animate-fade-up-2">
-              <div className="bg-gray-900 rounded-2xl shadow-2xl shadow-violet-500/10 border border-white/10 overflow-hidden max-w-sm mx-auto">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl shadow-violet-500/10 border border-gray-200 dark:border-gray-700 overflow-hidden max-w-sm mx-auto">
                 {/* Chat header */}
-                <div className="bg-gradient-to-r from-cyan-600 to-violet-600 px-4 py-3">
+                <div className="bg-gradient-to-r from-violet-600 to-fuchsia-600 px-4 py-3">
                   <div className="text-white font-semibold flex items-center gap-2 text-sm">
                     <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
                     Site2CRM AI
                   </div>
-                  <div className="text-white/60 text-xs ml-4">Online now</div>
+                  <div className="text-white/70 text-xs ml-4">Online now</div>
                 </div>
                 {/* Chat messages */}
                 <div className="p-4 space-y-3 min-h-[200px]">
@@ -216,17 +213,17 @@ export default function HomePage() {
                       <div
                         className={`rounded-2xl px-4 py-2.5 max-w-[85%] ${
                           msg.role === "user"
-                            ? "bg-gradient-to-r from-cyan-600 to-violet-600 rounded-br-sm"
-                            : "bg-white/10 rounded-bl-sm"
+                            ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-br-sm"
+                            : "bg-gray-100 dark:bg-gray-700 rounded-bl-sm"
                         }`}
                       >
-                        <p className="text-sm text-white leading-relaxed">{msg.text}</p>
+                        <p className={`text-sm leading-relaxed ${msg.role === "user" ? "text-white" : "text-gray-800 dark:text-gray-200"}`}>{msg.text}</p>
                       </div>
                     </div>
                   ))}
                   {showTyping && (
                     <div className="flex justify-start animate-fade-in">
-                      <div className="bg-white/10 rounded-2xl rounded-bl-sm px-4 py-3">
+                      <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl rounded-bl-sm px-4 py-3">
                         <div className="flex gap-1.5">
                           <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
                           <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -238,8 +235,8 @@ export default function HomePage() {
                 </div>
                 {/* Input bar */}
                 <div className="flex gap-2 px-4 pb-4">
-                  <div className="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-full text-sm text-gray-500">Type a message...</div>
-                  <button className="w-10 h-10 flex items-center justify-center bg-gradient-to-r from-cyan-600 to-violet-600 rounded-full flex-shrink-0">
+                  <div className="flex-1 px-4 py-2.5 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-full text-sm text-gray-400">Type a message...</div>
+                  <button className="w-10 h-10 flex items-center justify-center bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-full flex-shrink-0">
                     <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                     </svg>
@@ -247,16 +244,10 @@ export default function HomePage() {
                 </div>
               </div>
               {/* Decorative orbs */}
-              <div className="absolute -top-8 -right-8 w-32 h-32 bg-cyan-500/20 rounded-full blur-3xl animate-float" />
-              <div className="absolute -bottom-8 -left-8 w-40 h-40 bg-violet-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: "3s" }} />
+              <div className="absolute -top-8 -right-8 w-32 h-32 bg-violet-200 dark:bg-violet-800/30 rounded-full blur-3xl" />
+              <div className="absolute -bottom-8 -left-8 w-40 h-40 bg-fuchsia-200 dark:bg-fuchsia-800/30 rounded-full blur-3xl" />
             </div>
           </div>
-        </div>
-
-        {/* Background gradient orbs */}
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-cyan-900/20 blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-violet-900/20 blur-3xl" />
         </div>
       </section>
 
@@ -268,16 +259,17 @@ export default function HomePage() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 md:gap-12">
             {CRM_LOGOS.map((crm) => (
-              <div
+              <Link
                 key={crm.name}
-                className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
+                to="/features"
+                className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
               >
                 <div
                   className="w-2.5 h-2.5 rounded-full"
                   style={{ backgroundColor: crm.color }}
                 />
                 <span className="text-base sm:text-lg font-semibold">{crm.name}</span>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -379,10 +371,10 @@ export default function HomePage() {
             {STEPS.map((step, index) => (
               <div key={step.number} className="relative">
                 {index < STEPS.length - 1 && (
-                  <div className="hidden md:block absolute top-8 left-[calc(50%+2rem)] w-[calc(100%-4rem)] h-0.5 bg-gradient-to-r from-cyan-500 to-violet-500" />
+                  <div className="hidden md:block absolute top-8 left-[calc(50%+2rem)] w-[calc(100%-4rem)] h-0.5 bg-gradient-to-r from-violet-300 to-violet-500 dark:from-cyan-500 dark:to-violet-500" />
                 )}
-                <div className="text-center">
-                  <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-500 text-white text-lg sm:text-xl font-bold mb-4">
+                <div className="text-center p-6 rounded-2xl hover:bg-violet-50 dark:hover:bg-gray-800/50 transition-colors cursor-default">
+                  <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 text-white text-lg sm:text-xl font-bold mb-4">
                     {step.number}
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
@@ -414,9 +406,9 @@ export default function HomePage() {
             {FEATURES.map((feature) => (
               <div
                 key={feature.title}
-                className="p-4 sm:p-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-violet-200 dark:hover:border-violet-800 transition-all"
+                className="group p-4 sm:p-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-violet-300 dark:hover:border-violet-700 hover:-translate-y-1 transition-all duration-200"
               >
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-violet-600 dark:text-violet-400 mb-3 sm:mb-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-violet-600 dark:text-violet-400 mb-3 sm:mb-4 group-hover:bg-violet-600 group-hover:text-white transition-colors">
                   {feature.icon}
                 </div>
                 <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -481,24 +473,24 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-12 sm:py-20 bg-gray-950">
+      <section className="py-12 sm:py-20 bg-gradient-to-r from-violet-600 to-purple-600">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white">
             Ready to Capture More Leads?
           </h2>
-          <p className="mt-4 text-base sm:text-lg text-gray-400">
+          <p className="mt-4 text-base sm:text-lg text-violet-100">
             14-day free trial. No credit card required. Set up in under 5 minutes.
           </p>
           <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <Link
               to="/signup"
-              className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] text-base font-semibold rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-white shadow-lg shadow-violet-500/25 transition-all flex items-center justify-center"
+              className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] text-base font-semibold rounded-xl bg-white text-violet-600 hover:bg-violet-50 shadow-lg transition-all flex items-center justify-center"
             >
               Start Free Trial
             </Link>
             <Link
               to="/pricing"
-              className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] text-base font-semibold rounded-xl border border-white/20 text-gray-300 hover:bg-white/5 hover:border-white/30 transition-all flex items-center justify-center"
+              className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] text-base font-semibold rounded-xl border border-white/30 text-white hover:bg-white/10 transition-colors flex items-center justify-center"
             >
               View Pricing
             </Link>
