@@ -384,8 +384,8 @@
         border-radius: 20px;
       }
       .s2c-bubble {
-        bottom: 16px !important;
-        right: 16px !important;
+        bottom: ${buttonShape === "bar" ? "0" : "16px"} !important;
+        right: ${buttonShape === "tab" ? "0" : "16px"} !important;
       }
     }
 
