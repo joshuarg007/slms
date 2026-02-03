@@ -391,9 +391,9 @@
     @media (max-width: 480px) {
       .s2c-window {
         width: calc(100vw - 16px);
-        height: 60vh;
-        max-height: 420px;
-        bottom: 80px !important;
+        height: 50vh !important;
+        max-height: 350px !important;
+        bottom: 70px !important;
         right: 8px !important;
         left: 8px !important;
         border-radius: 20px;
