@@ -8,6 +8,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { SkipLink, useKeyboardShortcuts, KeyboardShortcutsDialog, useAnnounce } from "@/components/Accessibility";
 import SupportModal from "@/components/SupportModal";
 import CommandPalette from "@/components/CommandPalette";
+import { useAuth } from "@/context/AuthProvider";
 import api from "@/utils/api";
 import Logo from "@/components/Logo";
 
@@ -147,9 +148,30 @@ interface NavItemProps {
   label: string;
   end?: boolean;
   indent?: boolean;
+  locked?: boolean;
+  badge?: string;
 }
 
-function NavItem({ to, icon, label, end, indent }: NavItemProps) {
+function NavItem({ to, icon, label, end, indent, locked, badge }: NavItemProps) {
+  if (locked) {
+    return (
+      <div
+        className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium cursor-not-allowed ${
+          indent ? "ml-3" : ""
+        } text-gray-400 dark:text-gray-600`}
+        title="Upgrade to unlock this feature"
+      >
+        <span className="flex-shrink-0 opacity-50">
+          {icon}
+        </span>
+        <span className="opacity-50">{label}</span>
+        <svg className="w-3.5 h-3.5 ml-auto text-gray-400 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+      </div>
+    );
+  }
+
   return (
     <NavLink
       to={to}
@@ -168,6 +190,11 @@ function NavItem({ to, icon, label, end, indent }: NavItemProps) {
         {icon}
       </span>
       <span>{label}</span>
+      {badge && (
+        <span className="ml-auto px-1.5 py-0.5 text-[10px] font-semibold rounded bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
+          {badge}
+        </span>
+      )}
     </NavLink>
   );
 }
@@ -191,15 +218,27 @@ const APP_SHORTCUTS = [
   { key: "Escape", description: "Close dialogs" },
 ];
 
+// Plan-based feature checks
+const FREE_PLAN_LOCKED_FEATURES = {
+  analytics: true,
+  abTesting: true,
+  aiChat: true,
+};
+
 export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const announce = useAnnounce();
+
+  // Check if user is on free plan (analytics/AI locked)
+  const userPlan = user?.organization?.plan || "free";
+  const isFreePlan = userPlan === "free";
 
   // Close sidebar on navigation (mobile)
   useEffect(() => {
@@ -429,33 +468,43 @@ export default function AppLayout() {
                 <NavItem to="/app" icon={icons.dashboard} label="Dashboard" end />
                 <NavItem to="/app/leads" icon={icons.leads} label="Leads" />
                 <NavItem to="/app/salespeople" icon={icons.salespeople} label="Salespeople" />
-                {/* AI Consultant disabled - <NavItem to="/app/chat" icon={icons.chat} label="AI Consultant" /> */}
+              </div>
+            </div>
+
+            {/* Web Forms / AI - Moved above Analytics */}
+            <div>
+              <SectionLabel>Web Forms / AI</SectionLabel>
+              <div className="space-y-1">
+                <NavItem
+                  to="/app/chat-widget"
+                  icon={icons.chatWidget}
+                  label="AI Chat Widget"
+                  locked={isFreePlan}
+                  badge={!isFreePlan ? "AI" : undefined}
+                />
+                <NavItem to="/app/forms/fields" icon={icons.fields} label="Form Fields" />
+                <NavItem to="/app/forms/styles" icon={icons.styles} label="Form Styles" />
+                <NavItem to="/app/forms/embed" icon={icons.embed} label="Embed Code" />
+                <NavItem
+                  to="/app/forms/ab-testing"
+                  icon={icons.abTesting}
+                  label="A/B Testing"
+                  locked={isFreePlan || userPlan === "starter" || userPlan === "appsumo"}
+                />
               </div>
             </div>
 
             {/* Analytics */}
             <div>
-              <SectionLabel>Analytics</SectionLabel>
+              <SectionLabel>Analytics {isFreePlan && <span className="text-[9px] text-amber-500 ml-1">PRO</span>}</SectionLabel>
               <div className="space-y-1">
-                <NavItem to="/app/analytics" icon={icons.reports} label="Analytics" />
-                <NavItem to="/app/sales-dashboard" icon={icons.analytics} label="Sales Dashboard" />
-                <NavItem to="/app/lead-scoring" icon={icons.scoring} label="Lead Scoring" />
-                <NavItem to="/app/team-kpi" icon={icons.team} label="Team Performance" />
-                <NavItem to="/app/leaderboard" icon={icons.leaderboard} label="Leaderboard" />
-                <NavItem to="/app/recommendations" icon={icons.recommendations} label="Recommendations" />
-                <NavItem to="/app/automation" icon={icons.automation} label="Automation" />
-              </div>
-            </div>
-
-            {/* Forms */}
-            <div>
-              <SectionLabel>Forms</SectionLabel>
-              <div className="space-y-1">
-                <NavItem to="/app/chat-widget" icon={icons.chatWidget} label="AI Chat Widget" />
-                <NavItem to="/app/forms/fields" icon={icons.fields} label="Fields" />
-                <NavItem to="/app/forms/styles" icon={icons.styles} label="Styles" />
-                <NavItem to="/app/forms/embed" icon={icons.embed} label="Embed Code" />
-                <NavItem to="/app/forms/ab-testing" icon={icons.abTesting} label="A/B Testing" />
+                <NavItem to="/app/analytics" icon={icons.reports} label="Analytics" locked={isFreePlan} />
+                <NavItem to="/app/sales-dashboard" icon={icons.analytics} label="Sales Dashboard" locked={isFreePlan} />
+                <NavItem to="/app/lead-scoring" icon={icons.scoring} label="Lead Scoring" locked={isFreePlan} />
+                <NavItem to="/app/team-kpi" icon={icons.team} label="Team Performance" locked={isFreePlan} />
+                <NavItem to="/app/leaderboard" icon={icons.leaderboard} label="Leaderboard" locked={isFreePlan} />
+                <NavItem to="/app/recommendations" icon={icons.recommendations} label="Recommendations" locked={isFreePlan} />
+                <NavItem to="/app/automation" icon={icons.automation} label="Automation" locked={isFreePlan} />
               </div>
             </div>
 
