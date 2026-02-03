@@ -64,7 +64,7 @@ async def _cloudflare_completion(
             raise Exception(f"Cloudflare API error: {error_msg}")
 
 
-def build_system_prompt(config: ChatWidgetConfig, timezone: str = None) -> str:
+def build_system_prompt(config: ChatWidgetConfig, timezone: str = None, turn_count: int = 0) -> str:
     """Build the system prompt from chat widget configuration."""
 
     # Get current time in user's timezone for appropriate greetings
@@ -170,17 +170,40 @@ RULES:
     if config.restrictions:
         prompt += f"6. {config.restrictions}\n"
 
-    prompt += f"""
-CONVERSATION FLOW:
-- Early: Be curious about their needs. Ask simple follow-up questions.
-- Build rapport before asking for contact info.
+    # Build turn-based escalation instructions
+    if turn_count <= 2:
+        escalation = """CONVERSATION FLOW:
+- You're in the EARLY stage. Be curious about their needs. Ask a simple question.
+- BUT always tie your response back to your product/service value.
+- Even in early messages, hint at the goal: "We actually help with exactly that..."
+"""
+    elif turn_count <= 4:
+        escalation = """CONVERSATION FLOW:
+- You're in the MIDDLE stage. You've built enough rapport. TIME TO PUSH.
+- You MUST ask for their email or direct them to sign up in THIS response.
+- Do NOT keep chatting without asking. Weave the ask into your response naturally.
+- Example: "That's exactly what we solve! What's your email so I can get you set up?"
+"""
+    else:
+        escalation = """CONVERSATION FLOW:
+- You're in the LATE stage. You've been chatting too long without closing.
+- You MUST include the signup link or ask for email RIGHT NOW. No more small talk.
+- Be direct: "Here's the link to get started: [URL]" or "Drop your email and I'll set you up"
+- Every response from now on MUST include a CTA or email ask. No exceptions.
+"""
 
-BUYING SIGNALS (when you see these, move to close):
+    prompt += f"""
+{escalation}
+
+BUYING SIGNALS (when you see these, close IMMEDIATELY - don't wait):
 - Asks about cost/pricing
 - Asks about timeline
 - Asks "can you do X"
 - Describes their project in detail
 - Asks about next steps
+- Shows ANY interest in the product
+
+IMPORTANT: Do NOT wait for buying signals after turn 3. Start closing proactively.
 
 {goal_instructions}
 
@@ -217,26 +240,28 @@ Only offer contact info if they specifically ask for it or need to escalate.
 """
 
     if primary_goal == "book_demo":
-        url_part = f"\nAfter getting email, include the booking link: {goal_url}" if goal_url else ""
+        booking_link = goal_url if goal_url else "[booking link]"
         return f"""
 YOUR GOAL: BOOK A DEMO/MEETING
-When you see buying signals, offer: "{cta}"
-ALWAYS ask for their email FIRST: "What's the best email to send the calendar invite to?"
-Do NOT just say "book at [url]" - collect their email first so we can follow up.
-After getting email: "Perfect! Here's the link to pick a time that works for you: {goal_url if goal_url else '[booking link]'}"
-{url_part}
+Your CTA is: "{cta}"
+Booking link: {booking_link}
+Ask for their email: "What's the best email to send the calendar invite to?"
+After getting email: "Perfect! Here's the link to pick a time that works for you: {booking_link}"
+IMPORTANT: After 3+ exchanges, you MUST ask for email or share the booking link. No more small talk.
 """
 
     if primary_goal == "start_trial":
-        url_part = f"\nAfter getting email, include signup link: {goal_url}" if goal_url else ""
+        signup_link = goal_url if goal_url else "site2crm.io/signup"
         return f"""
 YOUR GOAL: GET THEM TO START A FREE TRIAL
-When you see buying signals, offer: "{cta}"
+Your CTA is: "{cta}"
+Signup link: {signup_link}
 Emphasize: free trial, no credit card required, cancel anytime.
-ALWAYS ask for their email FIRST: "What's the best email for your trial account?"
-Do NOT just say "sign up at [url]" - collect their email first.
-After getting email: "Awesome! Here's your signup link: {goal_url if goal_url else 'site2crm.io/signup'} - you'll be set up in 30 seconds!"
-{url_part}
+Ask for their email: "What's the best email for your trial account?"
+OR direct them to sign up: "Here's the link to get started: {signup_link}"
+After getting email: "Awesome! Here's your signup link: {signup_link} - you'll be set up in 30 seconds!"
+IMPORTANT: After 3+ exchanges, you MUST include the signup link ({signup_link}) in your response.
+Do NOT keep chatting without ever showing them how to sign up.
 """
 
     if primary_goal == "get_quote":
@@ -258,12 +283,14 @@ After getting phone: "Great! Someone will give you a quick call soon. Is there a
 """
 
     # Default: capture_email
+    goal_link_part = f'\nAfter 3+ exchanges, include this link: {goal_url}' if goal_url else ''
     return f"""
 YOUR GOAL: CAPTURE THEIR EMAIL
-When you see buying signals, offer: "{cta}"
-Ask: "What's the best email for you?"
+Your CTA is: "{cta}"
+Ask: "What's the best email for you?" or "Drop your email and I'll get you set up!"
 Always end with the email question - never ask "would you like to proceed?"
 After getting email: "Perfect, you'll hear from us within 24 hours. Anything else I can help with?"
+IMPORTANT: After 3+ exchanges without getting their email, you MUST ask for it directly. No more small talk.{goal_link_part}
 """
 
 
@@ -392,8 +419,10 @@ async def chat_completion(
     Returns:
         tuple: (response_text, input_tokens, output_tokens)
     """
+    # Count user turns for escalation logic
+    turn_count = sum(1 for m in messages if m["role"] == "user")
 
-    system_prompt = build_system_prompt(config, timezone)
+    system_prompt = build_system_prompt(config, timezone, turn_count)
 
     # Try DeepSeek first (primary)
     if settings.DEEPSEEK_API_KEY:
