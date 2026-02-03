@@ -1026,6 +1026,12 @@ export interface ChatWidgetConversation {
   updated_at: string;
 }
 
+export interface ChatWidgetConversationDetail extends ChatWidgetConversation {
+  transcript: { role: string; content: string }[];
+  total_tokens_input: number;
+  total_tokens_output: number;
+}
+
 // Chat Widget API functions
 export async function getChatWidgetTemplates(): Promise<ChatWidgetTemplate[]> {
   return fetchJSON<ChatWidgetTemplate[]>(`${baseUrl}/chat-widget/templates`);
@@ -1082,6 +1088,10 @@ export async function getChatWidgetConversations(limit = 50, widgetKey?: string)
   const params: Record<string, unknown> = { limit };
   if (widgetKey) params.widget_key = widgetKey;
   return fetchJSON<ChatWidgetConversation[]>(`${baseUrl}/chat-widget/conversations${toQuery(params)}`);
+}
+
+export async function getChatWidgetConversationDetail(conversationId: number): Promise<ChatWidgetConversationDetail> {
+  return fetchJSON<ChatWidgetConversationDetail>(`${baseUrl}/chat-widget/conversations/${conversationId}`);
 }
 
 // Named plus default export

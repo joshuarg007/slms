@@ -8,11 +8,13 @@ import {
   deleteChatWidgetConfig,
   getChatWidgetEmbedCode,
   getChatWidgetConversations,
+  getChatWidgetConversationDetail,
   getChatWidgetTemplates,
   getChatWidgetTemplate,
   type ChatWidgetConfig,
   type ChatWidgetEmbedCode,
   type ChatWidgetConversation,
+  type ChatWidgetConversationDetail,
   type ChatWidgetTemplate,
 } from "@/utils/api";
 import { FriendlyError } from "@/components/FriendlyError";
@@ -433,6 +435,7 @@ export default function ChatWidgetPage() {
   const [selectedWidget, setSelectedWidget] = useState<ChatWidgetConfig | null>(null);
   const [embedCode, setEmbedCode] = useState<ChatWidgetEmbedCode | null>(null);
   const [conversations, setConversations] = useState<ChatWidgetConversation[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<ChatWidgetConversationDetail | null>(null);
   const [templates, setTemplates] = useState<ChatWidgetTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -581,6 +584,7 @@ export default function ChatWidgetPage() {
 
   const handleViewConversations = (widget: ChatWidgetConfig) => {
     setSelectedWidget(widget);
+    setSelectedConversation(null);
     if (widget.widget_key) {
       loadConversations(widget.widget_key);
     }
@@ -2151,75 +2155,160 @@ export default function ChatWidgetPage() {
       {/* Conversations View */}
       {view === "conversations" && selectedWidget && (
         <div className="space-y-4">
-          <div className="flex items-center gap-3 mb-4">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg"
-              style={{ backgroundColor: selectedWidget.primary_color }}
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z"/>
-              </svg>
-            </div>
+          {selectedConversation ? (
+            /* Conversation Detail View */
             <div>
-              <h2 className="text-lg font-semibold">{selectedWidget.business_name}</h2>
-              <p className="text-sm text-gray-500">Conversations</p>
-            </div>
-          </div>
-
-          {conversations.length === 0 ? (
-            <div className="text-center py-16 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              <button
+                onClick={() => setSelectedConversation(null)}
+                className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 mb-4 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
+                Back to conversations
+              </button>
+
+              {/* Visitor info header */}
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4 mb-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                      {selectedConversation.lead_name || selectedConversation.lead_email || "Anonymous visitor"}
+                    </h3>
+                    {selectedConversation.lead_email && !selectedConversation.lead_name && null}
+                    {selectedConversation.lead_name && selectedConversation.lead_email && (
+                      <p className="text-sm text-gray-500">{selectedConversation.lead_email}</p>
+                    )}
+                    {selectedConversation.lead_phone && (
+                      <p className="text-sm text-gray-500">{selectedConversation.lead_phone}</p>
+                    )}
+                    {selectedConversation.page_url && (
+                      <p className="text-xs text-gray-400 mt-1 truncate max-w-lg">{selectedConversation.page_url}</p>
+                    )}
+                  </div>
+                  <div className="text-right text-sm text-gray-500">
+                    <div>{selectedConversation.message_count} messages</div>
+                    <div className="text-xs">{new Date(selectedConversation.created_at).toLocaleString()}</div>
+                    {(selectedConversation.total_tokens_input > 0 || selectedConversation.total_tokens_output > 0) && (
+                      <div className="text-xs mt-1 text-gray-400">
+                        {selectedConversation.total_tokens_input + selectedConversation.total_tokens_output} tokens
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-              <p className="font-semibold text-gray-900 dark:text-gray-100">No conversations yet</p>
-              <p className="text-sm mt-2 text-gray-500">Conversations will appear here when visitors use this chat widget</p>
+
+              {/* Chat transcript */}
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-4 space-y-3 max-h-[600px] overflow-y-auto">
+                {selectedConversation.transcript.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">No messages in this conversation</p>
+                ) : (
+                  selectedConversation.transcript.map((msg, i) => (
+                    <div
+                      key={i}
+                      className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                          msg.role === "user"
+                            ? "bg-indigo-600 text-white rounded-br-md"
+                            : "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-bl-md"
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           ) : (
-            <div className="space-y-3">
-              {conversations.map((conv) => (
+            /* Conversation List View */
+            <>
+              <div className="flex items-center gap-3 mb-4">
                 <div
-                  key={conv.id}
-                  className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4 hover:shadow-lg transition-shadow"
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg"
+                  style={{ backgroundColor: selectedWidget.primary_color }}
                 >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        {conv.lead_email ? (
-                          <span className="font-medium text-gray-900 dark:text-gray-100">
-                            {conv.lead_email}
-                          </span>
-                        ) : (
-                          <span className="text-gray-500">Anonymous visitor</span>
-                        )}
-                        {conv.lead_captured_at && (
-                          <span className="px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 rounded-full">
-                            Lead captured
-                          </span>
-                        )}
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold">{selectedWidget.business_name}</h2>
+                  <p className="text-sm text-gray-500">Conversations</p>
+                </div>
+              </div>
+
+              {conversations.length === 0 ? (
+                <div className="text-center py-16 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                  </div>
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">No conversations yet</p>
+                  <p className="text-sm mt-2 text-gray-500">Conversations will appear here when visitors use this chat widget</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {conversations.map((conv) => (
+                    <div
+                      key={conv.id}
+                      onClick={async () => {
+                        try {
+                          const detail = await getChatWidgetConversationDetail(conv.id);
+                          setSelectedConversation(detail);
+                        } catch (err) {
+                          console.error("Failed to load conversation", err);
+                        }
+                      }}
+                      className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-5 py-4 hover:shadow-lg hover:border-indigo-300 dark:hover:border-indigo-700 transition-all cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            {conv.lead_email ? (
+                              <span className="font-medium text-gray-900 dark:text-gray-100">
+                                {conv.lead_email}
+                              </span>
+                            ) : (
+                              <span className="text-gray-500">Anonymous visitor</span>
+                            )}
+                            {conv.lead_captured_at && (
+                              <span className="px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 rounded-full">
+                                Lead captured
+                              </span>
+                            )}
+                          </div>
+                          {conv.page_url && (
+                            <p className="text-xs text-gray-500 mt-1 truncate max-w-md">
+                              {conv.page_url}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right text-sm text-gray-500">
+                            <div className="font-medium">{conv.message_count} messages</div>
+                            <div className="text-xs">
+                              {new Date(conv.created_at).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
                       </div>
-                      {conv.page_url && (
-                        <p className="text-xs text-gray-500 mt-1 truncate max-w-md">
-                          {conv.page_url}
+                      {conv.lead_phone && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                          Phone: {conv.lead_phone}
                         </p>
                       )}
                     </div>
-                    <div className="text-right text-sm text-gray-500">
-                      <div className="font-medium">{conv.message_count} messages</div>
-                      <div className="text-xs">
-                        {new Date(conv.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                  {conv.lead_phone && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                      Phone: {conv.lead_phone}
-                    </p>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
       )}
