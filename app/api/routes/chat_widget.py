@@ -3,7 +3,7 @@
 import json
 import logging
 import secrets
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -11,9 +11,11 @@ from fastapi.responses import FileResponse
 from pathlib import Path
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.api.deps.auth import get_db, get_current_user
 from app.db import models
+from app.core.plans import get_plan_limits, validate_message_tokens, validate_conversation_turns
 from app.services.ai_chat import (
     chat_completion,
     extract_email_from_message,
@@ -22,6 +24,135 @@ from app.services.ai_chat import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# Plan Limit Enforcement Helpers
+# ============================================================================
+
+
+def estimate_tokens(text: str) -> int:
+    """Estimate token count for text (rough: ~4 chars per token for English)."""
+    return len(text) // 4 + 1
+
+
+def get_monthly_conversation_count(db: Session, org_id: int) -> int:
+    """Count conversations started this month for an organization."""
+    start_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    # Get all widget config IDs for this org
+    config_ids = [
+        c.id for c in
+        db.query(models.ChatWidgetConfig.id)
+        .filter(models.ChatWidgetConfig.organization_id == org_id)
+        .all()
+    ]
+
+    if not config_ids:
+        return 0
+
+    count = (
+        db.query(func.count(models.ChatWidgetConversation.id))
+        .filter(
+            models.ChatWidgetConversation.config_id.in_(config_ids),
+            models.ChatWidgetConversation.created_at >= start_of_month,
+        )
+        .scalar()
+    )
+
+    return count or 0
+
+
+def get_widget_count(db: Session, org_id: int) -> int:
+    """Count active chat widgets for an organization."""
+    return (
+        db.query(func.count(models.ChatWidgetConfig.id))
+        .filter(models.ChatWidgetConfig.organization_id == org_id)
+        .scalar() or 0
+    )
+
+
+def enforce_conversation_limits(
+    db: Session,
+    config: models.ChatWidgetConfig,
+    conversation: Optional[models.ChatWidgetConversation],
+    message: str,
+) -> None:
+    """
+    Enforce all conversation limits. Raises HTTPException if any limit exceeded.
+
+    Checks:
+    1. Monthly conversation limit
+    2. Message token limit
+    3. Conversation turn limit
+    """
+    # Get org and plan
+    org = db.query(models.Organization).filter(models.Organization.id == config.organization_id).first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    plan = org.plan or "free"
+    limits = get_plan_limits(plan)
+
+    # Check if AI chat is enabled for this plan
+    if limits.chat_conversations_per_month == 0:
+        raise HTTPException(
+            status_code=403,
+            detail="AI chat is not available on your plan. Please upgrade to use this feature."
+        )
+
+    # Check monthly conversation limit (only for new conversations)
+    if conversation is None:  # New conversation
+        if limits.chat_conversations_per_month != -1:  # -1 = unlimited
+            current_count = get_monthly_conversation_count(db, config.organization_id)
+            if current_count >= limits.chat_conversations_per_month:
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Monthly conversation limit reached ({limits.chat_conversations_per_month}). "
+                           f"Please upgrade your plan for more conversations."
+                )
+
+    # Check message token limit
+    message_tokens = estimate_tokens(message)
+    is_valid, error_msg = validate_message_tokens(plan, message_tokens)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_msg)
+
+    # Check conversation turn limit (if existing conversation)
+    if conversation is not None:
+        turn_count = conversation.message_count or 0
+        is_valid, error_msg = validate_conversation_turns(plan, turn_count)
+        if not is_valid:
+            raise HTTPException(status_code=429, detail=error_msg)
+
+
+def enforce_widget_creation_limits(db: Session, user: models.User) -> None:
+    """
+    Enforce widget creation limits. Raises HTTPException if limit exceeded.
+    """
+    org = db.query(models.Organization).filter(models.Organization.id == user.organization_id).first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    plan = org.plan or "free"
+    limits = get_plan_limits(plan)
+
+    # Check if chat widgets are enabled
+    if limits.chat_agents == 0:
+        raise HTTPException(
+            status_code=403,
+            detail="AI chat widgets are not available on your plan. Please upgrade."
+        )
+
+    # Check widget count limit
+    if limits.chat_agents != -1:  # -1 = unlimited
+        current_count = get_widget_count(db, user.organization_id)
+        if current_count >= limits.chat_agents:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Widget limit reached ({limits.chat_agents}). "
+                       f"Please upgrade your plan to create more widgets."
+            )
 
 
 def generate_widget_key() -> str:
@@ -485,6 +616,9 @@ def create_chat_widget_config(
 ):
     """Create a new chat widget configuration."""
     _validate_config_request(req)
+
+    # Enforce plan limits on widget creation
+    enforce_widget_creation_limits(db, user)
 
     # Generate unique widget key
     widget_key = generate_widget_key()
@@ -961,8 +1095,8 @@ async def send_chat_message(
     if not config or not config.is_active:
         raise HTTPException(status_code=404, detail="Chat widget not available")
 
-    # Get or create conversation
-    conversation = (
+    # Check if conversation exists (don't create yet - need to check limits first)
+    existing_conversation = (
         db.query(models.ChatWidgetConversation)
         .filter(
             models.ChatWidgetConversation.config_id == config.id,
@@ -971,7 +1105,20 @@ async def send_chat_message(
         .first()
     )
 
-    if not conversation:
+    # =========================================================================
+    # ENFORCE PLAN LIMITS - This is critical for preventing abuse
+    # =========================================================================
+    enforce_conversation_limits(
+        db=db,
+        config=config,
+        conversation=existing_conversation,  # None if new conversation
+        message=req.message,
+    )
+
+    # Now safe to create conversation if it doesn't exist
+    if existing_conversation:
+        conversation = existing_conversation
+    else:
         conversation = models.ChatWidgetConversation(
             config_id=config.id,
             session_id=req.session_id,
