@@ -96,6 +96,20 @@
     const shadowStyle = cfg.shadow_style || "elevated";
     const entryAnimation = cfg.entry_animation || "scale";
 
+    // Hex to RGB for rgba() usage
+    const hexToRgb = (hex) => {
+      const h = hex.replace("#", "");
+      return [parseInt(h.substring(0,2),16), parseInt(h.substring(2,4),16), parseInt(h.substring(4,6),16)];
+    };
+    const pr = hexToRgb(primaryColor);
+    const pRgba = (a) => `rgba(${pr[0]}, ${pr[1]}, ${pr[2]}, ${a})`;
+    // Lighter shade for gradient secondary
+    const lighten = (hex, amt) => {
+      const [r,g,b] = hexToRgb(hex);
+      return `rgb(${Math.min(255,r+amt)}, ${Math.min(255,g+amt)}, ${Math.min(255,b+amt)})`;
+    };
+    const primaryLight = lighten(primaryColor, 40);
+
     // Gradient presets (must match frontend GRADIENT_PRESETS)
     const gradientPresets = {
       sunset: ["#f97316", "#ec4899"],
@@ -136,15 +150,15 @@
     const shadows = {
       none: "none",
       subtle: `0 4px 12px rgba(0,0,0,0.15)`,
-      elevated: `0 8px 32px rgba(99, 102, 241, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset, 0 2px 4px rgba(0, 0, 0, 0.1)`,
-      dramatic: `0 20px 60px rgba(0,0,0,0.4), 0 8px 24px rgba(99, 102, 241, 0.3)`,
+      elevated: `0 8px 32px ${pRgba(0.4)}, 0 0 0 1px rgba(255, 255, 255, 0.1) inset, 0 2px 4px rgba(0, 0, 0, 0.1)`,
+      dramatic: `0 20px 60px rgba(0,0,0,0.4), 0 8px 24px ${pRgba(0.3)}`,
       glow: `0 0 20px ${primaryColor}80, 0 0 40px ${primaryColor}40, 0 8px 32px rgba(0,0,0,0.3)`,
     };
     const bubbleShadow = shadows[shadowStyle] || shadows.elevated;
     const bubbleHoverShadow = shadowStyle === "none" ? "none"
       : shadowStyle === "glow" ? `0 0 30px ${primaryColor}90, 0 0 60px ${primaryColor}60, 0 12px 40px rgba(0,0,0,0.3)`
-      : shadowStyle === "dramatic" ? `0 24px 70px rgba(0,0,0,0.5), 0 12px 32px rgba(99, 102, 241, 0.4)`
-      : `0 12px 40px rgba(99, 102, 241, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.15) inset, 0 4px 8px rgba(0, 0, 0, 0.15)`;
+      : shadowStyle === "dramatic" ? `0 24px 70px rgba(0,0,0,0.5), 0 12px 32px ${pRgba(0.4)}`
+      : `0 12px 40px ${pRgba(0.5)}, 0 0 0 1px rgba(255, 255, 255, 0.15) inset, 0 4px 8px rgba(0, 0, 0, 0.15)`;
 
     // Attention effect — applied directly to .s2c-bubble (not ::after)
     let bubbleAttentionAnimation = "";
@@ -350,7 +364,7 @@
       box-shadow:
         0 32px 64px -12px rgba(0, 0, 0, 0.5),
         0 0 0 1px rgba(255, 255, 255, 0.08),
-        0 0 80px rgba(99, 102, 241, 0.15);
+        0 0 80px ${pRgba(0.15)};
       display: none;
       flex-direction: column;
       overflow: hidden;
@@ -392,7 +406,7 @@
 
     .s2c-header {
       padding: 20px 24px;
-      background: linear-gradient(135deg, ${primaryColor} 0%, #8b5cf6 50%, #a855f7 100%);
+      background: ${bubbleBg.includes("gradient") ? bubbleBg : `linear-gradient(135deg, ${primaryColor} 0%, ${primaryLight} 100%)`};
       color: white;
       display: flex;
       align-items: center;
@@ -523,10 +537,10 @@
 
     .s2c-message.user {
       align-self: flex-end;
-      background: linear-gradient(135deg, ${userBubbleColor} 0%, #8b5cf6 100%);
+      background: linear-gradient(135deg, ${userBubbleColor} 0%, ${primaryLight} 100%);
       color: white;
       border-radius: 20px 20px 6px 20px;
-      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+      box-shadow: 0 4px 16px ${pRgba(0.3)};
     }
 
     .s2c-message.assistant {
@@ -551,7 +565,7 @@
     .s2c-typing-dot {
       width: 8px;
       height: 8px;
-      background: linear-gradient(135deg, ${primaryColor}, #a855f7);
+      background: linear-gradient(135deg, ${primaryColor}, ${primaryLight});
       border-radius: 50%;
       animation: s2c-typing 1.4s ease-in-out infinite;
     }
@@ -585,11 +599,11 @@
 
     .s2c-quick-reply {
       padding: 10px 18px;
-      background: rgba(99, 102, 241, 0.1);
-      border: 1px solid rgba(99, 102, 241, 0.3);
+      background: ${pRgba(0.1)};
+      border: 1px solid ${pRgba(0.3)};
       border-radius: 24px;
       font-size: 13px;
-      color: #c4b5fd;
+      color: ${primaryLight};
       cursor: pointer;
       transition: all 0.25s ease;
       font-weight: 600;
@@ -597,11 +611,11 @@
     }
 
     .s2c-quick-reply:hover {
-      background: linear-gradient(135deg, ${primaryColor} 0%, #8b5cf6 100%);
+      background: linear-gradient(135deg, ${primaryColor} 0%, ${primaryLight} 100%);
       color: white;
       border-color: transparent;
       transform: translateY(-2px);
-      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+      box-shadow: 0 4px 16px ${pRgba(0.4)};
     }
 
     .s2c-input-area {
@@ -628,8 +642,8 @@
 
     .s2c-input:focus {
       background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(99, 102, 241, 0.5);
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+      border-color: ${pRgba(0.5)};
+      box-shadow: 0 0 0 3px ${pRgba(0.15)};
     }
 
     .s2c-input::placeholder {
@@ -646,9 +660,9 @@
       align-items: center;
       justify-content: center;
       transition: all 0.25s ease;
-      background: linear-gradient(135deg, ${primaryColor} 0%, #8b5cf6 100%);
+      background: linear-gradient(135deg, ${primaryColor} 0%, ${primaryLight} 100%);
       flex-shrink: 0;
-      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+      box-shadow: 0 4px 16px ${pRgba(0.3)};
     }
 
     .s2c-send:disabled {
@@ -659,7 +673,7 @@
 
     .s2c-send:not(:disabled):hover {
       transform: scale(1.05) translateY(-1px);
-      box-shadow: 0 6px 24px rgba(99, 102, 241, 0.45);
+      box-shadow: 0 6px 24px ${pRgba(0.45)};
     }
 
     .s2c-send:not(:disabled):active {
@@ -682,14 +696,14 @@
     }
 
     .s2c-powered a {
-      color: #a5b4fc;
+      color: ${primaryLight};
       text-decoration: none;
       font-weight: 600;
       transition: color 0.2s;
     }
 
     .s2c-powered a:hover {
-      color: #c7d2fe;
+      color: ${primaryLight};
     }
 
     .s2c-powered.hidden {
@@ -702,20 +716,20 @@
       gap: 8px;
       margin-top: 12px;
       padding: 12px 24px;
-      background: linear-gradient(135deg, ${primaryColor} 0%, #8b5cf6 100%);
+      background: linear-gradient(135deg, ${primaryColor} 0%, ${primaryLight} 100%);
       color: white !important;
       text-decoration: none;
       border-radius: 14px;
       font-weight: 700;
       font-size: 14px;
       transition: all 0.25s ease;
-      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+      box-shadow: 0 4px 16px ${pRgba(0.35)};
       letter-spacing: -0.01em;
     }
 
     .s2c-link-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.45);
+      box-shadow: 0 8px 24px ${pRgba(0.45)};
     }
 
     .s2c-link-btn svg {
