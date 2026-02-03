@@ -71,7 +71,6 @@ jobs:
               "git fetch --all --prune",
               "git reset --hard origin/main",
               "VENV=/home/ubuntu/site2crm/.venv/bin/python3",
-              "$VENV -m pip install --upgrade pip",
               "$VENV -m pip install -r requirements.txt",
               "chown -R ubuntu:ubuntu /home/ubuntu/site2crm/.venv",
               "[ -f alembic.ini ] && $VENV -m alembic upgrade heads || true",
