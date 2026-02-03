@@ -32,10 +32,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     api
       .me()
       .then((u) => {
-        if (mounted) setUser(u);
+        if (mounted) {
+          setUser(u);
+          // Hide chat widget for authenticated users
+          localStorage.setItem("site2crm_hide_chat", "true");
+        }
       })
       .catch(() => {
-        if (mounted) setUser(null);
+        if (mounted) {
+          setUser(null);
+          localStorage.removeItem("site2crm_hide_chat");
+        }
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -64,6 +71,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 2) fetch full user data including org
     const u = await api.me();
     setUser(u);
+
+    // Hide chat widget for authenticated users
+    localStorage.setItem("site2crm_hide_chat", "true");
   };
 
   // Clear both cookies/token and in-memory user
@@ -75,6 +85,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       api.clearToken();      // removes access_token from localStorage
       setUser(null);
       setLoading(false);
+      // Show chat widget again for unauthenticated users
+      localStorage.removeItem("site2crm_hide_chat");
     }
   };
 

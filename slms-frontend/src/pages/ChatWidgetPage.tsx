@@ -220,7 +220,49 @@ const FORM_TABS = [
   { id: "branding", label: "Branding", icon: "M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" },
 ];
 
-const EMPTY_FORM: Omit<ChatWidgetConfig, 'id' | 'widget_key' | 'created_at' | 'updated_at'> = {
+// Extended form type to include new fields not yet in API
+interface ExtendedFormState {
+  business_name: string;
+  business_description: string;
+  services: string;
+  restrictions: string;
+  cta: string;
+  contact_email: string;
+  tone: string;
+  extra_context: string;
+  primary_goal: string;
+  goal_url: string | null;
+  rebuttal_count: number;
+  persistence_level: string;
+  welcome_message: string | null;
+  success_message: string | null;
+  collect_phone: boolean;
+  collect_name: boolean;
+  collect_company: boolean;
+  quick_replies: string[] | null;
+  primary_color: string;
+  widget_position: string;
+  bubble_icon: string;
+  header_title: string | null;
+  header_subtitle: string | null;
+  chat_bg_color: string | null;
+  user_bubble_color: string | null;
+  bot_bubble_color: string | null;
+  button_size: string;
+  show_branding: boolean;
+  is_active: boolean;
+  // New appearance fields
+  button_shape: string;
+  gradient_type: string;
+  gradient_color_1: string | null;
+  gradient_color_2: string | null;
+  gradient_color_3: string | null;
+  gradient_angle: number;
+  button_opacity: number;
+  blur_background: boolean;
+}
+
+const EMPTY_FORM: ExtendedFormState = {
   business_name: "",
   business_description: "",
   services: "",
@@ -253,12 +295,98 @@ const EMPTY_FORM: Omit<ChatWidgetConfig, 'id' | 'widget_key' | 'created_at' | 'u
   button_size: "medium",
   show_branding: true,
   is_active: true,
+  // New appearance fields
+  button_shape: "bubble",
+  gradient_type: "none",
+  gradient_color_1: null,
+  gradient_color_2: null,
+  gradient_color_3: null,
+  gradient_angle: 135,
+  button_opacity: 1,
+  blur_background: false,
 };
 
 const BUTTON_SIZES = [
   { value: "small", label: "Small", size: "48px" },
   { value: "medium", label: "Medium", size: "56px" },
   { value: "large", label: "Large", size: "64px" },
+];
+
+// Button shape options
+const BUTTON_SHAPES = [
+  {
+    value: "bubble",
+    label: "Bubble",
+    desc: "Classic circle",
+    preview: (color: string) => (
+      <div className="w-12 h-12 rounded-full" style={{ background: color }} />
+    ),
+  },
+  {
+    value: "pill",
+    label: "Pill",
+    desc: "Horizontal capsule",
+    preview: (color: string) => (
+      <div className="w-20 h-10 rounded-full flex items-center justify-center gap-2" style={{ background: color }}>
+        <span className="text-white text-xs font-medium">Chat</span>
+      </div>
+    ),
+  },
+  {
+    value: "square",
+    label: "Square",
+    desc: "Rounded corners",
+    preview: (color: string) => (
+      <div className="w-12 h-12 rounded-xl" style={{ background: color }} />
+    ),
+  },
+  {
+    value: "tab",
+    label: "Tab",
+    desc: "Side edge flag",
+    preview: (color: string) => (
+      <div className="w-8 h-20 rounded-l-lg flex items-center justify-center" style={{ background: color }}>
+        <svg className="w-4 h-4 text-white -rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+        </svg>
+      </div>
+    ),
+  },
+  {
+    value: "bar",
+    label: "Bar",
+    desc: "Full-width bottom",
+    preview: (color: string) => (
+      <div className="w-32 h-10 rounded-t-lg flex items-center justify-center gap-2" style={{ background: color }}>
+        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+        </svg>
+        <span className="text-white text-xs font-medium">Chat with us</span>
+      </div>
+    ),
+  },
+];
+
+// Gradient presets
+const GRADIENT_PRESETS = [
+  { value: "none", label: "Solid", colors: null },
+  { value: "sunset", label: "Sunset", colors: ["#f97316", "#ec4899"] },
+  { value: "ocean", label: "Ocean", colors: ["#06b6d4", "#3b82f6"] },
+  { value: "forest", label: "Forest", colors: ["#22c55e", "#14b8a6"] },
+  { value: "purple", label: "Purple Haze", colors: ["#8b5cf6", "#ec4899"] },
+  { value: "fire", label: "Fire", colors: ["#ef4444", "#f97316"] },
+  { value: "midnight", label: "Midnight", colors: ["#1e3a8a", "#7c3aed"] },
+  { value: "aurora", label: "Aurora", colors: ["#06b6d4", "#8b5cf6", "#ec4899"] },
+  { value: "custom", label: "Custom", colors: null },
+];
+
+// Transparency levels
+const TRANSPARENCY_LEVELS = [
+  { value: "none", label: "Solid", opacity: 1 },
+  { value: "subtle", label: "Subtle", opacity: 0.95 },
+  { value: "light", label: "Light", opacity: 0.85 },
+  { value: "medium", label: "Medium", opacity: 0.75 },
+  { value: "glass", label: "Glass", opacity: 0.6 },
 ];
 
 export default function ChatWidgetPage() {
@@ -276,7 +404,7 @@ export default function ChatWidgetPage() {
   const [copied, setCopied] = useState(false);
 
   // Form state
-  const [form, setForm] = useState<typeof EMPTY_FORM>(EMPTY_FORM);
+  const [form, setForm] = useState<ExtendedFormState>(EMPTY_FORM);
   const [isEditing, setIsEditing] = useState(false);
   const [quickReplyInput, setQuickReplyInput] = useState("");
   const [activeTab, setActiveTab] = useState("business");
@@ -354,6 +482,8 @@ export default function ChatWidgetPage() {
   };
 
   const handleEditWidget = (widget: ChatWidgetConfig) => {
+    // Cast to any to access potential new fields
+    const w = widget as ChatWidgetConfig & Partial<ExtendedFormState>;
     setForm({
       business_name: widget.business_name,
       business_description: widget.business_description,
@@ -384,6 +514,15 @@ export default function ChatWidgetPage() {
       button_size: widget.button_size || "medium",
       show_branding: widget.show_branding ?? true,
       is_active: widget.is_active,
+      // New appearance fields (with defaults for existing widgets)
+      button_shape: w.button_shape || "bubble",
+      gradient_type: w.gradient_type || "none",
+      gradient_color_1: w.gradient_color_1 || null,
+      gradient_color_2: w.gradient_color_2 || null,
+      gradient_color_3: w.gradient_color_3 || null,
+      gradient_angle: w.gradient_angle || 135,
+      button_opacity: w.button_opacity ?? 1,
+      blur_background: w.blur_background ?? false,
     });
     setSelectedWidget(widget);
     setIsEditing(true);
@@ -460,6 +599,22 @@ export default function ChatWidgetPage() {
 
   // Tab content renderer
   const renderTabContent = () => {
+    // Helper to generate button background style (used by appearance and branding tabs)
+    const getButtonBackground = () => {
+      if (form.gradient_type === "none" || (form.gradient_type === "custom" && !form.gradient_color_1)) {
+        return form.primary_color;
+      }
+      if (form.gradient_type === "custom") {
+        const colors = [form.gradient_color_1, form.gradient_color_2, form.gradient_color_3].filter(Boolean);
+        return `linear-gradient(${form.gradient_angle}deg, ${colors.join(", ")})`;
+      }
+      const preset = GRADIENT_PRESETS.find(p => p.value === form.gradient_type);
+      if (preset?.colors) {
+        return `linear-gradient(${form.gradient_angle}deg, ${preset.colors.join(", ")})`;
+      }
+      return form.primary_color;
+    };
+
     switch (activeTab) {
       case "business":
         return (
@@ -968,9 +1123,44 @@ export default function ChatWidgetPage() {
               </div>
             </div>
 
+            {/* Button Shape */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                Bubble Icon
+                Button Shape
+              </label>
+              <div className="grid grid-cols-5 gap-3">
+                {BUTTON_SHAPES.map((shape) => (
+                  <button
+                    key={shape.value}
+                    type="button"
+                    onClick={() => setForm({ ...form, button_shape: shape.value })}
+                    className={`group relative flex flex-col items-center p-4 rounded-2xl border-2 transition-all ${
+                      form.button_shape === shape.value
+                        ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 shadow-lg shadow-indigo-500/20"
+                        : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md"
+                    }`}
+                  >
+                    <div className="h-20 flex items-center justify-center mb-2 transition-transform group-hover:scale-105">
+                      {shape.preview(getButtonBackground())}
+                    </div>
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{shape.label}</span>
+                    <span className="text-[10px] text-gray-500">{shape.desc}</span>
+                    {form.button_shape === shape.value && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-indigo-500 rounded-full flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Bubble Icon */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Button Icon
               </label>
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
                 {BUBBLE_ICONS.map((icon) => (
@@ -989,7 +1179,7 @@ export default function ChatWidgetPage() {
                       className={`w-14 h-14 rounded-full flex items-center justify-center text-white mb-2 transition-transform group-hover:scale-110 ${
                         form.bubble_icon === icon.value ? "ring-4 ring-indigo-500/30" : ""
                       }`}
-                      style={{ backgroundColor: form.primary_color }}
+                      style={{ background: getButtonBackground() }}
                     >
                       <div className="w-7 h-7">
                         {icon.icon}
@@ -1009,6 +1199,7 @@ export default function ChatWidgetPage() {
               </div>
             </div>
 
+            {/* Button Size */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                 Button Size
@@ -1034,7 +1225,7 @@ export default function ChatWidgetPage() {
                     <div
                       className="rounded-full flex items-center justify-center text-white mb-2"
                       style={{
-                        backgroundColor: form.primary_color,
+                        background: getButtonBackground(),
                         width: size.size,
                         height: size.size,
                       }}
@@ -1055,6 +1246,79 @@ export default function ChatWidgetPage() {
       case "branding":
         return (
           <div className="space-y-6">
+            {/* Live Button Preview */}
+            <div className="p-6 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Live Preview</span>
+                <span className="text-xs text-gray-500">Your button as visitors see it</span>
+              </div>
+              <div className="relative h-24 flex items-center justify-center">
+                {/* Checkerboard background to show transparency */}
+                <div
+                  className="absolute inset-0 rounded-xl opacity-30"
+                  style={{
+                    backgroundImage: `
+                      linear-gradient(45deg, #ccc 25%, transparent 25%),
+                      linear-gradient(-45deg, #ccc 25%, transparent 25%),
+                      linear-gradient(45deg, transparent 75%, #ccc 75%),
+                      linear-gradient(-45deg, transparent 75%, #ccc 75%)
+                    `,
+                    backgroundSize: "20px 20px",
+                    backgroundPosition: "0 0, 0 10px, 10px -10px, -10px 0px",
+                  }}
+                />
+                {/* Preview button */}
+                <div
+                  className={`relative flex items-center justify-center text-white shadow-2xl transition-all ${
+                    form.button_shape === "bubble" ? "w-14 h-14 rounded-full" :
+                    form.button_shape === "pill" ? "w-24 h-12 rounded-full gap-2" :
+                    form.button_shape === "square" ? "w-14 h-14 rounded-xl" :
+                    form.button_shape === "tab" ? "w-10 h-24 rounded-l-lg" :
+                    "w-40 h-12 rounded-t-lg gap-2"
+                  }`}
+                  style={{
+                    background: getButtonBackground(),
+                    opacity: form.button_opacity,
+                    backdropFilter: form.blur_background ? "blur(8px)" : "none",
+                    WebkitBackdropFilter: form.blur_background ? "blur(8px)" : "none",
+                  }}
+                >
+                  {form.button_shape === "tab" ? (
+                    <svg className="w-5 h-5 -rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                  ) : (
+                    <>
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                      </svg>
+                      {(form.button_shape === "pill" || form.button_shape === "bar") && (
+                        <span className="text-sm font-medium">{form.button_shape === "bar" ? "Chat with us" : "Chat"}</span>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+              {/* Preview info badges */}
+              <div className="flex items-center justify-center gap-2 mt-4">
+                {form.gradient_type !== "none" && (
+                  <span className="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+                    {GRADIENT_PRESETS.find(p => p.value === form.gradient_type)?.label || "Gradient"}
+                  </span>
+                )}
+                {form.button_opacity < 1 && (
+                  <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                    {Math.round(form.button_opacity * 100)}% opacity
+                  </span>
+                )}
+                {form.blur_background && (
+                  <span className="px-2 py-1 text-xs rounded-full bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300">
+                    Glassmorphism
+                  </span>
+                )}
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1142,6 +1406,218 @@ export default function ChatWidgetPage() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Gradient Presets */}
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Button Gradient
+              </label>
+              <div className="grid grid-cols-3 gap-3">
+                {GRADIENT_PRESETS.map((preset) => {
+                  const previewBg = preset.colors
+                    ? `linear-gradient(135deg, ${preset.colors.join(", ")})`
+                    : form.primary_color;
+                  return (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      onClick={() => {
+                        if (preset.value === "custom") {
+                          setForm({
+                            ...form,
+                            gradient_type: "custom",
+                            gradient_color_1: form.gradient_color_1 || form.primary_color,
+                            gradient_color_2: form.gradient_color_2 || "#ec4899",
+                          });
+                        } else {
+                          setForm({ ...form, gradient_type: preset.value });
+                        }
+                      }}
+                      className={`relative flex flex-col items-center p-3 rounded-xl border-2 transition-all ${
+                        form.gradient_type === preset.value
+                          ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 shadow-lg"
+                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                      }`}
+                    >
+                      <div
+                        className="w-full h-8 rounded-lg mb-2"
+                        style={{
+                          background: preset.value === "none" ? form.primary_color : previewBg,
+                        }}
+                      />
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{preset.label}</span>
+                      {form.gradient_type === preset.value && (
+                        <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-indigo-500 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Custom Gradient Colors */}
+              {form.gradient_type === "custom" && (
+                <div className="mt-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Custom Colors</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (form.gradient_color_3) {
+                          setForm({ ...form, gradient_color_3: null });
+                        } else {
+                          setForm({ ...form, gradient_color_3: "#8b5cf6" });
+                        }
+                      }}
+                      className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                    >
+                      {form.gradient_color_3 ? "Remove 3rd color" : "+ Add 3rd color"}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Start</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={form.gradient_color_1 || form.primary_color}
+                          onChange={(e) => setForm({ ...form, gradient_color_1: e.target.value })}
+                          className="w-10 h-10 rounded-lg cursor-pointer border border-gray-200 dark:border-gray-700"
+                        />
+                        <input
+                          type="text"
+                          value={form.gradient_color_1 || ""}
+                          onChange={(e) => setForm({ ...form, gradient_color_1: e.target.value || null })}
+                          className="flex-1 px-2 py-1.5 text-xs font-mono border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800"
+                          placeholder={form.primary_color}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">End</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={form.gradient_color_2 || "#ec4899"}
+                          onChange={(e) => setForm({ ...form, gradient_color_2: e.target.value })}
+                          className="w-10 h-10 rounded-lg cursor-pointer border border-gray-200 dark:border-gray-700"
+                        />
+                        <input
+                          type="text"
+                          value={form.gradient_color_2 || ""}
+                          onChange={(e) => setForm({ ...form, gradient_color_2: e.target.value || null })}
+                          className="flex-1 px-2 py-1.5 text-xs font-mono border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800"
+                          placeholder="#ec4899"
+                        />
+                      </div>
+                    </div>
+                    {form.gradient_color_3 && (
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Middle</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={form.gradient_color_3}
+                            onChange={(e) => setForm({ ...form, gradient_color_3: e.target.value })}
+                            className="w-10 h-10 rounded-lg cursor-pointer border border-gray-200 dark:border-gray-700"
+                          />
+                          <input
+                            type="text"
+                            value={form.gradient_color_3}
+                            onChange={(e) => setForm({ ...form, gradient_color_3: e.target.value || null })}
+                            className="flex-1 px-2 py-1.5 text-xs font-mono border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Gradient Angle */}
+              {form.gradient_type !== "none" && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Gradient Angle</label>
+                    <span className="text-sm text-gray-500">{form.gradient_angle}°</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="360"
+                    step="15"
+                    value={form.gradient_angle}
+                    onChange={(e) => setForm({ ...form, gradient_angle: parseInt(e.target.value) })}
+                    className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                  />
+                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>0°</span>
+                    <span>90°</span>
+                    <span>180°</span>
+                    <span>270°</span>
+                    <span>360°</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Transparency / Glassmorphism */}
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Transparency
+              </label>
+              <div className="flex gap-2">
+                {TRANSPARENCY_LEVELS.map((level) => (
+                  <button
+                    key={level.value}
+                    type="button"
+                    onClick={() => setForm({ ...form, button_opacity: level.opacity })}
+                    className={`flex-1 flex flex-col items-center p-3 rounded-xl border-2 transition-all ${
+                      form.button_opacity === level.opacity
+                        ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30"
+                        : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                    }`}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-full mb-1.5"
+                      style={{
+                        background: form.primary_color,
+                        opacity: level.opacity,
+                      }}
+                    />
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{level.label}</span>
+                    <span className="text-[10px] text-gray-500">{Math.round(level.opacity * 100)}%</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Blur Background Toggle */}
+              <label className="flex items-center justify-between mt-4 p-4 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/40 dark:to-pink-900/40 flex items-center justify-center backdrop-blur">
+                    <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900 dark:text-gray-100">Glassmorphism Effect</div>
+                    <div className="text-sm text-gray-500">Add blur to button background</div>
+                  </div>
+                </div>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={form.blur_background}
+                    onChange={(e) => setForm({ ...form, blur_background: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
+                </div>
+              </label>
             </div>
 
             <div className="flex flex-col gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
