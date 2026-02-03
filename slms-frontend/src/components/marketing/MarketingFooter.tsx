@@ -37,7 +37,7 @@ export default function MarketingFooter() {
               <Logo linkTo="/" size="sm" forceDark />
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Turn website visitors into CRM leads. No code required.
+              Precision-engineered lead capture. Built by Axion Deep Labs.
             </p>
           </div>
 

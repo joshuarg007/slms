@@ -6,7 +6,7 @@ const PLANS = [
     name: "Site2CRM",
     price: "$29",
     period: "/month",
-    description: "Everything you need to stop manual CRM entry.",
+    description: "Core AI chat agent and form capabilities with CRM sync.",
     features: [
       "1 embedded form",
       "Up to 100 leads/month",
@@ -23,7 +23,7 @@ const PLANS = [
     name: "Site2CRM PRO",
     price: "$79",
     period: "/month",
-    description: "Unlimited forms + full AI Site2CRM AI for maximum conversions.",
+    description: "Full platform access with advanced AI agents, branding control, and priority support.",
     features: [
       "Unlimited forms",
       "Up to 1,000 leads/month",
@@ -45,7 +45,7 @@ const PLANS = [
     name: "Site2CRM Enterprise",
     price: "Custom",
     period: "",
-    description: "Unlimited everything with dedicated support and custom integrations.",
+    description: "Custom deployment with dedicated engineering support and SLA guarantees.",
     features: [
       "Everything in PRO",
       "Unlimited leads",
@@ -152,9 +152,9 @@ export default function PricingPage() {
   };
 
   useSEO({
-    title: "Pricing - Lead Forms + AI Chat Widget Starting at $29/month",
+    title: "Pricing — AI Lead Capture Platform | Site2CRM",
     description:
-      "Site2CRM pricing: Lead capture forms + AI Site2CRM AI. Starter at $29/mo, PRO at $79/mo with goal-driven AI chat agents, industry templates, and CRM sync. 14-day free trial.",
+      "Site2CRM pricing: AI chat agents + intelligent lead forms + real-time CRM sync. Starter $29/mo, Pro $79/mo. 14-day free trial. Built by Axion Deep Labs.",
     path: "/pricing",
     jsonLd: combinedSchema,
   });
@@ -162,13 +162,13 @@ export default function PricingPage() {
   return (
     <div>
       {/* Hero */}
-      <section className="py-12 sm:py-20 bg-gradient-to-b from-indigo-50 to-white dark:from-gray-900 dark:to-gray-950">
+      <section className="py-12 sm:py-20 bg-gradient-to-b from-violet-50 to-white dark:from-gray-900 dark:to-gray-950">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">
-            Simple, Transparent Pricing
+            Platform Access
           </h1>
           <p className="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Start capturing leads in minutes. No hidden fees, no surprises.
+            Transparent pricing. Full platform capabilities from day one.
           </p>
         </div>
       </section>
@@ -182,7 +182,7 @@ export default function PricingPage() {
                 key={plan.name}
                 className={`relative rounded-2xl p-5 sm:p-8 ${
                   plan.highlighted
-                    ? "bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-2xl shadow-indigo-500/25 md:scale-105"
+                    ? "bg-gradient-to-br from-violet-600 to-purple-600 text-white shadow-2xl shadow-violet-500/25 md:scale-105"
                     : "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
                 }`}
               >
@@ -210,7 +210,7 @@ export default function PricingPage() {
                   </span>
                   {plan.period && (
                     <span
-                      className={plan.highlighted ? "text-indigo-100" : "text-gray-500 dark:text-gray-400"}
+                      className={plan.highlighted ? "text-violet-100" : "text-gray-500 dark:text-gray-400"}
                     >
                       {plan.period}
                     </span>
@@ -219,7 +219,7 @@ export default function PricingPage() {
 
                 <p
                   className={`mt-3 text-sm ${
-                    plan.highlighted ? "text-indigo-100" : "text-gray-600 dark:text-gray-400"
+                    plan.highlighted ? "text-violet-100" : "text-gray-600 dark:text-gray-400"
                   }`}
                 >
                   {plan.description}
@@ -230,7 +230,7 @@ export default function PricingPage() {
                     <li key={feature} className="flex items-start gap-3">
                       <svg
                         className={`w-5 h-5 flex-shrink-0 ${
-                          plan.highlighted ? "text-indigo-200" : "text-green-500"
+                          plan.highlighted ? "text-violet-200" : "text-green-500"
                         }`}
                         fill="none"
                         stroke="currentColor"
@@ -258,8 +258,8 @@ export default function PricingPage() {
                   to={plan.name === "Site2CRM Enterprise" ? "/contact" : "/signup"}
                   className={`mt-6 sm:mt-8 block w-full py-3 min-h-[44px] text-center font-semibold rounded-xl transition-all flex items-center justify-center ${
                     plan.highlighted
-                      ? "bg-white text-indigo-600 hover:bg-indigo-50"
-                      : "bg-indigo-600 text-white hover:bg-indigo-700"
+                      ? "bg-white text-violet-600 hover:bg-violet-50"
+                      : "bg-violet-600 text-white hover:bg-violet-700"
                   }`}
                 >
                   {plan.cta}
@@ -300,11 +300,11 @@ export default function PricingPage() {
             Still have questions?
           </h2>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Our team is here to help you find the right plan for your business.
+            Our engineering team can help you find the right configuration.
           </p>
           <Link
             to="/contact"
-            className="inline-block mt-6 px-8 py-3 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-colors"
+            className="inline-block mt-6 px-8 py-3 min-h-[44px] bg-violet-600 hover:bg-violet-700 text-white font-semibold rounded-xl transition-colors"
           >
             Contact Sales
           </Link>

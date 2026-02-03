@@ -50,6 +50,29 @@ export default {
         xl: "1rem",
         "2xl": "1.25rem",
       },
+      animation: {
+        "fade-up": "fade-up 0.8s ease-out forwards",
+        "fade-up-1": "fade-up 0.8s ease-out 0.15s forwards",
+        "fade-up-2": "fade-up 0.8s ease-out 0.3s forwards",
+        "fade-up-3": "fade-up 0.8s ease-out 0.45s forwards",
+        "fade-up-4": "fade-up 0.8s ease-out 0.6s forwards",
+        "fade-in": "fade-in 1s ease-out forwards",
+        "float": "float 6s ease-in-out infinite",
+      },
+      keyframes: {
+        "fade-up": {
+          "0%": { opacity: "0", transform: "translateY(24px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        "float": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-12px)" },
+        },
+      },
     },
   },
   plugins: [],
