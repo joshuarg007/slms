@@ -86,9 +86,9 @@
     // Appearance config
     const buttonShape = cfg.button_shape || "bubble";
     const gradientType = cfg.gradient_type || "none";
-    const gradColor1 = cfg.gradient_color_1 || primaryColor;
-    const gradColor2 = cfg.gradient_color_2 || "#8b5cf6";
-    const gradColor3 = cfg.gradient_color_3 || "#a855f7";
+    const gradColor1 = cfg.gradient_color_1;
+    const gradColor2 = cfg.gradient_color_2;
+    const gradColor3 = cfg.gradient_color_3;
     const gradientAngle = cfg.gradient_angle != null ? cfg.gradient_angle : 135;
     const buttonOpacity = cfg.button_opacity != null ? cfg.button_opacity : 1.0;
     const blurBackground = cfg.blur_background || false;
@@ -96,58 +96,83 @@
     const shadowStyle = cfg.shadow_style || "elevated";
     const entryAnimation = cfg.entry_animation || "scale";
 
-    // Button shape → border-radius
-    const shapeRadius = {
-      bubble: "20px",
-      circle: "50%",
-      rounded: "16px",
-      square: "8px",
+    // Gradient presets (must match frontend GRADIENT_PRESETS)
+    const gradientPresets = {
+      sunset: ["#f97316", "#ec4899"],
+      ocean: ["#06b6d4", "#3b82f6"],
+      forest: ["#22c55e", "#14b8a6"],
+      purple: ["#8b5cf6", "#ec4899"],
+      fire: ["#ef4444", "#f97316"],
+      midnight: ["#1e3a8a", "#7c3aed"],
+      aurora: ["#06b6d4", "#8b5cf6", "#ec4899"],
     };
-    const bubbleRadius = shapeRadius[buttonShape] || "20px";
 
     // Bubble background
     let bubbleBg;
-    if (gradientType === "linear") {
-      bubbleBg = `linear-gradient(${gradientAngle}deg, ${gradColor1} 0%, ${gradColor2} 50%, ${gradColor3} 100%)`;
-    } else if (gradientType === "radial") {
-      bubbleBg = `radial-gradient(circle, ${gradColor1} 0%, ${gradColor2} 50%, ${gradColor3} 100%)`;
+    if (gradientType === "none") {
+      bubbleBg = primaryColor;
+    } else if (gradientType === "custom") {
+      const colors = [gradColor1, gradColor2, gradColor3].filter(Boolean);
+      bubbleBg = colors.length > 1
+        ? `linear-gradient(${gradientAngle}deg, ${colors.join(", ")})`
+        : primaryColor;
+    } else if (gradientPresets[gradientType]) {
+      bubbleBg = `linear-gradient(${gradientAngle}deg, ${gradientPresets[gradientType].join(", ")})`;
     } else {
       bubbleBg = primaryColor;
     }
 
+    // Button shape config
+    const shapeConfig = {
+      bubble: { radius: "50%", width: `${btnSize.size}px`, height: `${btnSize.size}px`, layout: "icon" },
+      pill: { radius: "9999px", width: `${btnSize.size * 1.8}px`, height: `${btnSize.size * 0.85}px`, layout: "icon-text" },
+      square: { radius: "16px", width: `${btnSize.size}px`, height: `${btnSize.size}px`, layout: "icon" },
+      tab: { radius: "12px 0 0 12px", width: `${btnSize.size * 0.7}px`, height: `${btnSize.size * 1.6}px`, layout: "icon-vertical" },
+      bar: { radius: "16px 16px 0 0", width: `${btnSize.size * 3}px`, height: `${btnSize.size * 0.75}px`, layout: "icon-text" },
+    };
+    const shape = shapeConfig[buttonShape] || shapeConfig.bubble;
+
     // Shadow style
     const shadows = {
       none: "none",
-      subtle: `0 2px 8px rgba(0,0,0,0.15)`,
+      subtle: `0 4px 12px rgba(0,0,0,0.15)`,
       elevated: `0 8px 32px rgba(99, 102, 241, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset, 0 2px 4px rgba(0, 0, 0, 0.1)`,
+      dramatic: `0 20px 60px rgba(0,0,0,0.4), 0 8px 24px rgba(99, 102, 241, 0.3)`,
       glow: `0 0 20px ${primaryColor}80, 0 0 40px ${primaryColor}40, 0 8px 32px rgba(0,0,0,0.3)`,
-      neon: `0 0 10px ${primaryColor}, 0 0 30px ${primaryColor}80, 0 0 60px ${primaryColor}40`,
     };
     const bubbleShadow = shadows[shadowStyle] || shadows.elevated;
     const bubbleHoverShadow = shadowStyle === "none" ? "none"
       : shadowStyle === "glow" ? `0 0 30px ${primaryColor}90, 0 0 60px ${primaryColor}60, 0 12px 40px rgba(0,0,0,0.3)`
-      : shadowStyle === "neon" ? `0 0 15px ${primaryColor}, 0 0 40px ${primaryColor}90, 0 0 80px ${primaryColor}50`
+      : shadowStyle === "dramatic" ? `0 24px 70px rgba(0,0,0,0.5), 0 12px 32px rgba(99, 102, 241, 0.4)`
       : `0 12px 40px rgba(99, 102, 241, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.15) inset, 0 4px 8px rgba(0, 0, 0, 0.15)`;
 
-    // Attention effect → animation on ::after
-    let attentionAnimation = "none";
+    // Attention effect — applied directly to .s2c-bubble (not ::after)
+    let bubbleAttentionAnimation = "";
+    let attentionAfterAnimation = "none";
     let attentionKeyframes = "";
     if (attentionEffect === "pulse") {
-      attentionAnimation = "s2c-pulse 2s ease-out infinite";
+      attentionAfterAnimation = "s2c-pulse 2s ease-out infinite";
       attentionKeyframes = `
         @keyframes s2c-pulse {
           0% { transform: scale(1); opacity: 0.5; }
           100% { transform: scale(1.4); opacity: 0; }
         }`;
     } else if (attentionEffect === "bounce") {
-      attentionAnimation = "s2c-bounce 2s ease-in-out infinite";
+      bubbleAttentionAnimation = "animation: s2c-bounce 2s ease-in-out infinite;";
       attentionKeyframes = `
         @keyframes s2c-bounce {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-8px); }
         }`;
+    } else if (attentionEffect === "glow") {
+      bubbleAttentionAnimation = "animation: s2c-glow 2s ease-in-out infinite;";
+      attentionKeyframes = `
+        @keyframes s2c-glow {
+          0%, 100% { box-shadow: ${bubbleShadow}; }
+          50% { box-shadow: 0 0 30px ${primaryColor}90, 0 0 60px ${primaryColor}50, 0 8px 32px rgba(0,0,0,0.3); }
+        }`;
     } else if (attentionEffect === "shake") {
-      attentionAnimation = "s2c-shake 3s ease-in-out infinite";
+      bubbleAttentionAnimation = "animation: s2c-shake 3s ease-in-out infinite;";
       attentionKeyframes = `
         @keyframes s2c-shake {
           0%, 90%, 100% { transform: rotate(0); }
@@ -156,15 +181,17 @@
           96% { transform: rotate(-6deg); }
           98% { transform: rotate(6deg); }
         }`;
+    } else if (attentionEffect === "ring") {
+      attentionAfterAnimation = "s2c-ring 2s ease-out infinite";
+      attentionKeyframes = `
+        @keyframes s2c-ring {
+          0% { transform: scale(1); opacity: 0.6; box-shadow: 0 0 0 0 ${primaryColor}80; }
+          100% { transform: scale(1.5); opacity: 0; box-shadow: 0 0 0 12px ${primaryColor}00; }
+        }`;
     }
 
     // Entry animation for chat window
-    let windowAnimation = "s2c-slide-up";
-    let windowKeyframes = `
-      @keyframes s2c-slide-up {
-        from { opacity: 0; transform: translateY(24px) scale(0.95); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
-      }`;
+    let windowAnimation, windowKeyframes;
     if (entryAnimation === "fade") {
       windowAnimation = "s2c-fade-in";
       windowKeyframes = `
@@ -178,6 +205,24 @@
         @keyframes s2c-slide-in {
           from { opacity: 0; transform: translateY(40px); }
           to { opacity: 1; transform: translateY(0); }
+        }`;
+    } else if (entryAnimation === "bounce") {
+      windowAnimation = "s2c-bounce-in";
+      windowKeyframes = `
+        @keyframes s2c-bounce-in {
+          0% { opacity: 0; transform: translateY(30px) scale(0.9); }
+          50% { transform: translateY(-8px) scale(1.02); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }`;
+    } else if (entryAnimation === "none") {
+      windowAnimation = "none";
+      windowKeyframes = "";
+    } else {
+      windowAnimation = "s2c-scale-in";
+      windowKeyframes = `
+        @keyframes s2c-scale-in {
+          from { opacity: 0; transform: translateY(24px) scale(0.95); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }`;
     }
 
@@ -193,26 +238,29 @@
 
     .s2c-bubble {
       position: fixed;
-      width: ${btnSize.size}px;
-      height: ${btnSize.size}px;
-      border-radius: ${bubbleRadius};
+      width: ${shape.width};
+      height: ${shape.height};
+      border-radius: ${shape.radius};
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      ${shape.layout === "icon-text" ? "gap: 8px;" : ""}
+      ${shape.layout === "icon-vertical" ? "flex-direction: column;" : ""}
       transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       z-index: 999998;
       background: ${bubbleBg};
       opacity: ${buttonOpacity};
       box-shadow: ${bubbleShadow};
       ${blurBackground ? "backdrop-filter: blur(10px);" : ""}
+      ${bubbleAttentionAnimation}
     }
 
     .s2c-bubble::before {
       content: '';
       position: absolute;
       inset: 0;
-      border-radius: ${bubbleRadius};
+      border-radius: ${shape.radius};
       padding: 1px;
       background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.05));
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -239,6 +287,13 @@
       transition: transform 0.3s ease;
     }
 
+    .s2c-bubble .s2c-bubble-label {
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
     .s2c-bubble:hover svg {
       transform: scale(1.1);
     }
@@ -253,16 +308,41 @@
       left: 24px;
     }
 
+    ${buttonShape === "tab" ? `
+    .s2c-bubble.bottom-right {
+      right: 0;
+      border-radius: 12px 0 0 12px;
+    }
+    .s2c-bubble.bottom-left {
+      left: 0;
+      border-radius: 0 12px 12px 0;
+    }` : ""}
+
+    ${buttonShape === "bar" ? `
+    .s2c-bubble.bottom-right,
+    .s2c-bubble.bottom-left {
+      bottom: 0;
+      left: 50%;
+      right: auto;
+      transform: translateX(-50%);
+      border-radius: 16px 16px 0 0;
+    }
+    .s2c-bubble.bottom-right:hover,
+    .s2c-bubble.bottom-left:hover {
+      transform: translateX(-50%) translateY(-2px);
+    }` : ""}
+
     /* Attention effect */
     .s2c-bubble::after {
-      content: '';
+      content: '${attentionAfterAnimation === "none" ? "" : ""}';
       position: absolute;
       width: 100%;
       height: 100%;
-      border-radius: ${bubbleRadius};
+      border-radius: ${shape.radius};
       background: inherit;
-      animation: ${attentionAnimation};
+      animation: ${attentionAfterAnimation};
       z-index: -1;
+      ${attentionAfterAnimation === "none" ? "display: none;" : ""}
     }
 
     ${attentionKeyframes}
@@ -730,9 +810,16 @@
     container.className = "s2c-widget";
     container.id = "site2crm-chat-widget";
 
+    const btnShape = config.button_shape || "bubble";
     bubble = document.createElement("div");
     bubble.className = `s2c-bubble ${position}`;
-    bubble.innerHTML = bubbleIcon;
+    if (btnShape === "pill") {
+      bubble.innerHTML = `${bubbleIcon}<span class="s2c-bubble-label">Chat</span>`;
+    } else if (btnShape === "bar") {
+      bubble.innerHTML = `${bubbleIcon}<span class="s2c-bubble-label">Chat with us</span>`;
+    } else {
+      bubble.innerHTML = bubbleIcon;
+    }
     bubble.addEventListener("click", toggleChat);
 
     let headerHtml = `
