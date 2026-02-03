@@ -35,7 +35,7 @@ AI_FEATURE_CUSTOM = "custom"          # Custom prompts (enterprise)
 
 # Plan limit definitions
 PLAN_LIMITS: Dict[str, PlanLimits] = {
-    # Free tier - limited, no AI, analytics grayed out
+    # Free tier - full AI experience, just limited quantity (30 convos)
     "free": PlanLimits(
         leads_per_month=100,
         forms=1,
@@ -44,13 +44,13 @@ PLAN_LIMITS: Dict[str, PlanLimits] = {
         ai_features=[],
         remove_branding=False,
         priority_support=False,
-        chat_agents=0,
-        chat_conversations_per_month=0,
-        chat_pro_features=False,
-        max_tokens_per_message=0,
-        max_conversation_turns=0,
-        max_system_prompt_tokens=0,
-        analytics_enabled=False,  # Analytics grayed out
+        chat_agents=1,  # 1 AI agent allowed
+        chat_conversations_per_month=30,  # 30 convos/month - enough to taste
+        chat_pro_features=True,  # Full customization - show them the magic
+        max_tokens_per_message=500,
+        max_conversation_turns=10,
+        max_system_prompt_tokens=500,
+        analytics_enabled=False,  # Analytics still locked
         ab_testing_enabled=False,
         form_styles=1,
     ),

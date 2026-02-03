@@ -479,8 +479,7 @@ export default function AppLayout() {
                   to="/app/chat-widget"
                   icon={icons.chatWidget}
                   label="AI Chat Widget"
-                  locked={isFreePlan}
-                  badge={!isFreePlan ? "AI" : undefined}
+                  badge="AI"
                 />
                 <NavItem to="/app/forms/fields" icon={icons.fields} label="Form Fields" />
                 <NavItem to="/app/forms/styles" icon={icons.styles} label="Form Styles" />
