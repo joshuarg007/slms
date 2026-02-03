@@ -180,22 +180,30 @@ RULES:
     elif turn_count <= 4:
         escalation = """CONVERSATION FLOW:
 - You're in the MIDDLE stage. You've built enough rapport. TIME TO PUSH.
-- You MUST ask for their email or direct them to sign up in THIS response.
-- Do NOT keep chatting without asking. Weave the ask into your response naturally.
-- Example: "That's exactly what we solve! What's your email so I can get you set up?"
+- You MUST direct them to the goal (link/signup/demo) in THIS response.
+- Do NOT keep chatting without pushing the goal. Weave it into your response naturally.
+- Example: "That's exactly what we solve! Here's the link to get started: [URL]"
 """
     else:
         escalation = """CONVERSATION FLOW:
 - You're in the LATE stage. You've been chatting too long without closing.
-- You MUST include the signup link or ask for email RIGHT NOW. No more small talk.
-- Be direct: "Here's the link to get started: [URL]" or "Drop your email and I'll set you up"
-- Every response from now on MUST include a CTA or email ask. No exceptions.
+- You MUST include the goal link RIGHT NOW. No more small talk.
+- Be direct: "Here's the link to get started: [URL]"
+- Every response from now on MUST include the goal link. No exceptions.
 """
 
     prompt += f"""
+{goal_instructions}
+
 {escalation}
 
-BUYING SIGNALS (when you see these, close IMMEDIATELY - don't wait):
+PRIORITY ORDER:
+1. GOAL FIRST - Always push the primary goal (link, signup, demo) before anything else
+2. Contact info SECOND - Only after presenting the goal, collect: {', '.join(collect_fields)}
+3. Never ask for email/phone/name INSTEAD of giving the goal link
+4. If they show interest, give the link immediately - don't gate it behind email collection
+
+BUYING SIGNALS (when you see these, close IMMEDIATELY with the goal link):
 - Asks about cost/pricing
 - Asks about timeline
 - Asks "can you do X"
@@ -204,12 +212,6 @@ BUYING SIGNALS (when you see these, close IMMEDIATELY - don't wait):
 - Shows ANY interest in the product
 
 IMPORTANT: Do NOT wait for buying signals after turn 3. Start closing proactively.
-
-{goal_instructions}
-
-INFORMATION TO COLLECT:
-{', '.join(collect_fields)}
-Ask for these naturally during conversation, not all at once.
 
 {persistence_instructions}
 
