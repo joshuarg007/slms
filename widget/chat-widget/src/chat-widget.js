@@ -282,7 +282,7 @@
     .s2c-bubble svg {
       width: ${btnSize.icon}px;
       height: ${btnSize.icon}px;
-      fill: white;
+      color: white;
       filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
       transition: transform 0.3s ease;
     }
