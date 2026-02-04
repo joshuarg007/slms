@@ -5,7 +5,7 @@ import { useSEO } from "@/hooks/useSEO";
 import features1Video from "@/assets/features1.webm";
 import features2Video from "@/assets/features2.webm";
 import features3Video from "@/assets/features3.webm";
-import features4Image from "@/assets/features4.png";
+import features3Video from "@/assets/features3.webm";
 
 const FEATURE_SECTIONS = [
   {
@@ -106,7 +106,7 @@ const FEATURE_SECTIONS = [
         description: "One line of code. Works with WordPress, Webflow, Squarespace, or any website.",
       },
     ],
-    media: { type: "video" as const, src: features4Image },
+    media: { type: "video" as const, src: features3Video },
   },
   {
     title: "Analytics & Insights",
