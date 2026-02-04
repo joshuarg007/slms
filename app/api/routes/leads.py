@@ -2,6 +2,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, Header, Body, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 import sqlalchemy as sa
 
@@ -219,6 +220,127 @@ KNOWN_LEAD_FIELDS = {
     "form_variant_id",
 }
 
+
+def _sync_new_lead(
+    db: Session,
+    org: models.Organization,
+    db_lead: models.Lead,
+    background_tasks: BackgroundTasks,
+    source_label: str = "public_api",
+):
+    """Sync a new lead to CRM, send email notifications, and fire outbound webhooks."""
+    provider = (org.active_crm or "hubspot").lower()
+
+    # Common fields
+    email = db_lead.email
+    first_name = getattr(db_lead, "first_name", None) or ""
+    last_name = getattr(db_lead, "last_name", None) or ""
+    phone = getattr(db_lead, "phone", None) or ""
+    company = getattr(db_lead, "company", None) or ""
+    name_field = getattr(db_lead, "name", None) or ""
+    display_name = name_field or f"{first_name} {last_name}".strip() or email
+
+    org_name = getattr(org, "name", None)
+
+    # HubSpot: create contact + company + association
+    if provider == "hubspot":
+        background_tasks.add_task(
+            _sync_to_hubspot_with_notification,
+            org_id=org.id,
+            org_name=org_name,
+            lead_name=display_name,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            phone=phone,
+            company=company,
+        )
+
+    # Pipedrive: person plus lead
+    elif provider == "pipedrive":
+        title = f"{db_lead.source or 'Site2CRM'} lead from {email}"
+        background_tasks.add_task(
+            _sync_to_pipedrive_with_notification,
+            org_id=org.id,
+            org_name=org_name,
+            lead_name=display_name,
+            title=title,
+            name=display_name,
+            email=email,
+        )
+
+    # Salesforce: Lead sObject
+    elif provider == "salesforce":
+        background_tasks.add_task(
+            _sync_to_salesforce_with_notification,
+            org_id=org.id,
+            org_name=org_name,
+            lead_name=display_name,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            company=company,
+        )
+
+    # Nutshell: JSON RPC newLead
+    elif provider == "nutshell":
+        description = f"{db_lead.source or 'Site2CRM'} lead from {email}"
+        background_tasks.add_task(
+            _sync_to_nutshell_with_notification,
+            org_id=org.id,
+            org_name=org_name,
+            lead_name=display_name,
+            description=description,
+            contact_name=display_name,
+            contact_email=email,
+        )
+
+    # Zoho: REST API Lead creation
+    elif provider == "zoho":
+        background_tasks.add_task(
+            _sync_to_zoho_with_notification,
+            org_id=org.id,
+            org_name=org_name,
+            lead_name=display_name,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            company=company,
+            phone=phone,
+        )
+
+    # Email notifications to organization users (only for new leads, if enabled)
+    notification_settings = get_org_notification_settings(db, org.id)
+    should_send_new_lead_email = (
+        notification_settings is None  # Default: enabled
+        or notification_settings.new_lead
+    )
+
+    if should_send_new_lead_email:
+        recipients = [
+            user.email
+            for user in db.query(models.User)
+            .filter(models.User.organization_id == org.id)
+            .all()
+            if user.email
+        ]
+
+        if recipients:
+            background_tasks.add_task(
+                send_new_lead_notification,
+                recipients,
+                display_name or email or "New lead",
+                db_lead.email,
+                company,
+                db_lead.source,
+                org_name,
+            )
+
+    # Fire webhook for lead created
+    from app.services.webhook_service import fire_lead_created_webhook
+    fire_lead_created_webhook(org.id, db_lead, source=source_label, background_tasks=background_tasks)
+
+
 @router.post("/public/leads", response_model=dict)
 def public_create_lead(
     request: Request,
@@ -305,122 +427,142 @@ def public_create_lead(
 
     # Only sync to CRM and send notifications for NEW leads (not duplicates)
     if is_new:
-        provider = (org.active_crm or "hubspot").lower()
-
-        # Common fields
-        email = db_lead.email
-        first_name = getattr(db_lead, "first_name", None) or ""
-        last_name = getattr(db_lead, "last_name", None) or ""
-        phone = getattr(db_lead, "phone", None) or ""
-        company = getattr(db_lead, "company", None) or ""
-        name_field = getattr(db_lead, "name", None) or ""
-        display_name = name_field or f"{first_name} {last_name}".strip() or email
-
-        org_name = getattr(org, "name", None)
-
-        # HubSpot: create contact + company + association
-        if provider == "hubspot":
-            background_tasks.add_task(
-                _sync_to_hubspot_with_notification,
-                org_id=org.id,
-                org_name=org_name,
-                lead_name=display_name,
-                email=email,
-                first_name=first_name,
-                last_name=last_name,
-                phone=phone,
-                company=company,
-            )
-
-        # Pipedrive: person plus lead
-        elif provider == "pipedrive":
-            title = f"{db_lead.source or 'Site2CRM'} lead from {email}"
-            background_tasks.add_task(
-                _sync_to_pipedrive_with_notification,
-                org_id=org.id,
-                org_name=org_name,
-                lead_name=display_name,
-                title=title,
-                name=display_name,
-                email=email,
-            )
-
-        # Salesforce: Lead sObject
-        elif provider == "salesforce":
-            background_tasks.add_task(
-                _sync_to_salesforce_with_notification,
-                org_id=org.id,
-                org_name=org_name,
-                lead_name=display_name,
-                email=email,
-                first_name=first_name,
-                last_name=last_name,
-                company=company,
-            )
-
-        # Nutshell: JSON RPC newLead
-        elif provider == "nutshell":
-            description = f"{db_lead.source or 'Site2CRM'} lead from {email}"
-            background_tasks.add_task(
-                _sync_to_nutshell_with_notification,
-                org_id=org.id,
-                org_name=org_name,
-                lead_name=display_name,
-                description=description,
-                contact_name=display_name,
-                contact_email=email,
-            )
-
-        # Zoho: REST API Lead creation
-        elif provider == "zoho":
-            background_tasks.add_task(
-                _sync_to_zoho_with_notification,
-                org_id=org.id,
-                org_name=org_name,
-                lead_name=display_name,
-                email=email,
-                first_name=first_name,
-                last_name=last_name,
-                company=company,
-                phone=phone,
-            )
-
-        # Email notifications to organization users (only for new leads, if enabled)
-        notification_settings = get_org_notification_settings(db, org.id)
-        should_send_new_lead_email = (
-            notification_settings is None  # Default: enabled
-            or notification_settings.new_lead
-        )
-
-        if should_send_new_lead_email:
-            recipients = [
-                user.email
-                for user in db.query(models.User)
-                .filter(models.User.organization_id == org.id)
-                .all()
-                if user.email
-            ]
-
-            if recipients:
-                background_tasks.add_task(
-                    send_new_lead_notification,
-                    recipients,
-                    display_name or email or "New lead",
-                    db_lead.email,
-                    company,
-                    db_lead.source,
-                    org_name,
-                )
-
-        # Fire webhook for lead created
-        from app.services.webhook_service import fire_lead_created_webhook
-        fire_lead_created_webhook(org.id, db_lead, source="public_api", background_tasks=background_tasks)
+        _sync_new_lead(db, org, db_lead, background_tasks, source_label="public_api")
 
     # Return appropriate message
     if is_new:
         return {"message": "Lead received", "lead_id": db_lead.id}
     else:
         return {"message": "Lead updated", "lead_id": db_lead.id, "merged": True}
+
+
+# ---- Google Ads lead form webhook ----
+
+@router.post("/public/google-ads/leads", response_model=dict)
+def google_ads_lead_webhook(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+):
+    """
+    Inbound webhook for Google Ads lead form extensions.
+
+    Google Ads sends leads here when someone submits a lead form.
+    The google_key field in the payload must match an organization's API key.
+    """
+    from app.core.rate_limit import check_rate_limit
+
+    # 1. Extract and verify google_key (maps to org api_key)
+    google_key = payload.get("google_key")
+    if not google_key:
+        return JSONResponse(status_code=400, content={"message": "Missing google_key"})
+
+    org = db.query(models.Organization).filter(
+        models.Organization.api_key == google_key
+    ).first()
+    if not org:
+        return JSONResponse(status_code=401, content={"message": "Invalid google_key"})
+
+    # Rate limit
+    check_rate_limit(request, "public_api")
+
+    # 2. Parse user_column_data into lead fields
+    column_map = {}
+    for col in payload.get("user_column_data", []):
+        col_id = col.get("column_id", "")
+        col_val = col.get("string_value", "")
+        column_map[col_id] = col_val
+
+    email = column_map.get("EMAIL") or column_map.get("WORK_EMAIL", "")
+    if not email:
+        return JSONResponse(status_code=400, content={"message": "No email in lead data"})
+
+    # Build name from available fields
+    full_name = column_map.get("FULL_NAME", "")
+    first_name = column_map.get("FIRST_NAME", "")
+    last_name = column_map.get("LAST_NAME", "")
+    if not full_name and (first_name or last_name):
+        full_name = f"{first_name} {last_name}".strip()
+    if not full_name:
+        full_name = email  # Fallback
+
+    # Collect extra Google Ads fields into notes
+    extra_fields = []
+    known_col_ids = {
+        "FULL_NAME", "FIRST_NAME", "LAST_NAME", "EMAIL",
+        "WORK_EMAIL", "PHONE_NUMBER", "WORK_PHONE", "COMPANY_NAME",
+    }
+    for col in payload.get("user_column_data", []):
+        if col.get("column_id") not in known_col_ids and col.get("string_value"):
+            extra_fields.append(
+                f"{col.get('column_name', col['column_id'])}: {col['string_value']}"
+            )
+
+    notes_parts = [f"Google Ads Lead (ID: {payload.get('lead_id', 'unknown')})"]
+    if payload.get("campaign_id"):
+        notes_parts.append(f"Campaign: {payload['campaign_id']}")
+    if payload.get("gcl_id"):
+        notes_parts.append(f"GCLID: {payload['gcl_id']}")
+    if payload.get("is_test"):
+        notes_parts.append("TEST LEAD")
+    if extra_fields:
+        notes_parts.append("---")
+        notes_parts.extend(extra_fields)
+
+    lead_data = {
+        "name": full_name,
+        "first_name": first_name,
+        "last_name": last_name,
+        "email": email,
+        "phone": column_map.get("PHONE_NUMBER") or column_map.get("WORK_PHONE", ""),
+        "company": column_map.get("COMPANY_NAME", ""),
+        "notes": "\n".join(notes_parts),
+        "source": "google_ads",
+        "utm_source": "google_ads",
+        "utm_medium": "cpc",
+        "utm_campaign": str(payload.get("campaign_id", "")),
+        "utm_content": str(payload.get("creative_id", "")) if payload.get("creative_id") else "",
+    }
+
+    # 3. Process through existing pipeline (sanitize, spam, rate limit, dedupe)
+    sanitized_data, rejection_reason, existing_lead = process_lead(
+        db=db,
+        org_id=org.id,
+        data=lead_data,
+        dedupe_window_hours=24,
+        rate_limit_window_minutes=5,
+        rate_limit_max=3,
+    )
+
+    if rejection_reason:
+        if "Spam" in rejection_reason or "Rate limited" in rejection_reason:
+            return {}  # Silent rejection — don't tip off spammers
+        return JSONResponse(status_code=422, content={"message": rejection_reason})
+
+    # 4. Create or merge lead
+    if existing_lead:
+        db_lead = existing_lead
+        is_new = False
+    else:
+        allowed, current_count, limit, is_hard_limit = lead_crud.check_lead_limit(db, org.id)
+        if not allowed and is_hard_limit:
+            return JSONResponse(status_code=429, content={"message": "Lead limit reached"})
+        elif not allowed:
+            logger.warning(f"Org {org.id} exceeded lead limit ({current_count}/{limit})")
+
+        lead_create = LeadCreate(**{
+            k: v for k, v in sanitized_data.items()
+            if k in KNOWN_LEAD_FIELDS or k == "organization_id"
+        })
+        db_lead = lead_crud.create_lead(db, lead_create)
+        is_new = True
+
+    # 5. CRM sync + notifications + outbound webhooks
+    if is_new:
+        _sync_new_lead(db, org, db_lead, background_tasks, source_label="google_ads")
+
+    return {}  # Google expects empty 200 response
 
 
 # ---- Internal leads list ----
