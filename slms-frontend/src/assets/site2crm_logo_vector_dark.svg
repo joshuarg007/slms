@@ -1,71 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 80" fill="none">
   <defs>
-    <!-- Icon gradients -->
-    <linearGradient id="iconBlueDark" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#00d4ff"/>
-      <stop offset="100%" stop-color="#0099ff"/>
-    </linearGradient>
-    <linearGradient id="iconPurpleDark" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#7c3aed"/>
-      <stop offset="100%" stop-color="#a855f7"/>
-    </linearGradient>
-    <linearGradient id="iconMixedDark" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#00d4ff"/>
-      <stop offset="50%" stop-color="#7c3aed"/>
-      <stop offset="100%" stop-color="#a855f7"/>
-    </linearGradient>
-    <linearGradient id="centerGradientDark" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#60a5fa"/>
-      <stop offset="100%" stop-color="#818cf8"/>
-    </linearGradient>
-    <!-- Text gradient for "2" - purple/cyan CRM colors -->
-    <linearGradient id="twoGradientDark" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="brandGradDark" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#06b6d4"/>
-      <stop offset="50%" stop-color="#7c3aed"/>
-      <stop offset="100%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="iconGradDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="50%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
     </linearGradient>
   </defs>
 
-  <!-- Icon: Orbital/Atomic design -->
-  <g transform="translate(8, 8)">
-    <!-- Outer orbital ring (cyan/blue) - top arc -->
-    <path d="M42 8 Q70 8 78 35 Q82 55 65 70"
-          stroke="url(#iconBlueDark)" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <!-- Icon: Rounded square with sync arrows -->
+  <rect x="4" y="12" width="56" height="56" rx="14" fill="url(#iconGradDark)"/>
 
-    <!-- Outer orbital ring (purple) - bottom arc -->
-    <path d="M8 58 Q8 30 30 15"
-          stroke="url(#iconPurpleDark)" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <!-- Arrow 1: top-right sweep -->
+  <path d="M22 32 L38 32 L38 24" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Arrow 2: bottom-left sweep -->
+  <path d="M42 48 L26 48 L26 56" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 
-    <!-- Inner swoosh (cyan) - top -->
-    <path d="M25 22 Q42 18 58 28"
-          stroke="url(#iconBlueDark)" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <!-- Connecting curves -->
+  <path d="M38 24 Q50 20 50 34" stroke="white" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+  <path d="M26 56 Q14 60 14 46" stroke="white" stroke-width="3.5" stroke-linecap="round" fill="none"/>
 
-    <!-- Inner swoosh (purple) - bottom -->
-    <path d="M22 62 Q42 72 62 58"
-          stroke="url(#iconPurpleDark)" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <!-- Text: "Site" -->
+  <text x="74" y="56" font-family="'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif"
+        font-size="40" font-weight="700" fill="#f1f5f9" letter-spacing="-1.5">Site</text>
 
-    <!-- Center rounded square -->
-    <rect x="28" y="30" width="28" height="28" rx="6" fill="url(#centerGradientDark)"/>
+  <!-- Text: "2" gradient accent -->
+  <text x="168" y="56" font-family="'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif"
+        font-size="40" font-weight="800" fill="url(#brandGradDark)" letter-spacing="-1.5">2</text>
 
-    <!-- Orbital dots -->
-    <circle cx="12" cy="62" r="8" fill="url(#iconBlueDark)"/>
-    <circle cx="72" cy="22" r="6" fill="url(#iconBlueDark)"/>
-    <circle cx="28" cy="14" r="5" fill="url(#iconMixedDark)"/>
-    <circle cx="58" cy="72" r="7" fill="url(#iconPurpleDark)"/>
-    <circle cx="68" cy="52" r="4" fill="url(#iconPurpleDark)"/>
-  </g>
-
-  <!-- Text: "Site" in white with subtle outline -->
-  <text x="105" y="66" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
-        font-size="46" font-weight="700" fill="#f8fafc" letter-spacing="-1"
-        stroke="#94a3b8" stroke-width="0.5">Site</text>
-
-  <!-- Text: "2" in gradient purple/cyan - larger -->
-  <text x="196" y="68" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
-        font-size="52" font-weight="800" fill="url(#twoGradientDark)" letter-spacing="-1">2</text>
-
-  <!-- Text: "CRM" in white with subtle outline -->
-  <text x="230" y="66" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
-        font-size="46" font-weight="700" fill="#f8fafc" letter-spacing="-1"
-        stroke="#94a3b8" stroke-width="0.5">CRM</text>
+  <!-- Text: "CRM" -->
+  <text x="194" y="56" font-family="'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif"
+        font-size="40" font-weight="700" fill="#f1f5f9" letter-spacing="-1.5">CRM</text>
 </svg>
