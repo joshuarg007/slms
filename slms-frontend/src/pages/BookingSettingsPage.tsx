@@ -372,10 +372,14 @@ export default function BookingSettingsPage() {
     setError(null);
 
     try {
+      // Generate a unique slug
+      const slug = `booking-${Date.now().toString(36)}`;
+
       const res = await fetch(`${API}/booking/config`, {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
+          slug,
           business_name: "My Business",
           timezone: "America/New_York",
         }),
