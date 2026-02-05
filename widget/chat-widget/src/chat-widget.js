@@ -927,18 +927,54 @@
   }
 
   function formatMessageWithLinks(text) {
-    const urlPattern = /(https?:\/\/[^\s<]+[^\s<.,;:'")\]])/g;
     let escaped = escapeHtml(text);
 
-    escaped = escaped.replace(urlPattern, (url) => {
-      let buttonText = "Learn More";
-      if (url.includes("/signup")) buttonText = "Sign Up Free";
-      else if (url.includes("/pricing")) buttonText = "View Pricing";
-      else if (url.includes("/demo") || url.includes("calendly") || url.includes("cal.com")) buttonText = "Book Demo";
-      else if (url.includes("/trial")) buttonText = "Start Free Trial";
-      else if (url.includes("/contact")) buttonText = "Contact Us";
+    // Helper to get smart button text based on URL
+    function getButtonText(url) {
+      const lowerUrl = url.toLowerCase();
+      if (lowerUrl.includes("/signup") || lowerUrl.includes("/register")) return "Sign Up Free";
+      if (lowerUrl.includes("/pricing")) return "View Pricing";
+      if (lowerUrl.includes("/demo") || lowerUrl.includes("calendly") || lowerUrl.includes("cal.com")) return "Book Demo";
+      if (lowerUrl.includes("/trial")) return "Start Free Trial";
+      if (lowerUrl.includes("/contact")) return "Contact Us";
+      if (lowerUrl.includes("/schedule") || lowerUrl.includes("/book")) return "Schedule Now";
+      if (lowerUrl.includes("/form") || lowerUrl.includes("/apply")) return "Fill Out Form";
+      if (lowerUrl.includes("/download")) return "Download";
+      if (lowerUrl.includes("/learn") || lowerUrl.includes("/docs")) return "Learn More";
+      return "Learn More";
+    }
 
-      return `<a href="${url}" target="_blank" rel="noopener" class="s2c-link-btn">${buttonText} ${arrowIcon}</a>`;
+    // Helper to ensure URL has protocol
+    function ensureProtocol(url) {
+      if (!/^https?:\/\//i.test(url)) {
+        return "https://" + url;
+      }
+      return url;
+    }
+
+    // Helper to create button HTML
+    function createButton(url, customText) {
+      const fullUrl = ensureProtocol(url);
+      const buttonText = customText || getButtonText(fullUrl);
+      return `<a href="${fullUrl}" target="_blank" rel="noopener" class="s2c-link-btn">${buttonText} ${arrowIcon}</a>`;
+    }
+
+    // 1. Handle markdown links: [text](url)
+    escaped = escaped.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
+      return createButton(url, linkText);
+    });
+
+    // 2. Handle URLs with protocol: https://example.com
+    escaped = escaped.replace(/(https?:\/\/[^\s<]+[^\s<.,;:'")\]])/gi, (url) => {
+      return createButton(url);
+    });
+
+    // 3. Handle URLs without protocol: www.example.com or example.com/path
+    // Only match if it looks like a real domain (has TLD and isn't already converted)
+    escaped = escaped.replace(/(?<!href="|">)((?:www\.)?[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}(?:\/[^\s<]*[^\s<.,;:'")\]])?)/gi, (match) => {
+      // Skip if it's already inside an anchor tag or looks like an email
+      if (match.includes("@") || match.startsWith("s2c-link-btn")) return match;
+      return createButton(match);
     });
 
     return escaped;
