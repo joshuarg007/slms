@@ -955,7 +955,7 @@
     function createPlaceholder(url, customText) {
       const fullUrl = ensureProtocol(url);
       const buttonText = customText || getButtonText(fullUrl);
-      const buttonHtml = `<a href="${fullUrl}" target="_blank" rel="noopener" class="s2c-link-btn">${buttonText} ${arrowIcon}</a>`;
+      const buttonHtml = `<br><a href="${fullUrl}" target="_blank" rel="noopener" class="s2c-link-btn">${buttonText} ${arrowIcon}</a>`;
       const placeholder = `__LINK_PLACEHOLDER_${placeholders.length}__`;
       placeholders.push(buttonHtml);
       return placeholder;
