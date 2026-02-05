@@ -269,6 +269,10 @@ class ChatWidgetConfigRequest(BaseModel):
 
     is_active: bool = True
 
+    # Booking integration
+    booking_enabled: bool = Field(default=False)
+    booking_config_id: Optional[int] = Field(None)
+
 
 class ChatWidgetConfigResponse(BaseModel):
     """Response model for chat widget configuration."""
@@ -322,6 +326,8 @@ class ChatWidgetConfigResponse(BaseModel):
     entry_animation: str = "scale"
 
     is_active: bool
+    booking_enabled: bool = False
+    booking_config_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 
@@ -487,6 +493,8 @@ def _config_to_response(config: models.ChatWidgetConfig) -> ChatWidgetConfigResp
         shadow_style=getattr(config, 'shadow_style', None) or "elevated",
         entry_animation=getattr(config, 'entry_animation', None) or "scale",
         is_active=config.is_active,
+        booking_enabled=getattr(config, 'booking_enabled', False) or False,
+        booking_config_id=getattr(config, 'booking_config_id', None),
         created_at=config.created_at,
         updated_at=config.updated_at,
     )
@@ -716,6 +724,8 @@ def create_chat_widget_config(
         shadow_style=req.shadow_style,
         entry_animation=req.entry_animation,
         is_active=req.is_active,
+        booking_enabled=req.booking_enabled,
+        booking_config_id=req.booking_config_id,
     )
     db.add(config)
     db.commit()
@@ -786,6 +796,8 @@ def update_chat_widget_config(
     config.shadow_style = req.shadow_style
     config.entry_animation = req.entry_animation
     config.is_active = req.is_active
+    config.booking_enabled = req.booking_enabled
+    config.booking_config_id = req.booking_config_id
     config.updated_at = datetime.utcnow()
 
     db.commit()
