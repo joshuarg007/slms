@@ -11,6 +11,8 @@ const API = import.meta.env.VITE_API_URL || "/api";
 
 interface BookingConfig {
   id: number;
+  booking_key: string;
+  name: string;
   slug: string;
   business_name: string;
   logo_url: string | null;
@@ -22,6 +24,18 @@ interface BookingConfig {
   buffer_minutes: number;
   is_active: boolean;
   google_calendar_connected: boolean;
+}
+
+interface BookingConfigListItem {
+  id: number;
+  booking_key: string;
+  name: string;
+  slug: string;
+  business_name: string;
+  primary_color: string;
+  is_active: boolean;
+  meeting_types_count: number;
+  bookings_count: number;
 }
 
 interface CalendarStatus {
@@ -201,7 +215,11 @@ export default function BookingSettingsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Data
+  // Multi-config support
+  const [configs, setConfigs] = useState<BookingConfigListItem[]>([]);
+  const [selectedBookingKey, setSelectedBookingKey] = useState<string | null>(null);
+
+  // Data for selected config
   const [config, setConfig] = useState<BookingConfig | null>(null);
   const [meetingTypes, setMeetingTypes] = useState<MeetingType[]>([]);
   const [availability, setAvailability] = useState<AvailabilityRule[]>([]);
@@ -210,6 +228,7 @@ export default function BookingSettingsPage() {
   // Modal states
   const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<MeetingType | null>(null);
+  const [showNewConfigModal, setShowNewConfigModal] = useState(false);
 
   // Calendar integration
   const [calendarStatus, setCalendarStatus] = useState<CalendarStatus | null>(null);
@@ -218,7 +237,7 @@ export default function BookingSettingsPage() {
 
   // Load data
   useEffect(() => {
-    loadData();
+    loadConfigs();
     // Check for calendar connection callback
     const params = new URLSearchParams(window.location.search);
     if (params.get("calendar_connected") === "true") {
@@ -232,13 +251,49 @@ export default function BookingSettingsPage() {
     }
   }, []);
 
-  async function loadData() {
+  // Load data when selected config changes
+  useEffect(() => {
+    if (selectedBookingKey) {
+      loadConfigData(selectedBookingKey);
+    }
+  }, [selectedBookingKey]);
+
+  async function loadConfigs() {
     setLoading(true);
     setError(null);
 
     try {
-      // Try to get existing config
-      const configRes = await fetch(`${API}/booking/config`, {
+      // Get all configs
+      const configsRes = await fetch(`${API}/booking/configs`, {
+        headers: getAuthHeaders(),
+      });
+
+      if (configsRes.ok) {
+        const configsList: BookingConfigListItem[] = await configsRes.json();
+        setConfigs(configsList);
+
+        // Select first config by default
+        if (configsList.length > 0 && !selectedBookingKey) {
+          setSelectedBookingKey(configsList[0].booking_key);
+        } else if (configsList.length === 0) {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    } catch (err) {
+      setError("Failed to load booking pages");
+      setLoading(false);
+    }
+  }
+
+  async function loadConfigData(bookingKey: string) {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Get full config details
+      const configRes = await fetch(`${API}/booking/config/${bookingKey}`, {
         headers: getAuthHeaders(),
       });
 
@@ -246,11 +301,11 @@ export default function BookingSettingsPage() {
         const configData = await configRes.json();
         setConfig(configData);
 
-        // Load meeting types, availability, and bookings
+        // Load meeting types, availability, and bookings for this config
         const [typesRes, availRes, bookingsRes] = await Promise.all([
-          fetch(`${API}/booking/meeting-types`, { headers: getAuthHeaders() }),
-          fetch(`${API}/booking/availability`, { headers: getAuthHeaders() }),
-          fetch(`${API}/booking/bookings`, { headers: getAuthHeaders() }),
+          fetch(`${API}/booking/meeting-types?booking_key=${bookingKey}`, { headers: getAuthHeaders() }),
+          fetch(`${API}/booking/availability?booking_key=${bookingKey}`, { headers: getAuthHeaders() }),
+          fetch(`${API}/booking/bookings?booking_key=${bookingKey}`, { headers: getAuthHeaders() }),
         ]);
 
         if (typesRes.ok) setMeetingTypes(await typesRes.json());
@@ -261,6 +316,14 @@ export default function BookingSettingsPage() {
       setError("Failed to load booking settings");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadData() {
+    if (selectedBookingKey) {
+      await loadConfigData(selectedBookingKey);
+    } else {
+      await loadConfigs();
     }
   }
 
@@ -367,20 +430,23 @@ export default function BookingSettingsPage() {
     }
   }, [config?.google_calendar_connected]);
 
-  async function handleCreateConfig() {
+  async function handleCreateConfig(name?: string, businessName?: string) {
     setSaving(true);
     setError(null);
 
     try {
       // Generate a unique slug
       const slug = `booking-${Date.now().toString(36)}`;
+      const configName = name || "Default Booking Page";
+      const configBusinessName = businessName || "My Business";
 
       const res = await fetch(`${API}/booking/config`, {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
+          name: configName,
           slug,
-          business_name: "My Business",
+          business_name: configBusinessName,
           timezone: "America/New_York",
         }),
       });
@@ -391,30 +457,45 @@ export default function BookingSettingsPage() {
       }
 
       const newConfig = await res.json();
-      setConfig(newConfig);
       setSuccess("Booking page created!");
+      setShowNewConfigModal(false);
 
-      // Initialize default availability (Mon-Fri 9-5)
-      const defaultAvailability = [1, 2, 3, 4, 5].map((day) => ({
-        day_of_week: day,
-        start_time: "09:00",
-        end_time: "17:00",
-        is_available: true,
-      }));
+      // Select the new config
+      setSelectedBookingKey(newConfig.booking_key);
 
-      for (const rule of defaultAvailability) {
-        await fetch(`${API}/booking/availability`, {
-          method: "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify(rule),
-        });
-      }
-
-      await loadData();
+      // Reload configs list
+      await loadConfigs();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create booking page");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDeleteConfig(bookingKey: string) {
+    if (!confirm("Are you sure you want to delete this booking page? This will also delete all meeting types and bookings.")) return;
+
+    try {
+      const res = await fetch(`${API}/booking/config/${bookingKey}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+
+      if (!res.ok) throw new Error("Failed to delete booking page");
+
+      setSuccess("Booking page deleted!");
+      setTimeout(() => setSuccess(null), 3000);
+
+      // If we deleted the selected config, clear selection
+      if (selectedBookingKey === bookingKey) {
+        setSelectedBookingKey(null);
+        setConfig(null);
+      }
+
+      // Reload configs
+      await loadConfigs();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete booking page");
     }
   }
 
@@ -424,7 +505,7 @@ export default function BookingSettingsPage() {
     setError(null);
 
     try {
-      const res = await fetch(`${API}/booking/config`, {
+      const res = await fetch(`${API}/booking/config/${config.booking_key}`, {
         method: "PUT",
         headers: getAuthHeaders(),
         body: JSON.stringify(config),
@@ -437,6 +518,9 @@ export default function BookingSettingsPage() {
 
       setSuccess("Settings saved!");
       setTimeout(() => setSuccess(null), 3000);
+
+      // Reload configs to update the list
+      await loadConfigs();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save settings");
     } finally {
@@ -445,12 +529,15 @@ export default function BookingSettingsPage() {
   }
 
   async function handleSaveMeetingType(data: Partial<MeetingType>) {
+    if (!config) return;
     setSaving(true);
     setError(null);
 
     try {
       const isNew = !editingMeeting;
-      const url = isNew ? `${API}/booking/meeting-types` : `${API}/booking/meeting-types/${editingMeeting!.id}`;
+      const url = isNew
+        ? `${API}/booking/meeting-types?booking_key=${config.booking_key}`
+        : `${API}/booking/meeting-types/${editingMeeting!.id}`;
       const method = isNew ? "POST" : "PUT";
 
       const res = await fetch(url, {
@@ -549,8 +636,8 @@ export default function BookingSettingsPage() {
     );
   }
 
-  // No config yet - show setup screen
-  if (!config) {
+  // No configs yet - show setup screen
+  if (configs.length === 0 && !loading) {
     return (
       <div className="p-6 max-w-5xl mx-auto">
         <div className="text-center py-16">
@@ -562,13 +649,37 @@ export default function BookingSettingsPage() {
             Create a beautiful booking page where customers can schedule meetings with you.
           </p>
           <button
-            onClick={handleCreateConfig}
+            onClick={() => handleCreateConfig()}
             disabled={saving}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
           >
             {saving ? "Creating..." : "Create Booking Page"}
           </button>
           {error && <p className="text-red-500 mt-4">{error}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  // No config selected yet but configs exist
+  if (!config && configs.length > 0) {
+    return (
+      <div className="p-6 max-w-5xl mx-auto">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 w-48 bg-gray-200 dark:bg-gray-800 rounded" />
+          <div className="h-64 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
+
+  // Still loading
+  if (!config) {
+    return (
+      <div className="p-6 max-w-5xl mx-auto">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 w-48 bg-gray-200 dark:bg-gray-800 rounded" />
+          <div className="h-64 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
         </div>
       </div>
     );
@@ -582,9 +693,31 @@ export default function BookingSettingsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Booking Settings</h1>
-          <p className="text-gray-600 dark:text-gray-400">Manage your booking page and meeting types</p>
+          <p className="text-gray-600 dark:text-gray-400">Manage your booking pages and meeting types</p>
         </div>
         <div className="flex items-center gap-3">
+          {/* Booking Page Selector */}
+          {configs.length > 1 && (
+            <select
+              value={selectedBookingKey || ""}
+              onChange={(e) => setSelectedBookingKey(e.target.value)}
+              className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            >
+              {configs.map((c) => (
+                <option key={c.booking_key} value={c.booking_key}>
+                  {c.name} ({c.slug})
+                </option>
+              ))}
+            </select>
+          )}
+          <button
+            onClick={() => setShowNewConfigModal(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            title="Add new booking page"
+          >
+            <PlusIcon />
+            New Page
+          </button>
           <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-sm">
             <LinkIcon />
             <span className="text-gray-600 dark:text-gray-300 max-w-[200px] truncate">{bookingUrl}</span>
@@ -647,9 +780,34 @@ export default function BookingSettingsPage() {
       {/* Settings Tab */}
       {activeTab === "settings" && (
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 space-y-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Page Settings</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Page Settings</h2>
+            {configs.length > 1 && (
+              <button
+                onClick={() => handleDeleteConfig(config.booking_key)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm font-medium transition-colors"
+              >
+                <TrashIcon />
+                Delete Page
+              </button>
+            )}
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                Internal Name
+              </label>
+              <input
+                type="text"
+                value={config.name}
+                onChange={(e) => setConfig({ ...config, name: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="e.g., Main Website, Agency Site"
+              />
+              <p className="mt-1 text-xs text-gray-500">For internal organization only</p>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 Business Name
@@ -903,9 +1061,11 @@ export default function BookingSettingsPage() {
 
           {meetingTypes.length === 0 ? (
             <div className="text-center py-12 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
-              <CalendarIcon />
-              <p className="text-gray-600 dark:text-gray-400 mt-2">No meeting types yet</p>
-              <p className="text-sm text-gray-500">Create your first meeting type to start accepting bookings</p>
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                <CalendarIcon />
+              </div>
+              <p className="text-gray-600 dark:text-gray-400">No meeting types yet</p>
+              <p className="text-sm text-gray-500 mt-1">Create your first meeting type to start accepting bookings</p>
             </div>
           ) : (
             <div className="grid gap-4">
@@ -1024,9 +1184,11 @@ export default function BookingSettingsPage() {
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Upcoming Bookings</h2>
           {bookings.length === 0 ? (
             <div className="text-center py-12 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
-              <CalendarIcon />
-              <p className="text-gray-600 dark:text-gray-400 mt-2">No bookings yet</p>
-              <p className="text-sm text-gray-500">Bookings will appear here once someone schedules a meeting</p>
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                <CalendarIcon />
+              </div>
+              <p className="text-gray-600 dark:text-gray-400">No bookings yet</p>
+              <p className="text-sm text-gray-500 mt-1">Bookings will appear here once someone schedules a meeting</p>
             </div>
           ) : (
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
@@ -1098,6 +1260,15 @@ export default function BookingSettingsPage() {
             setShowMeetingModal(false);
             setEditingMeeting(null);
           }}
+          saving={saving}
+        />
+      )}
+
+      {/* New Booking Page Modal */}
+      {showNewConfigModal && (
+        <NewConfigModal
+          onSave={handleCreateConfig}
+          onClose={() => setShowNewConfigModal(false)}
           saving={saving}
         />
       )}
@@ -1504,6 +1675,88 @@ function EmbedTab({ config }: EmbedTabProps) {
             <span>Use <code className="px-1 py-0.5 rounded bg-indigo-100 dark:bg-indigo-800">Site2CRMBooking.open()</code> and <code className="px-1 py-0.5 rounded bg-indigo-100 dark:bg-indigo-800">Site2CRMBooking.close()</code> for programmatic control.</span>
           </li>
         </ul>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// NEW CONFIG MODAL
+// =============================================================================
+
+interface NewConfigModalProps {
+  onSave: (name: string, businessName: string) => void;
+  onClose: () => void;
+  saving: boolean;
+}
+
+function NewConfigModal({ onSave, onClose, saving }: NewConfigModalProps) {
+  const [name, setName] = useState("");
+  const [businessName, setBusinessName] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(name || "New Booking Page", businessName || "My Business");
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Create New Booking Page
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Create a separate booking page for a different website or brand.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              Internal Name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g., Main Website, Agency Site"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <p className="mt-1 text-xs text-gray-500">This helps you identify different booking pages.</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              Business Name
+            </label>
+            <input
+              type="text"
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              placeholder="Your Company Name"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <p className="mt-1 text-xs text-gray-500">Shown to visitors on the booking page.</p>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
+            >
+              {saving ? "Creating..." : "Create Page"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

@@ -916,7 +916,7 @@ class OAuthToken(Base):
 
 
 class BookingConfig(Base):
-    """Booking configuration per organization - like a Calendly account."""
+    """Booking configuration per organization - supports multiple booking pages per org."""
 
     __tablename__ = "booking_configs"
 
@@ -927,6 +927,8 @@ class BookingConfig(Base):
         nullable=False,
         index=True,
     )
+    booking_key = Column(String(50), unique=True, nullable=False, index=True)  # Unique key like widget_key
+    name = Column(String(100), nullable=False, default="Default Booking Page")  # Internal name for management
     slug = Column(String(50), unique=True, nullable=False, index=True)  # URL slug
     business_name = Column(String(255), nullable=False)
     logo_url = Column(String(500), nullable=True)

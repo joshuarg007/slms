@@ -33,6 +33,7 @@ router = APIRouter(prefix="/booking", tags=["Booking"])
 
 
 class BookingConfigCreate(BaseModel):
+    name: str = Field(default="Default Booking Page", min_length=1, max_length=100)  # Internal name
     slug: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-z0-9-]+$")
     business_name: str = Field(..., min_length=1, max_length=255)
     logo_url: Optional[str] = None
@@ -45,6 +46,8 @@ class BookingConfigCreate(BaseModel):
 
 
 class BookingConfigUpdate(BaseModel):
+    name: Optional[str] = None
+    slug: Optional[str] = None  # Allow updating slug
     business_name: Optional[str] = None
     logo_url: Optional[str] = None
     welcome_message: Optional[str] = None
@@ -58,6 +61,8 @@ class BookingConfigUpdate(BaseModel):
 
 class BookingConfigResponse(BaseModel):
     id: int
+    booking_key: str
+    name: str
     slug: str
     business_name: str
     logo_url: Optional[str]
@@ -71,6 +76,22 @@ class BookingConfigResponse(BaseModel):
     google_calendar_connected: bool
     created_at: datetime
     updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class BookingConfigListItem(BaseModel):
+    """Summary item for listing booking configs."""
+    id: int
+    booking_key: str
+    name: str
+    slug: str
+    business_name: str
+    primary_color: str
+    is_active: bool
+    meeting_types_count: int = 0
+    bookings_count: int = 0
 
     class Config:
         from_attributes = True
@@ -178,26 +199,21 @@ class BookingResponse(BaseModel):
 
 
 # =============================================================================
-# BOOKING CONFIG ENDPOINTS
+# HELPER FUNCTIONS
 # =============================================================================
 
 
-@router.get("/config", response_model=Optional[BookingConfigResponse])
-def get_booking_config(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Get the organization's booking configuration."""
-    config = (
-        db.query(BookingConfig)
-        .filter(BookingConfig.organization_id == current_user.organization_id)
-        .first()
-    )
-    if not config:
-        return None
+def generate_booking_key():
+    """Generate a unique booking key."""
+    return f"bkg_{secrets.token_urlsafe(16)}"
 
+
+def _config_to_response(config: BookingConfig) -> BookingConfigResponse:
+    """Convert a BookingConfig model to response schema."""
     return BookingConfigResponse(
         id=config.id,
+        booking_key=config.booking_key,
+        name=config.name,
         slug=config.slug,
         business_name=config.business_name,
         logo_url=config.logo_url,
@@ -214,26 +230,125 @@ def get_booking_config(
     )
 
 
+# =============================================================================
+# BOOKING CONFIG ENDPOINTS
+# =============================================================================
+
+
+@router.get("/configs", response_model=List[BookingConfigListItem])
+def list_booking_configs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List all booking configurations for the organization."""
+    configs = (
+        db.query(BookingConfig)
+        .filter(BookingConfig.organization_id == current_user.organization_id)
+        .order_by(BookingConfig.created_at.desc())
+        .all()
+    )
+
+    result = []
+    for config in configs:
+        meeting_types_count = db.query(MeetingType).filter(
+            MeetingType.booking_config_id == config.id
+        ).count()
+        bookings_count = db.query(Booking).join(MeetingType).filter(
+            MeetingType.booking_config_id == config.id
+        ).count()
+
+        result.append(BookingConfigListItem(
+            id=config.id,
+            booking_key=config.booking_key,
+            name=config.name,
+            slug=config.slug,
+            business_name=config.business_name,
+            primary_color=config.primary_color,
+            is_active=config.is_active,
+            meeting_types_count=meeting_types_count,
+            bookings_count=bookings_count,
+        ))
+
+    return result
+
+
+@router.get("/config", response_model=Optional[BookingConfigResponse])
+def get_booking_config(
+    booking_key: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get a booking configuration. If booking_key is provided, get that specific config.
+    Otherwise, get the first/default config for backwards compatibility."""
+    query = db.query(BookingConfig).filter(
+        BookingConfig.organization_id == current_user.organization_id
+    )
+
+    if booking_key:
+        config = query.filter(BookingConfig.booking_key == booking_key).first()
+    else:
+        # Backwards compatibility: return first config
+        config = query.order_by(BookingConfig.created_at.asc()).first()
+
+    if not config:
+        return None
+
+    return _config_to_response(config)
+
+
+@router.get("/config/{booking_key}", response_model=BookingConfigResponse)
+def get_booking_config_by_key(
+    booking_key: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get a specific booking configuration by its key."""
+    config = (
+        db.query(BookingConfig)
+        .filter(
+            BookingConfig.organization_id == current_user.organization_id,
+            BookingConfig.booking_key == booking_key,
+        )
+        .first()
+    )
+
+    if not config:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Booking configuration not found",
+        )
+
+    return _config_to_response(config)
+
+
 @router.post("/config", response_model=BookingConfigResponse, status_code=status.HTTP_201_CREATED)
 def create_booking_config(
     data: BookingConfigCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Create booking configuration for the organization."""
-    # Check if config already exists
-    existing = (
+    """Create a new booking configuration for the organization."""
+    # Check plan limits for number of booking pages
+    existing_count = (
         db.query(BookingConfig)
         .filter(BookingConfig.organization_id == current_user.organization_id)
-        .first()
+        .count()
     )
-    if existing:
+
+    # Get plan limits (reuse chat widget logic - typically 1 for free, 3 for starter, unlimited for pro)
+    org = db.query(Organization).filter(Organization.id == current_user.organization_id).first()
+    plan = org.plan if org else "free"
+    limits = get_plan_limits(plan)
+
+    # Use same limits as chat widgets for booking pages
+    max_booking_pages = limits.get("chat_widgets", 1)
+    if existing_count >= max_booking_pages:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Booking configuration already exists. Use PUT to update.",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Your plan allows up to {max_booking_pages} booking page(s). Please upgrade to add more.",
         )
 
-    # Check if slug is taken
+    # Check if slug is taken globally
     slug_exists = db.query(BookingConfig).filter(BookingConfig.slug == data.slug).first()
     if slug_exists:
         raise HTTPException(
@@ -243,6 +358,8 @@ def create_booking_config(
 
     config = BookingConfig(
         organization_id=current_user.organization_id,
+        booking_key=generate_booking_key(),
+        name=data.name,
         slug=data.slug,
         business_name=data.business_name,
         logo_url=data.logo_url,
@@ -271,34 +388,20 @@ def create_booking_config(
         db.add(rule)
     db.commit()
 
-    return BookingConfigResponse(
-        id=config.id,
-        slug=config.slug,
-        business_name=config.business_name,
-        logo_url=config.logo_url,
-        welcome_message=config.welcome_message,
-        primary_color=config.primary_color,
-        timezone=config.timezone,
-        booking_window_days=config.booking_window_days,
-        min_notice_hours=config.min_notice_hours,
-        buffer_minutes=config.buffer_minutes,
-        is_active=config.is_active,
-        google_calendar_connected=False,
-        created_at=config.created_at,
-        updated_at=config.updated_at,
-    )
+    return _config_to_response(config)
 
 
 @router.put("/config", response_model=BookingConfigResponse)
-def update_booking_config(
+def update_booking_config_default(
     data: BookingConfigUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Update booking configuration."""
+    """Update the default/first booking configuration (backwards compatibility)."""
     config = (
         db.query(BookingConfig)
         .filter(BookingConfig.organization_id == current_user.organization_id)
+        .order_by(BookingConfig.created_at.asc())
         .first()
     )
     if not config:
@@ -307,6 +410,36 @@ def update_booking_config(
             detail="Booking configuration not found. Create one first.",
         )
 
+    return _update_config(config, data, db, current_user)
+
+
+@router.put("/config/{booking_key}", response_model=BookingConfigResponse)
+def update_booking_config_by_key(
+    booking_key: str,
+    data: BookingConfigUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Update a specific booking configuration by its key."""
+    config = (
+        db.query(BookingConfig)
+        .filter(
+            BookingConfig.organization_id == current_user.organization_id,
+            BookingConfig.booking_key == booking_key,
+        )
+        .first()
+    )
+    if not config:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Booking configuration not found.",
+        )
+
+    return _update_config(config, data, db, current_user)
+
+
+def _update_config(config: BookingConfig, data: BookingConfigUpdate, db: Session, current_user: User) -> BookingConfigResponse:
+    """Internal helper to update a booking config."""
     # Check plan limits for custom colors
     if data.primary_color:
         org = db.query(Organization).filter(Organization.id == current_user.organization_id).first()
@@ -317,6 +450,18 @@ def update_booking_config(
                 detail="Custom colors require a paid plan. Please upgrade.",
             )
 
+    # Check if new slug is taken by another config
+    if data.slug and data.slug != config.slug:
+        slug_exists = db.query(BookingConfig).filter(
+            BookingConfig.slug == data.slug,
+            BookingConfig.id != config.id
+        ).first()
+        if slug_exists:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This booking URL is already taken. Please choose another.",
+            )
+
     update_data = data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(config, key, value)
@@ -325,22 +470,52 @@ def update_booking_config(
     db.commit()
     db.refresh(config)
 
-    return BookingConfigResponse(
-        id=config.id,
-        slug=config.slug,
-        business_name=config.business_name,
-        logo_url=config.logo_url,
-        welcome_message=config.welcome_message,
-        primary_color=config.primary_color,
-        timezone=config.timezone,
-        booking_window_days=config.booking_window_days,
-        min_notice_hours=config.min_notice_hours,
-        buffer_minutes=config.buffer_minutes,
-        is_active=config.is_active,
-        google_calendar_connected=bool(config.google_refresh_token),
-        created_at=config.created_at,
-        updated_at=config.updated_at,
+    return _config_to_response(config)
+
+
+@router.delete("/config/{booking_key}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_booking_config(
+    booking_key: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Delete a booking configuration."""
+    config = (
+        db.query(BookingConfig)
+        .filter(
+            BookingConfig.organization_id == current_user.organization_id,
+            BookingConfig.booking_key == booking_key,
+        )
+        .first()
     )
+    if not config:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Booking configuration not found.",
+        )
+
+    db.delete(config)
+    db.commit()
+    return None
+
+
+# =============================================================================
+# HELPER: Get config by booking_key or default
+# =============================================================================
+
+
+def _get_booking_config(
+    db: Session,
+    organization_id: int,
+    booking_key: Optional[str] = None,
+) -> Optional[BookingConfig]:
+    """Get a booking config by key or return the first/default config."""
+    query = db.query(BookingConfig).filter(
+        BookingConfig.organization_id == organization_id
+    )
+    if booking_key:
+        return query.filter(BookingConfig.booking_key == booking_key).first()
+    return query.order_by(BookingConfig.created_at.asc()).first()
 
 
 # =============================================================================
@@ -350,15 +525,12 @@ def update_booking_config(
 
 @router.get("/meeting-types", response_model=List[MeetingTypeResponse])
 def list_meeting_types(
+    booking_key: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """List all meeting types for the organization."""
-    config = (
-        db.query(BookingConfig)
-        .filter(BookingConfig.organization_id == current_user.organization_id)
-        .first()
-    )
+    """List all meeting types for a booking config. If booking_key not provided, uses default config."""
+    config = _get_booking_config(db, current_user.organization_id, booking_key)
     if not config:
         return []
 
@@ -374,15 +546,12 @@ def list_meeting_types(
 @router.post("/meeting-types", response_model=MeetingTypeResponse, status_code=status.HTTP_201_CREATED)
 def create_meeting_type(
     data: MeetingTypeCreate,
+    booking_key: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Create a new meeting type."""
-    config = (
-        db.query(BookingConfig)
-        .filter(BookingConfig.organization_id == current_user.organization_id)
-        .first()
-    )
+    """Create a new meeting type for a booking config."""
+    config = _get_booking_config(db, current_user.organization_id, booking_key)
     if not config:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -441,19 +610,20 @@ def update_meeting_type(
     current_user: User = Depends(get_current_user),
 ):
     """Update a meeting type."""
-    config = (
-        db.query(BookingConfig)
+    # Get all config IDs for this org
+    config_ids = [
+        c.id for c in db.query(BookingConfig.id)
         .filter(BookingConfig.organization_id == current_user.organization_id)
-        .first()
-    )
-    if not config:
+        .all()
+    ]
+    if not config_ids:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking config not found")
 
     meeting_type = (
         db.query(MeetingType)
         .filter(
             MeetingType.id == meeting_type_id,
-            MeetingType.booking_config_id == config.id,
+            MeetingType.booking_config_id.in_(config_ids),
         )
         .first()
     )
@@ -477,19 +647,20 @@ def delete_meeting_type(
     current_user: User = Depends(get_current_user),
 ):
     """Delete a meeting type."""
-    config = (
-        db.query(BookingConfig)
+    # Get all config IDs for this org
+    config_ids = [
+        c.id for c in db.query(BookingConfig.id)
         .filter(BookingConfig.organization_id == current_user.organization_id)
-        .first()
-    )
-    if not config:
+        .all()
+    ]
+    if not config_ids:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking config not found")
 
     meeting_type = (
         db.query(MeetingType)
         .filter(
             MeetingType.id == meeting_type_id,
-            MeetingType.booking_config_id == config.id,
+            MeetingType.booking_config_id.in_(config_ids),
         )
         .first()
     )
@@ -507,15 +678,12 @@ def delete_meeting_type(
 
 @router.get("/availability", response_model=List[AvailabilityRuleResponse])
 def get_availability(
+    booking_key: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get availability rules."""
-    config = (
-        db.query(BookingConfig)
-        .filter(BookingConfig.organization_id == current_user.organization_id)
-        .first()
-    )
+    """Get availability rules for a booking config."""
+    config = _get_booking_config(db, current_user.organization_id, booking_key)
     if not config:
         return []
 
@@ -531,15 +699,12 @@ def get_availability(
 @router.put("/availability", response_model=List[AvailabilityRuleResponse])
 def update_availability(
     rules: List[AvailabilityRuleCreate],
+    booking_key: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Replace all availability rules."""
-    config = (
-        db.query(BookingConfig)
-        .filter(BookingConfig.organization_id == current_user.organization_id)
-        .first()
-    )
+    """Replace all availability rules for a booking config."""
+    config = _get_booking_config(db, current_user.organization_id, booking_key)
     if not config:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking config not found")
 
@@ -573,15 +738,12 @@ def update_availability(
 
 @router.get("/blocked-dates", response_model=List[BlockedDateResponse])
 def get_blocked_dates(
+    booking_key: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get blocked dates."""
-    config = (
-        db.query(BookingConfig)
-        .filter(BookingConfig.organization_id == current_user.organization_id)
-        .first()
-    )
+    """Get blocked dates for a booking config."""
+    config = _get_booking_config(db, current_user.organization_id, booking_key)
     if not config:
         return []
 
@@ -597,15 +759,12 @@ def get_blocked_dates(
 @router.post("/blocked-dates", response_model=BlockedDateResponse, status_code=status.HTTP_201_CREATED)
 def add_blocked_date(
     data: BlockedDateCreate,
+    booking_key: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Add a blocked date."""
-    config = (
-        db.query(BookingConfig)
-        .filter(BookingConfig.organization_id == current_user.organization_id)
-        .first()
-    )
+    """Add a blocked date to a booking config."""
+    config = _get_booking_config(db, current_user.organization_id, booking_key)
     if not config:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking config not found")
 
@@ -624,15 +783,12 @@ def add_blocked_date(
 @router.delete("/blocked-dates/{blocked_date_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remove_blocked_date(
     blocked_date_id: int,
+    booking_key: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Remove a blocked date."""
-    config = (
-        db.query(BookingConfig)
-        .filter(BookingConfig.organization_id == current_user.organization_id)
-        .first()
-    )
+    """Remove a blocked date from a booking config."""
+    config = _get_booking_config(db, current_user.organization_id, booking_key)
     if not config:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking config not found")
 
@@ -658,18 +814,15 @@ def remove_blocked_date(
 
 @router.get("/bookings", response_model=List[BookingResponse])
 def list_bookings(
+    booking_key: Optional[str] = None,
     status_filter: Optional[str] = None,
     from_date: Optional[date] = None,
     to_date: Optional[date] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """List all bookings for the organization."""
-    config = (
-        db.query(BookingConfig)
-        .filter(BookingConfig.organization_id == current_user.organization_id)
-        .first()
-    )
+    """List all bookings for a booking config. If booking_key not provided, uses default config."""
+    config = _get_booking_config(db, current_user.organization_id, booking_key)
     if not config:
         return []
 
@@ -720,16 +873,13 @@ def list_bookings(
 @router.put("/bookings/{booking_id}/cancel", response_model=BookingResponse)
 def cancel_booking(
     booking_id: int,
+    booking_key: Optional[str] = None,
     reason: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Cancel a booking (admin action)."""
-    config = (
-        db.query(BookingConfig)
-        .filter(BookingConfig.organization_id == current_user.organization_id)
-        .first()
-    )
+    config = _get_booking_config(db, current_user.organization_id, booking_key)
     if not config:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking config not found")
 
