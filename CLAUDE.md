@@ -8,22 +8,82 @@
 ---
 
 ## SESSION STATE
-**Last Updated:** 2026-01-15
-**Status:** LAUNCHED (v1.0.0) + MARKETING PHASE
+**Last Updated:** 2026-02-02 (evening)
+**Status:** LAUNCHED (v1.0.0) + ZAPIER INTEGRATION CODE COMPLETE (not deployed)
 
 ### Where We Left Off:
-- G2 listing submitted with 15 screenshots
-- Capterra listing submitted (awaiting approval 1-2 days)
-- API documentation page live at /developers
-- Analytics page wired up at /app/analytics
+- **Zapier Integration IN PROGRESS** - Code complete but NOT deployed
+- All changes are LOCAL ONLY - nothing pushed to production yet
+- User started Zapier integration in UI with API Key auth (WRONG) - needs to be deleted
+- Need to deploy code then recreate Zapier integration with OAuth
+
+### RESUME HERE - Zapier Integration Status:
+
+**Code Complete (local, not deployed):**
+1. ✅ Webhook models (`app/db/models.py` - Webhook, WebhookDelivery)
+2. ✅ Webhook routes (`app/api/routes/webhooks.py`)
+3. ✅ Webhook service (`app/services/webhook_service.py`)
+4. ✅ Lead endpoints (`app/api/routes/leads.py` - PATCH, POST notes, GET activities)
+5. ✅ OAuth models (`app/db/models.py` - OAuthClient, OAuthToken)
+6. ✅ OAuth routes (`app/api/routes/oauth.py`)
+7. ✅ Migrations (`alembic/versions/l9g0h1i2j3k4_add_webhooks_tables.py`, `m0h1i2j3k4l5_add_oauth_tables.py`)
+8. ✅ Routers added to `main.py`
+
+**To Deploy (run these commands):**
+```bash
+# 1. Commit and push
+git add -A && git commit -m "Add Zapier integration: webhooks + OAuth 2.0" && git push
+
+# 2. SSH and run migrations
+ssh -i /home/joshua/projects/site2crm/site2crm-key.pem ubuntu@3.91.211.77
+cd /opt/site2crm && sudo git pull && sudo .venv/bin/alembic upgrade head && sudo systemctl restart site2crm
+
+# 3. Create Zapier OAuth client in database (run on server):
+sudo -E .venv/bin/python << 'EOF'
+import os, secrets
+os.environ["DATABASE_URL"] = "postgresql+psycopg2://Site2CRM:Porange333!!!@site2crm-db.cgrkyeeii4fr.us-east-1.rds.amazonaws.com:5432/site2crm"
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+engine = create_engine(os.environ["DATABASE_URL"])
+Session = sessionmaker(bind=engine)
+db = Session()
+from app.db import models
+import json
+client = models.OAuthClient(
+    client_id=f"zapier_{secrets.token_urlsafe(16)}",
+    client_secret=secrets.token_urlsafe(32),
+    name="Zapier",
+    redirect_uris=json.dumps(["https://zapier.com/dashboard/auth/oauth/return/App204567CLIAPI/"]),
+    scopes="read write",
+)
+db.add(client)
+db.commit()
+print(f"Client ID: {client.client_id}")
+print(f"Client Secret: {client.client_secret}")
+db.close()
+EOF
+```
+
+**Then in Zapier (delete old integration first, create new):**
+- Auth Type: OAuth 2.0
+- Authorization URL: `https://api.site2crm.io/oauth/authorize`
+- Token URL: `https://api.site2crm.io/oauth/token`
+- Test URL: `https://api.site2crm.io/oauth/me`
+- Use client_id and client_secret from step 3
 
 ### Immediate Next Steps:
-- Wait for Capterra approval
-- Submit to more marketplaces (GetApp, Software Advice, TrustRadius, Product Hunt)
-- Monitor for issues
+1. Deploy the Zapier code (commit, push, migrate)
+2. Delete wrong Zapier integration in Zapier UI
+3. Create OAuth client in database
+4. Create fresh Zapier integration with OAuth
+5. Build triggers and actions in Zapier
 
 ### Current Blockers:
-- None
+- Zapier integration code needs to be deployed before continuing Zapier setup in UI
+
+### DO NOT:
+- Do NOT configure Zapier with API Key auth (we're using OAuth)
+- Do NOT deploy partial features - deploy webhooks + OAuth together
 
 ### Marketplace Status:
 | Platform | Status | Notes |
@@ -34,6 +94,158 @@
 | Software Advice | Pending | Same Gartner network |
 | TrustRadius | Not started | |
 | Product Hunt | Not started | |
+| Zapier | Not started | See scope below |
+
+---
+
+## NEXT TIER ROADMAP
+
+### Phase 1: Stickiness (Reduce Churn) 🎯 CURRENT FOCUS
+| Feature | Priority | Status | Notes |
+|---------|----------|--------|-------|
+| **Zapier Integration** | P0 | In Progress | Webhooks complete, need Zapier platform setup |
+| Webhooks API | P1 | ✅ Complete | POST/GET/DELETE /api/webhooks + firing service |
+| Email sequences | P2 | Not Started | Auto follow-up after lead capture |
+
+### Phase 2: Growth (New Revenue)
+| Feature | Priority | Status | Notes |
+|---------|----------|--------|-------|
+| More CRMs | P1 | Not Started | Zoho, Close, Monday, Copper, Freshsales |
+| Agency/White-label Plan | P1 | Not Started | $199/mo, manage client forms |
+| Annual billing | P2 | Not Started | 20% discount, better cash flow |
+
+### Phase 3: Scale (Technical Foundation)
+| Feature | Priority | Status | Notes |
+|---------|----------|--------|-------|
+| Redis | P1 | Not Started | Rate limits, caching, sessions |
+| CDN for widget | P2 | Not Started | Faster load worldwide |
+| E2E tests | P2 | Not Started | Playwright for critical flows |
+
+### Phase 4: Polish
+| Feature | Priority | Status | Notes |
+|---------|----------|--------|-------|
+| Mobile app / PWA | P3 | Not Started | Check leads on the go |
+| Multi-language forms | P3 | Not Started | International customers |
+| Form templates marketplace | P3 | Not Started | Pre-built industry forms |
+
+---
+
+## ZAPIER INTEGRATION SCOPE
+
+### Overview
+Build a Zapier integration to connect Site2CRM to 5000+ apps. This is the #1 feature request and biggest growth unlock.
+
+### What We'll Build
+
+**Triggers (Events that start Zaps):**
+| Trigger | Description | Type |
+|---------|-------------|------|
+| New Lead | Fires when lead captured via form or AI chat | Instant (webhook) |
+| New Form Submission | Fires on any form submission | Instant (webhook) |
+| Lead Updated | Fires when lead info changes | Polling |
+| New AI Chat Conversation | Fires when chat conversation starts | Instant (webhook) |
+| Lead Captured from Chat | Fires when AI chat captures email/phone | Instant (webhook) |
+
+**Actions (Operations Zapier can perform):**
+| Action | Description |
+|--------|-------------|
+| Create Lead | Add a new lead with contact info |
+| Update Lead | Modify existing lead fields |
+| Add Note to Lead | Attach notes to a lead |
+| Find Lead by Email | Search for existing lead (for deduplication) |
+
+**Searches:**
+| Search | Description |
+|--------|-------------|
+| Find Lead | Look up lead by email or phone |
+| Find Form | Get form by name or ID |
+
+### Technical Requirements
+
+1. **Webhook Infrastructure** (for instant triggers)
+   - `POST /api/webhooks` - Register webhook URL
+   - `DELETE /api/webhooks/{id}` - Unsubscribe
+   - `GET /api/webhooks` - List active webhooks
+   - Fire webhooks on: lead created, form submitted, chat conversation
+
+2. **API Endpoints Needed**
+   - All current endpoints work, but need:
+   - `PATCH /api/leads/{id}` - Update lead (currently only PUT)
+   - `POST /api/leads/{id}/notes` - Add note to lead
+
+3. **Authentication**
+   - Use API Key auth (simpler than OAuth for this use case)
+   - Already have API keys for public API
+
+4. **Zapier Platform Setup**
+   - Register app at developer.zapier.com
+   - Build using Platform UI (low-code)
+   - Create 10+ Zap templates for marketplace listing
+
+### Zap Templates to Create
+1. Site2CRM Lead → Slack notification
+2. Site2CRM Lead → Google Sheets row
+3. Site2CRM Lead → Mailchimp subscriber
+4. Facebook Lead Ad → Site2CRM Lead
+5. Typeform submission → Site2CRM Lead
+6. Site2CRM Lead → Gmail follow-up email
+7. Site2CRM Lead → Trello card
+8. Site2CRM Lead → Airtable record
+9. Calendly booking → Site2CRM Lead
+10. Site2CRM AI Chat → Slack notification
+
+### Timeline Estimate
+| Phase | Tasks | Estimate | Status |
+|-------|-------|----------|--------|
+| 1. Webhook infrastructure | Build webhook CRUD + firing | 1-2 days | ✅ Complete |
+| 2. API additions | PATCH lead, POST notes | 0.5 day | ✅ Complete |
+| 3. Zapier app setup | Register, configure auth | 0.5 day | Next |
+| 4. Build triggers | 5 triggers with tests | 1-2 days | |
+| 5. Build actions | 4 actions with tests | 1 day | |
+| 6. Zap templates | Create 10 templates | 1 day | |
+| 7. Submit for review | Documentation, test account | 0.5 day | |
+| **Total** | | **5-8 days** | |
+
+### Implementation Details (Phase 1-2 Complete)
+
+**New Files Created:**
+- `app/api/routes/webhooks.py` - Webhook CRUD endpoints (GET/POST/DELETE /api/webhooks)
+- `app/services/webhook_service.py` - Webhook firing service with HMAC signatures
+
+**Modified Files:**
+- `app/db/models.py` - Added Webhook + WebhookDelivery models
+- `app/api/routes/leads.py` - Added PATCH /leads/{id}, POST /leads/{id}/notes, GET /leads/{id}/activities
+- `app/api/routes/chat_widget.py` - Added webhook firing for chat events
+- `main.py` - Added webhooks router
+
+**Webhook Events Implemented:**
+- `lead.created` - Fires when new lead captured via form or API
+- `lead.updated` - Fires when lead is updated
+- `form.submitted` - Fires on form submission (same as lead.created for now)
+- `chat.started` - Fires when AI chat conversation starts
+- `chat.lead_captured` - Fires when AI chat captures email/phone
+
+**API Endpoints Added:**
+- `GET /api/webhooks` - List org webhooks
+- `POST /api/webhooks` - Create webhook subscription
+- `GET /api/webhooks/{id}` - Get webhook details
+- `DELETE /api/webhooks/{id}` - Delete webhook
+- `GET /api/webhooks/{id}/deliveries` - Delivery logs
+- `POST /api/webhooks/{id}/test` - Send test payload
+- `GET /api/webhooks/events` - List available events
+- `GET /api/leads/{id}` - Get single lead
+- `PATCH /api/leads/{id}` - Update lead fields
+- `POST /api/leads/{id}/notes` - Add note to lead
+- `GET /api/leads/{id}/activities` - Get lead activities
+
+### Success Criteria
+- [ ] All 5 triggers working in Zapier
+- [ ] All 4 actions working in Zapier
+- [ ] 10 Zap templates published
+- [ ] Approved for Zapier public beta
+- [ ] 50 active users (for full public listing)
+
+---
 
 ### Infrastructure Summary:
 - **Elastic IP**: 3.91.211.77 (permanent)

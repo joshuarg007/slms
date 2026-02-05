@@ -364,6 +364,7 @@ def create_booking(
     if not lead:
         lead = Lead(
             organization_id=config.organization_id,
+            name=data.guest_name,
             email=data.guest_email,
             first_name=data.guest_name.split()[0] if data.guest_name else "",
             last_name=" ".join(data.guest_name.split()[1:]) if len(data.guest_name.split()) > 1 else "",
