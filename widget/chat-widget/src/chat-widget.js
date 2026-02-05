@@ -927,8 +927,6 @@
   }
 
   function formatMessageWithLinks(text) {
-    let escaped = escapeHtml(text);
-
     // Helper to get smart button text based on URL
     function getButtonText(url) {
       const lowerUrl = url.toLowerCase();
@@ -952,32 +950,45 @@
       return url;
     }
 
-    // Helper to create button HTML
-    function createButton(url, customText) {
+    // Use placeholder approach to avoid double-processing
+    const placeholders = [];
+    function createPlaceholder(url, customText) {
       const fullUrl = ensureProtocol(url);
       const buttonText = customText || getButtonText(fullUrl);
-      return `<a href="${fullUrl}" target="_blank" rel="noopener" class="s2c-link-btn">${buttonText} ${arrowIcon}</a>`;
+      const buttonHtml = `<a href="${fullUrl}" target="_blank" rel="noopener" class="s2c-link-btn">${buttonText} ${arrowIcon}</a>`;
+      const placeholder = `__LINK_PLACEHOLDER_${placeholders.length}__`;
+      placeholders.push(buttonHtml);
+      return placeholder;
     }
 
-    // 1. Handle markdown links: [text](url)
-    escaped = escaped.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
-      return createButton(url, linkText);
+    let result = text;
+
+    // 1. Handle markdown links first: [text](url)
+    result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
+      return createPlaceholder(url, linkText);
     });
 
     // 2. Handle URLs with protocol: https://example.com
-    escaped = escaped.replace(/(https?:\/\/[^\s<]+[^\s<.,;:'")\]])/gi, (url) => {
-      return createButton(url);
+    result = result.replace(/(https?:\/\/[^\s<]+[^\s<.,;:'")\]])/gi, (url) => {
+      return createPlaceholder(url);
     });
 
     // 3. Handle URLs without protocol: www.example.com or example.com/path
-    // Only match if it looks like a real domain (has TLD and isn't already converted)
-    escaped = escaped.replace(/(?<!href="|">)((?:www\.)?[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}(?:\/[^\s<]*[^\s<.,;:'")\]])?)/gi, (match) => {
-      // Skip if it's already inside an anchor tag or looks like an email
-      if (match.includes("@") || match.startsWith("s2c-link-btn")) return match;
-      return createButton(match);
+    result = result.replace(/((?:www\.)?[a-zA-Z0-9][-a-zA-Z0-9]*\.(?:com|io|co|org|net|ai|app|dev)(?:\/[^\s<]*[^\s<.,;:'")\]])?)/gi, (match) => {
+      // Skip emails
+      if (match.includes("@")) return match;
+      return createPlaceholder(match);
     });
 
-    return escaped;
+    // Now escape HTML on the text (placeholders are safe tokens)
+    result = escapeHtml(result);
+
+    // Replace placeholders with actual button HTML
+    placeholders.forEach((html, i) => {
+      result = result.replace(`__LINK_PLACEHOLDER_${i}__`, html);
+    });
+
+    return result;
   }
 
   function showTyping() {
