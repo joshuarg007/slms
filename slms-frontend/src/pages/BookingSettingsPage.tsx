@@ -83,7 +83,7 @@ interface Booking {
 // =============================================================================
 
 function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("access_token");
   return {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,
