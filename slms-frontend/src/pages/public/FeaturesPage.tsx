@@ -5,7 +5,6 @@ import { useSEO } from "@/hooks/useSEO";
 import features1Video from "@/assets/features1.webm";
 import features2Video from "@/assets/features2.webm";
 import features3Video from "@/assets/features3.webm";
-import features3Video from "@/assets/features3.webm";
 
 const FEATURE_SECTIONS = [
   {

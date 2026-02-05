@@ -51,6 +51,8 @@ const KBArticlePage = lazy(() => import("@/pages/public/KBArticlePage"));
 const AppSumoAddendumPage = lazy(() => import("@/pages/public/AppSumoAddendumPage"));
 const DevelopersPage = lazy(() => import("@/pages/public/DevelopersPage"));
 const NotFoundPage = lazy(() => import("@/pages/public/NotFoundPage"));
+const BookingPage = lazy(() => import("@/pages/public/BookingPage"));
+const BookingManagePage = lazy(() => import("@/pages/public/BookingManagePage"));
 
 // Protected app pages - lazy load for code splitting
 const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
@@ -80,6 +82,7 @@ const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const OnboardingWizard = lazy(() => import("@/pages/OnboardingWizard"));
 const AppSumoRedeemPage = lazy(() => import("@/pages/AppSumoRedeemPage"));
 const SupportPage = lazy(() => import("@/pages/SupportPage"));
+const BookingSettingsPage = lazy(() => import("@/pages/BookingSettingsPage"));
 
 export default function App() {
   return (
@@ -118,6 +121,10 @@ export default function App() {
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/auth/google/success" element={<GoogleAuthSuccessPage />} />
 
+          {/* Public Booking Pages (no layout - uses custom branding) */}
+          <Route path="/book/:slug" element={<BookingPage />} />
+          <Route path="/book/:slug/cancel/:bookingId" element={<BookingManagePage />} />
+
           {/* Protected App Routes */}
           <Route path="/app" element={<ProtectedRoute />}>
             {/* Onboarding page - outside AppLayout */}
@@ -151,6 +158,7 @@ export default function App() {
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="appsumo" element={<AppSumoRedeemPage />} />
               <Route path="support" element={<SupportPage />} />
+              <Route path="booking" element={<BookingSettingsPage />} />
             </Route>
           </Route>
 

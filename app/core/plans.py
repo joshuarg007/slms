@@ -25,6 +25,12 @@ class PlanLimits:
     analytics_enabled: bool = True  # Access to analytics dashboards
     ab_testing_enabled: bool = False  # A/B testing for forms
     form_styles: int = 1  # Number of form styles allowed (-1 = unlimited)
+    # Booking/Scheduling limits
+    meeting_types: int = 1  # Number of meeting types allowed (-1 = unlimited)
+    bookings_per_month: int = 5  # -1 = unlimited
+    booking_custom_colors: bool = False  # Can customize booking page colors
+    booking_reminders: int = 1  # Number of reminder emails (1 = 24hr only)
+    booking_team_scheduling: bool = False  # Round-robin / team scheduling
 
 
 # AI feature definitions
@@ -53,6 +59,11 @@ PLAN_LIMITS: Dict[str, PlanLimits] = {
         analytics_enabled=False,  # Analytics still locked
         ab_testing_enabled=False,
         form_styles=1,
+        meeting_types=1,
+        bookings_per_month=5,  # Taste of booking feature
+        booking_custom_colors=False,
+        booking_reminders=1,
+        booking_team_scheduling=False,
     ),
     # Trial - full Pro access for 14 days
     "trial": PlanLimits(
@@ -72,6 +83,11 @@ PLAN_LIMITS: Dict[str, PlanLimits] = {
         analytics_enabled=True,
         ab_testing_enabled=True,
         form_styles=-1,
+        meeting_types=-1,
+        bookings_per_month=-1,
+        booking_custom_colors=True,
+        booking_reminders=3,
+        booking_team_scheduling=True,
     ),
     # Starter $29/mo - Basic AI, limited tokens
     "starter": PlanLimits(
@@ -91,6 +107,11 @@ PLAN_LIMITS: Dict[str, PlanLimits] = {
         analytics_enabled=True,
         ab_testing_enabled=False,
         form_styles=3,
+        meeting_types=3,
+        bookings_per_month=50,
+        booking_custom_colors=True,
+        booking_reminders=2,
+        booking_team_scheduling=False,
     ),
     # AppSumo lifetime - No AI, generous leads
     "appsumo": PlanLimits(
@@ -110,6 +131,11 @@ PLAN_LIMITS: Dict[str, PlanLimits] = {
         analytics_enabled=True,
         ab_testing_enabled=False,
         form_styles=2,
+        meeting_types=2,
+        bookings_per_month=25,
+        booking_custom_colors=False,
+        booking_reminders=1,
+        booking_team_scheduling=False,
     ),
     # Pro $79/mo - Full AI, higher limits
     "pro": PlanLimits(
@@ -129,6 +155,11 @@ PLAN_LIMITS: Dict[str, PlanLimits] = {
         analytics_enabled=True,
         ab_testing_enabled=True,
         form_styles=-1,
+        meeting_types=-1,
+        bookings_per_month=-1,
+        booking_custom_colors=True,
+        booking_reminders=3,
+        booking_team_scheduling=True,
     ),
     # Pro AI (deprecated, maps to Pro)
     "pro_ai": PlanLimits(
@@ -148,6 +179,11 @@ PLAN_LIMITS: Dict[str, PlanLimits] = {
         analytics_enabled=True,
         ab_testing_enabled=True,
         form_styles=-1,
+        meeting_types=-1,
+        bookings_per_month=-1,
+        booking_custom_colors=True,
+        booking_reminders=3,
+        booking_team_scheduling=True,
     ),
     # Enterprise - Unlimited everything
     "enterprise": PlanLimits(
@@ -167,6 +203,11 @@ PLAN_LIMITS: Dict[str, PlanLimits] = {
         analytics_enabled=True,
         ab_testing_enabled=True,
         form_styles=-1,
+        meeting_types=-1,
+        bookings_per_month=-1,
+        booking_custom_colors=True,
+        booking_reminders=-1,  # Unlimited custom reminders
+        booking_team_scheduling=True,
     ),
 }
 
@@ -265,4 +306,55 @@ def validate_conversation_turns(plan: str, turn_count: int) -> tuple[bool, str]:
         return True, ""
     if turn_count >= limits.max_conversation_turns:
         return False, f"Conversation limit reached ({limits.max_conversation_turns} exchanges). Please start a new chat."
+    return True, ""
+
+
+# Booking/Scheduling helpers
+def get_meeting_types_limit(plan: str) -> int:
+    """Get number of meeting types allowed. Returns -1 for unlimited."""
+    limits = get_plan_limits(plan)
+    return limits.meeting_types
+
+
+def get_bookings_per_month_limit(plan: str) -> int:
+    """Get bookings per month limit. Returns -1 for unlimited."""
+    limits = get_plan_limits(plan)
+    return limits.bookings_per_month
+
+
+def is_booking_custom_colors_allowed(plan: str) -> bool:
+    """Check if custom booking colors are allowed."""
+    limits = get_plan_limits(plan)
+    return limits.booking_custom_colors
+
+
+def get_booking_reminders_limit(plan: str) -> int:
+    """Get number of reminder emails allowed. Returns -1 for unlimited."""
+    limits = get_plan_limits(plan)
+    return limits.booking_reminders
+
+
+def is_team_scheduling_allowed(plan: str) -> bool:
+    """Check if team/round-robin scheduling is allowed."""
+    limits = get_plan_limits(plan)
+    return limits.booking_team_scheduling
+
+
+def validate_meeting_types_count(plan: str, current_count: int) -> tuple[bool, str]:
+    """Validate if user can create another meeting type."""
+    limit = get_meeting_types_limit(plan)
+    if limit == -1:
+        return True, ""
+    if current_count >= limit:
+        return False, f"Meeting type limit reached ({limit}). Please upgrade to create more."
+    return True, ""
+
+
+def validate_bookings_count(plan: str, current_month_count: int) -> tuple[bool, str]:
+    """Validate if user can receive another booking this month."""
+    limit = get_bookings_per_month_limit(plan)
+    if limit == -1:
+        return True, ""
+    if current_month_count >= limit:
+        return False, f"Monthly booking limit reached ({limit}). Please upgrade for more bookings."
     return True, ""

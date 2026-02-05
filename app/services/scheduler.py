@@ -23,6 +23,7 @@ from app.services.email import (
     send_weekly_digest,
     send_salesperson_digest,
     send_recommendations_digest,
+    send_booking_reminder,
 )
 
 logger = logging.getLogger(__name__)
@@ -80,6 +81,15 @@ def start_scheduler():
         CronTrigger(day_of_week="wed", hour=9, minute=0),
         id="recommendations_digest",
         name="Weekly AI Recommendations",
+        replace_existing=True,
+    )
+
+    # Booking reminders: Every 15 minutes
+    sched.add_job(
+        run_booking_reminders,
+        CronTrigger(minute="*/15"),
+        id="booking_reminders",
+        name="Booking Reminders",
         replace_existing=True,
     )
 
@@ -524,3 +534,99 @@ async def trigger_weekly_digest_for_org(org_id: int):
 
     finally:
         db.close()
+
+
+# =============================================================================
+# Booking Reminders
+# =============================================================================
+
+async def run_booking_reminders():
+    """
+    Send reminder emails for upcoming bookings.
+    Sends reminders at 24 hours and 1 hour before the meeting.
+    """
+    logger.info("Running booking reminders job")
+
+    db = SessionLocal()
+    try:
+        now = datetime.utcnow()
+
+        # Find confirmed bookings in the next 25 hours (to catch 24hr reminders)
+        # and in the next 2 hours (to catch 1hr reminders)
+        upcoming_bookings = db.query(models.Booking).filter(
+            models.Booking.status == "confirmed",
+            models.Booking.scheduled_at > now,
+            models.Booking.scheduled_at <= now + timedelta(hours=25),
+        ).all()
+
+        for booking in upcoming_bookings:
+            try:
+                time_until = booking.scheduled_at - now
+                hours_until = time_until.total_seconds() / 3600
+
+                # Determine which reminder to send
+                reminder_type = None
+                if 23 <= hours_until <= 25:
+                    reminder_type = "24h"
+                    hours_display = 24
+                elif 0.5 <= hours_until <= 1.5:
+                    reminder_type = "1h"
+                    hours_display = 1
+                else:
+                    continue
+
+                # Check if this reminder was already sent
+                existing_reminder = db.query(models.BookingReminder).filter(
+                    models.BookingReminder.booking_id == booking.id,
+                    models.BookingReminder.reminder_type == reminder_type,
+                ).first()
+
+                if existing_reminder:
+                    continue
+
+                # Get meeting type and config for details
+                meeting_type = db.query(models.MeetingType).filter(
+                    models.MeetingType.id == booking.meeting_type_id
+                ).first()
+
+                if not meeting_type:
+                    continue
+
+                config = db.query(models.BookingConfig).filter(
+                    models.BookingConfig.id == meeting_type.booking_config_id
+                ).first()
+
+                if not config:
+                    continue
+
+                # Send reminder email
+                success = send_booking_reminder(
+                    recipient=booking.guest_email,
+                    guest_name=booking.guest_name,
+                    meeting_type_name=meeting_type.name,
+                    host_name=config.business_name,
+                    scheduled_at=booking.scheduled_at,
+                    duration_minutes=booking.duration_minutes,
+                    timezone=booking.timezone,
+                    meeting_link=booking.meeting_link,
+                    hours_until=hours_display,
+                )
+
+                if success:
+                    # Record that reminder was sent
+                    reminder_record = models.BookingReminder(
+                        booking_id=booking.id,
+                        reminder_type=reminder_type,
+                        sent_at=now,
+                    )
+                    db.add(reminder_record)
+                    db.commit()
+                    logger.info(f"Sent {reminder_type} reminder for booking {booking.id}")
+
+            except Exception as e:
+                logger.error(f"Error sending reminder for booking {booking.id}: {e}")
+
+    finally:
+        db.close()
+
+    logger.info("Booking reminders job completed")

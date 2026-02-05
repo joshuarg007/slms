@@ -1532,3 +1532,468 @@ Thank you for using Site2CRM.
     body_html = _base_html_template(content, "Your Site2CRM account has been deleted")
 
     return send_email(subject, body_text, [recipient], body_html)
+
+
+# =============================================================================
+# Booking Emails
+# =============================================================================
+
+
+def send_booking_confirmation_guest(
+    recipient: str,
+    guest_name: str,
+    meeting_type_name: str,
+    host_name: str,
+    scheduled_at: datetime,
+    duration_minutes: int,
+    timezone: str,
+    meeting_link: Optional[str],
+    manage_url: str,
+) -> bool:
+    """
+    Send booking confirmation email to the guest who booked.
+    """
+    subject = f"Confirmed: {meeting_type_name} with {host_name}"
+
+    formatted_date = scheduled_at.strftime("%A, %B %d, %Y")
+    formatted_time = scheduled_at.strftime("%I:%M %p")
+
+    body_text = f"""
+Hi {guest_name},
+
+Your booking has been confirmed!
+
+{meeting_type_name} with {host_name}
+Date: {formatted_date}
+Time: {formatted_time} ({timezone})
+Duration: {duration_minutes} minutes
+
+{f"Join: {meeting_link}" if meeting_link else ""}
+
+Need to make changes?
+{manage_url}
+
+See you soon!
+"""
+
+    meeting_link_section = ""
+    if meeting_link:
+        meeting_link_section = f"""
+<div style="margin: 24px 0; padding: 20px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; text-align: center;">
+    <p style="margin: 0 0 12px; font-size: 14px; color: #166534; font-weight: 600;">
+        Meeting Link
+    </p>
+    <a href="{meeting_link}" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #22c55e; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; border-radius: 8px;">
+        Join Meeting
+    </a>
+</div>
+"""
+
+    content = f"""
+<h1 style="margin: 0 0 8px; font-size: 24px; font-weight: 600; color: #18181b;">
+    You're Booked!
+</h1>
+<p style="margin: 0 0 24px; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+    Hi {guest_name}, your meeting has been confirmed.
+</p>
+
+<div style="margin: 24px 0; padding: 24px; background-color: #f4f4f5; border-radius: 12px;">
+    <h2 style="margin: 0 0 16px; font-size: 18px; font-weight: 600; color: #6366f1;">
+        {meeting_type_name}
+    </h2>
+    <table role="presentation" cellspacing="0" cellpadding="0" style="width: 100%; font-size: 15px;">
+        <tr>
+            <td style="padding: 8px 0; color: #71717a; width: 80px;">With:</td>
+            <td style="padding: 8px 0; color: #18181b; font-weight: 500;">{host_name}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #71717a;">Date:</td>
+            <td style="padding: 8px 0; color: #18181b; font-weight: 500;">{formatted_date}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #71717a;">Time:</td>
+            <td style="padding: 8px 0; color: #18181b; font-weight: 500;">{formatted_time} ({timezone})</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #71717a;">Duration:</td>
+            <td style="padding: 8px 0; color: #18181b; font-weight: 500;">{duration_minutes} minutes</td>
+        </tr>
+    </table>
+</div>
+
+{meeting_link_section}
+
+<p style="margin: 24px 0 12px; font-size: 14px; color: #71717a; line-height: 1.6;">
+    Need to reschedule or cancel?
+</p>
+{_button_html("Manage Booking", manage_url, "#6366f1")}
+"""
+
+    body_html = _base_html_template(content, f"Confirmed: {meeting_type_name} on {formatted_date}")
+
+    return send_email(subject, body_text, [recipient], body_html)
+
+
+def send_booking_notification_host(
+    recipient: str,
+    host_name: str,
+    guest_name: str,
+    guest_email: str,
+    guest_company: Optional[str],
+    meeting_type_name: str,
+    scheduled_at: datetime,
+    duration_minutes: int,
+    timezone: str,
+    guest_notes: Optional[str],
+) -> bool:
+    """
+    Send booking notification email to the host.
+    """
+    subject = f"New Booking: {meeting_type_name} with {guest_name}"
+
+    formatted_date = scheduled_at.strftime("%A, %B %d, %Y")
+    formatted_time = scheduled_at.strftime("%I:%M %p")
+
+    body_text = f"""
+Hi {host_name},
+
+You have a new booking!
+
+{meeting_type_name}
+Date: {formatted_date}
+Time: {formatted_time} ({timezone})
+Duration: {duration_minutes} minutes
+
+Guest Details:
+Name: {guest_name}
+Email: {guest_email}
+{f"Company: {guest_company}" if guest_company else ""}
+{f"Notes: {guest_notes}" if guest_notes else ""}
+
+View all bookings in your Site2CRM dashboard.
+"""
+
+    guest_info_rows = f"""
+        <tr>
+            <td style="padding: 8px 0; color: #71717a; width: 80px;">Name:</td>
+            <td style="padding: 8px 0; color: #18181b; font-weight: 500;">{guest_name}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #71717a;">Email:</td>
+            <td style="padding: 8px 0; color: #18181b; font-weight: 500;">
+                <a href="mailto:{guest_email}" style="color: #6366f1; text-decoration: none;">{guest_email}</a>
+            </td>
+        </tr>
+"""
+    if guest_company:
+        guest_info_rows += f"""
+        <tr>
+            <td style="padding: 8px 0; color: #71717a;">Company:</td>
+            <td style="padding: 8px 0; color: #18181b; font-weight: 500;">{guest_company}</td>
+        </tr>
+"""
+
+    notes_section = ""
+    if guest_notes:
+        notes_section = f"""
+<div style="margin: 24px 0; padding: 16px; background-color: #fefce8; border: 1px solid #fef08a; border-radius: 8px;">
+    <p style="margin: 0 0 8px; font-size: 12px; color: #a16207; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+        Guest Notes
+    </p>
+    <p style="margin: 0; font-size: 14px; color: #854d0e; line-height: 1.6;">
+        {guest_notes}
+    </p>
+</div>
+"""
+
+    content = f"""
+<h1 style="margin: 0 0 8px; font-size: 24px; font-weight: 600; color: #18181b;">
+    New Booking
+</h1>
+<p style="margin: 0 0 24px; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+    Hi {host_name}, someone just booked a meeting with you!
+</p>
+
+<div style="margin: 24px 0; padding: 24px; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px;">
+    <h2 style="margin: 0 0 16px; font-size: 18px; font-weight: 600; color: #1d4ed8;">
+        {meeting_type_name}
+    </h2>
+    <table role="presentation" cellspacing="0" cellpadding="0" style="width: 100%; font-size: 15px;">
+        <tr>
+            <td style="padding: 8px 0; color: #1e40af; width: 80px;">Date:</td>
+            <td style="padding: 8px 0; color: #1e3a8a; font-weight: 500;">{formatted_date}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #1e40af;">Time:</td>
+            <td style="padding: 8px 0; color: #1e3a8a; font-weight: 500;">{formatted_time} ({timezone})</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #1e40af;">Duration:</td>
+            <td style="padding: 8px 0; color: #1e3a8a; font-weight: 500;">{duration_minutes} minutes</td>
+        </tr>
+    </table>
+</div>
+
+<div style="margin: 24px 0; padding: 24px; background-color: #f4f4f5; border-radius: 12px;">
+    <h3 style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 0.5px;">
+        Guest Details
+    </h3>
+    <table role="presentation" cellspacing="0" cellpadding="0" style="width: 100%; font-size: 15px;">
+        {guest_info_rows}
+    </table>
+</div>
+
+{notes_section}
+
+{_button_html("View in Dashboard", "https://site2crm.io/app/booking", "#6366f1")}
+"""
+
+    body_html = _base_html_template(content, f"New booking: {guest_name} - {meeting_type_name}")
+
+    return send_email(subject, body_text, [recipient], body_html)
+
+
+def send_booking_cancellation_guest(
+    recipient: str,
+    guest_name: str,
+    meeting_type_name: str,
+    host_name: str,
+    scheduled_at: datetime,
+    timezone: str,
+    booking_url: str,
+) -> bool:
+    """
+    Send cancellation confirmation to the guest.
+    """
+    subject = f"Cancelled: {meeting_type_name} with {host_name}"
+
+    formatted_date = scheduled_at.strftime("%A, %B %d, %Y")
+    formatted_time = scheduled_at.strftime("%I:%M %p")
+
+    body_text = f"""
+Hi {guest_name},
+
+Your booking has been cancelled.
+
+{meeting_type_name} with {host_name}
+Date: {formatted_date}
+Time: {formatted_time} ({timezone})
+
+This meeting has been removed from the calendar.
+
+Want to book again?
+{booking_url}
+"""
+
+    content = f"""
+<h1 style="margin: 0 0 8px; font-size: 24px; font-weight: 600; color: #dc2626;">
+    Booking Cancelled
+</h1>
+<p style="margin: 0 0 24px; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+    Hi {guest_name}, your booking has been cancelled.
+</p>
+
+<div style="margin: 24px 0; padding: 24px; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 12px;">
+    <h2 style="margin: 0 0 16px; font-size: 18px; font-weight: 600; color: #b91c1c; text-decoration: line-through;">
+        {meeting_type_name}
+    </h2>
+    <table role="presentation" cellspacing="0" cellpadding="0" style="width: 100%; font-size: 15px;">
+        <tr>
+            <td style="padding: 8px 0; color: #991b1b; width: 80px;">With:</td>
+            <td style="padding: 8px 0; color: #7f1d1d;">{host_name}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #991b1b;">Date:</td>
+            <td style="padding: 8px 0; color: #7f1d1d;">{formatted_date}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #991b1b;">Time:</td>
+            <td style="padding: 8px 0; color: #7f1d1d;">{formatted_time} ({timezone})</td>
+        </tr>
+    </table>
+</div>
+
+<p style="margin: 24px 0 12px; font-size: 14px; color: #71717a; line-height: 1.6;">
+    Want to book a new time?
+</p>
+{_button_html("Book Again", booking_url, "#6366f1")}
+"""
+
+    body_html = _base_html_template(content, f"Cancelled: {meeting_type_name}")
+
+    return send_email(subject, body_text, [recipient], body_html)
+
+
+def send_booking_cancellation_host(
+    recipient: str,
+    host_name: str,
+    guest_name: str,
+    guest_email: str,
+    meeting_type_name: str,
+    scheduled_at: datetime,
+    timezone: str,
+    cancellation_reason: Optional[str],
+) -> bool:
+    """
+    Send cancellation notification to the host.
+    """
+    subject = f"Booking Cancelled: {meeting_type_name} with {guest_name}"
+
+    formatted_date = scheduled_at.strftime("%A, %B %d, %Y")
+    formatted_time = scheduled_at.strftime("%I:%M %p")
+
+    body_text = f"""
+Hi {host_name},
+
+A booking has been cancelled.
+
+{meeting_type_name}
+Date: {formatted_date}
+Time: {formatted_time} ({timezone})
+
+Guest: {guest_name} ({guest_email})
+{f"Reason: {cancellation_reason}" if cancellation_reason else ""}
+
+The time slot is now available for other bookings.
+"""
+
+    reason_section = ""
+    if cancellation_reason:
+        reason_section = f"""
+<div style="margin: 24px 0; padding: 16px; background-color: #f4f4f5; border-radius: 8px;">
+    <p style="margin: 0 0 8px; font-size: 12px; color: #71717a; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+        Cancellation Reason
+    </p>
+    <p style="margin: 0; font-size: 14px; color: #3f3f46; line-height: 1.6;">
+        {cancellation_reason}
+    </p>
+</div>
+"""
+
+    content = f"""
+<h1 style="margin: 0 0 8px; font-size: 24px; font-weight: 600; color: #dc2626;">
+    Booking Cancelled
+</h1>
+<p style="margin: 0 0 24px; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+    Hi {host_name}, a guest has cancelled their booking.
+</p>
+
+<div style="margin: 24px 0; padding: 24px; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 12px;">
+    <h2 style="margin: 0 0 16px; font-size: 18px; font-weight: 600; color: #b91c1c; text-decoration: line-through;">
+        {meeting_type_name}
+    </h2>
+    <table role="presentation" cellspacing="0" cellpadding="0" style="width: 100%; font-size: 15px;">
+        <tr>
+            <td style="padding: 8px 0; color: #991b1b; width: 80px;">Date:</td>
+            <td style="padding: 8px 0; color: #7f1d1d;">{formatted_date}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #991b1b;">Time:</td>
+            <td style="padding: 8px 0; color: #7f1d1d;">{formatted_time} ({timezone})</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #991b1b;">Guest:</td>
+            <td style="padding: 8px 0; color: #7f1d1d;">{guest_name} ({guest_email})</td>
+        </tr>
+    </table>
+</div>
+
+{reason_section}
+
+<p style="margin: 24px 0 0; font-size: 14px; color: #71717a; line-height: 1.6;">
+    The time slot is now available for other bookings.
+</p>
+"""
+
+    body_html = _base_html_template(content, f"Cancelled: {guest_name} - {meeting_type_name}")
+
+    return send_email(subject, body_text, [recipient], body_html)
+
+
+def send_booking_reminder(
+    recipient: str,
+    guest_name: str,
+    meeting_type_name: str,
+    host_name: str,
+    scheduled_at: datetime,
+    duration_minutes: int,
+    timezone: str,
+    meeting_link: Optional[str],
+    hours_until: int,
+) -> bool:
+    """
+    Send a reminder email before the meeting.
+    """
+    time_text = f"in {hours_until} hour{'s' if hours_until != 1 else ''}"
+    subject = f"Reminder: {meeting_type_name} with {host_name} {time_text}"
+
+    formatted_date = scheduled_at.strftime("%A, %B %d, %Y")
+    formatted_time = scheduled_at.strftime("%I:%M %p")
+
+    body_text = f"""
+Hi {guest_name},
+
+Reminder: You have a meeting coming up {time_text}!
+
+{meeting_type_name} with {host_name}
+Date: {formatted_date}
+Time: {formatted_time} ({timezone})
+Duration: {duration_minutes} minutes
+
+{f"Join: {meeting_link}" if meeting_link else ""}
+
+See you soon!
+"""
+
+    meeting_link_section = ""
+    if meeting_link:
+        meeting_link_section = f"""
+<div style="margin: 24px 0; text-align: center;">
+    <a href="{meeting_link}" target="_blank" style="display: inline-block; padding: 16px 32px; background-color: #22c55e; color: #ffffff; font-size: 18px; font-weight: 600; text-decoration: none; border-radius: 12px;">
+        Join Meeting Now
+    </a>
+</div>
+"""
+
+    content = f"""
+<h1 style="margin: 0 0 8px; font-size: 24px; font-weight: 600; color: #18181b;">
+    Meeting Reminder
+</h1>
+<p style="margin: 0 0 24px; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+    Hi {guest_name}, your meeting is coming up <strong>{time_text}</strong>!
+</p>
+
+<div style="margin: 24px 0; padding: 24px; background-color: #fef3c7; border: 1px solid #fcd34d; border-radius: 12px;">
+    <h2 style="margin: 0 0 16px; font-size: 18px; font-weight: 600; color: #92400e;">
+        {meeting_type_name}
+    </h2>
+    <table role="presentation" cellspacing="0" cellpadding="0" style="width: 100%; font-size: 15px;">
+        <tr>
+            <td style="padding: 8px 0; color: #a16207; width: 80px;">With:</td>
+            <td style="padding: 8px 0; color: #78350f; font-weight: 500;">{host_name}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #a16207;">Date:</td>
+            <td style="padding: 8px 0; color: #78350f; font-weight: 500;">{formatted_date}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #a16207;">Time:</td>
+            <td style="padding: 8px 0; color: #78350f; font-weight: 500;">{formatted_time} ({timezone})</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #a16207;">Duration:</td>
+            <td style="padding: 8px 0; color: #78350f; font-weight: 500;">{duration_minutes} minutes</td>
+        </tr>
+    </table>
+</div>
+
+{meeting_link_section}
+
+<p style="margin: 24px 0 0; font-size: 14px; color: #71717a; line-height: 1.6; text-align: center;">
+    See you soon!
+</p>
+"""
+
+    body_html = _base_html_template(content, f"Reminder: {meeting_type_name} {time_text}")
+
+    return send_email(subject, body_text, [recipient], body_html)

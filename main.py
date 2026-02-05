@@ -57,6 +57,9 @@ from app.api.routes import ab_tests as ab_tests_routes
 from app.api.routes import chat_widget as chat_widget_routes
 from app.api.routes import webhooks as webhooks_routes
 from app.api.routes import oauth as oauth_routes
+from app.api.routes import booking as booking_routes
+from app.api.routes import booking_public as booking_public_routes
+from app.api.routes import google_calendar as google_calendar_routes
 
 # Scheduler for digest emails
 from app.services.scheduler import start_scheduler, stop_scheduler
@@ -219,6 +222,9 @@ app.include_router(chat_widget_routes.router, prefix="/api", tags=["Chat Widget"
 app.include_router(chat_widget_routes.public_router, prefix="/api", tags=["Public Chat Widget"])
 app.include_router(webhooks_routes.router, prefix="/api", tags=["Webhooks"])
 app.include_router(oauth_routes.router, tags=["OAuth"])
+app.include_router(booking_routes.router, prefix="/api", tags=["Booking"])
+app.include_router(booking_public_routes.router, prefix="/api", tags=["Public Booking"])
+app.include_router(google_calendar_routes.router, prefix="/api", tags=["Booking Calendar"])
 
 # DB
 models.Base.metadata.create_all(bind=engine)

@@ -102,9 +102,29 @@ def build_system_prompt(config: ChatWidgetConfig, timezone: str = None, turn_cou
     collect_phone = getattr(config, 'collect_phone', False)
     collect_name = getattr(config, 'collect_name', True)
     collect_company = getattr(config, 'collect_company', False)
+    booking_enabled = getattr(config, 'booking_enabled', False)
+
+    # Get booking info if enabled
+    booking_info = None
+    if booking_enabled and hasattr(config, 'booking_config') and config.booking_config:
+        booking_config = config.booking_config
+        meeting_types = []
+        if hasattr(booking_config, 'meeting_types'):
+            for mt in booking_config.meeting_types:
+                if mt.is_active:
+                    meeting_types.append({
+                        'name': mt.name,
+                        'duration': mt.duration_minutes,
+                        'description': mt.description,
+                    })
+        booking_info = {
+            'url': f"https://site2crm.io/book/{booking_config.slug}",
+            'business_name': booking_config.business_name,
+            'meeting_types': meeting_types,
+        }
 
     # Build goal-specific instructions
-    goal_instructions = _build_goal_instructions(primary_goal, goal_url, config.cta)
+    goal_instructions = _build_goal_instructions(primary_goal, goal_url, config.cta, booking_info)
 
     # Build collection requirements
     collect_fields = []
@@ -220,6 +240,27 @@ After ONE "no" you should say something like "I totally get it! Quick question t
 NOT "No worries, reach us at..."
 """
 
+    # Add booking capability if enabled (and not already book_demo goal)
+    if booking_info and primary_goal != "book_demo":
+        booking_link = booking_info['url']
+        meeting_types = booking_info.get('meeting_types', [])
+        meeting_list = ""
+        if meeting_types:
+            meeting_list = "Available meeting options: " + ", ".join(
+                f"{mt['name']} ({mt['duration']} min)" for mt in meeting_types
+            )
+        prompt += f"""
+BOOKING CAPABILITY:
+You can also offer to schedule a meeting if the visitor wants to talk to someone.
+Booking link: {booking_link}
+{meeting_list}
+
+If they ask about scheduling, availability, talking to someone, or booking a call:
+- Offer the booking link: "You can book a time here: {booking_link}"
+- The booking page shows all available slots and handles the scheduling automatically.
+- DO NOT try to manually coordinate schedules - just direct them to the booking page.
+"""
+
     # Add success message if configured
     if success_message:
         prompt += f"\nAFTER SUCCESSFUL CAPTURE:\n{success_message}\n"
@@ -230,7 +271,7 @@ NOT "No worries, reach us at..."
     return prompt
 
 
-def _build_goal_instructions(primary_goal: str, goal_url: str, cta: str) -> str:
+def _build_goal_instructions(primary_goal: str, goal_url: str, cta: str, booking_info: dict = None) -> str:
     """Build goal-specific instructions based on primary_goal."""
 
     if primary_goal == "support_only":
@@ -242,8 +283,39 @@ Only offer contact info if they specifically ask for it or need to escalate.
 """
 
     if primary_goal == "book_demo":
-        booking_link = goal_url if goal_url else "[booking link]"
-        return f"""
+        # If booking_info is provided, use internal booking system
+        if booking_info and booking_info.get('url'):
+            booking_link = booking_info['url']
+            meeting_types = booking_info.get('meeting_types', [])
+            meeting_list = ""
+            if meeting_types:
+                meeting_list = "\n\nAvailable meeting types:\n" + "\n".join(
+                    f"- {mt['name']} ({mt['duration']} minutes)" + (f": {mt['description']}" if mt.get('description') else "")
+                    for mt in meeting_types
+                )
+            return f"""
+YOUR GOAL: BOOK A MEETING
+Your CTA is: "{cta}"
+Booking link: {booking_link}
+{meeting_list}
+
+CRITICAL BOOKING INSTRUCTIONS:
+- When the user shows interest in meeting, booking, scheduling, or talking further, offer the booking link.
+- Present the booking page link like this: "You can pick a time that works for you here: {booking_link}"
+- If they ask about availability, direct them to the booking page where they can see all available slots.
+- After 3+ exchanges, you MUST include the booking link ({booking_link}) in your response.
+- DO NOT ask them to provide their availability - direct them to the booking page instead.
+- The booking page will collect their details and confirm the meeting automatically.
+
+EXAMPLE RESPONSES:
+- "I'd love to chat more! You can book a time that works for you here: {booking_link}"
+- "Great question! Let's schedule a quick call to discuss. Pick a time here: {booking_link}"
+- "Want to see a demo? Book a slot that fits your schedule: {booking_link}"
+"""
+        else:
+            # External booking link (Calendly, etc.)
+            booking_link = goal_url if goal_url else "[booking link]"
+            return f"""
 YOUR GOAL: BOOK A DEMO/MEETING
 Your CTA is: "{cta}"
 Booking link: {booking_link}

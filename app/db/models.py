@@ -9,6 +9,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
+    JSON,
     Numeric,
     String,
     Text,
@@ -657,6 +658,10 @@ class ChatWidgetConfig(Base):
     shadow_style = Column(String(20), nullable=False, default="elevated")  # none, subtle, elevated, dramatic, glow
     entry_animation = Column(String(20), nullable=False, default="scale")  # none, fade, slide, scale, bounce
 
+    # Booking integration (link to internal booking page)
+    booking_config_id = Column(Integer, ForeignKey("booking_configs.id", ondelete="SET NULL"), nullable=True)
+    booking_enabled = Column(Boolean, nullable=False, default=False)  # Enable inline booking via chat
+
     # State
     is_active = Column(Boolean, nullable=False, default=True)
 
@@ -665,6 +670,7 @@ class ChatWidgetConfig(Base):
 
     organization = relationship("Organization", backref="chat_widget_configs")
     conversations = relationship("ChatWidgetConversation", back_populates="config", cascade="all, delete-orphan")
+    booking_config = relationship("BookingConfig", foreign_keys=[booking_config_id])
 
 
 class ChatWidgetConversation(Base):
@@ -902,3 +908,199 @@ class OAuthToken(Base):
     client = relationship("OAuthClient", back_populates="tokens")
     user = relationship("User", backref="oauth_tokens")
     organization = relationship("Organization", backref="oauth_tokens")
+
+
+# =============================================================================
+# BOOKING / SCHEDULING MODELS
+# =============================================================================
+
+
+class BookingConfig(Base):
+    """Booking configuration per organization - like a Calendly account."""
+
+    __tablename__ = "booking_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    slug = Column(String(50), unique=True, nullable=False, index=True)  # URL slug
+    business_name = Column(String(255), nullable=False)
+    logo_url = Column(String(500), nullable=True)
+    welcome_message = Column(Text, nullable=True)  # Message shown on booking page
+    primary_color = Column(String(7), default="#6366f1")  # Hex color
+    timezone = Column(String(50), default="America/New_York")
+    booking_window_days = Column(Integer, default=30)  # How far out can book
+    min_notice_hours = Column(Integer, default=4)  # Minimum advance notice
+    buffer_minutes = Column(Integer, default=15)  # Buffer between meetings
+    is_active = Column(Boolean, default=True)
+
+    # Google Calendar integration
+    google_calendar_id = Column(String(255), nullable=True)
+    google_refresh_token = Column(Text, nullable=True)  # Encrypted
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    organization = relationship("Organization", backref="booking_configs")
+    meeting_types = relationship("MeetingType", back_populates="booking_config", cascade="all, delete-orphan")
+    availability_rules = relationship("AvailabilityRule", back_populates="booking_config", cascade="all, delete-orphan")
+    blocked_dates = relationship("BlockedDate", back_populates="booking_config", cascade="all, delete-orphan")
+
+
+class MeetingType(Base):
+    """Meeting types (e.g., 15min intro, 30min strategy call)."""
+
+    __tablename__ = "meeting_types"
+
+    id = Column(Integer, primary_key=True, index=True)
+    booking_config_id = Column(
+        Integer,
+        ForeignKey("booking_configs.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    name = Column(String(100), nullable=False)  # "Strategy Call"
+    slug = Column(String(50), nullable=False)  # "strategy-call"
+    description = Column(Text, nullable=True)
+    duration_minutes = Column(Integer, nullable=False)  # 30
+    color = Column(String(7), default="#6366f1")
+    is_active = Column(Boolean, default=True)
+    order_index = Column(Integer, default=0)
+
+    # What to collect during booking
+    collect_phone = Column(Boolean, default=False)
+    collect_company = Column(Boolean, default=True)
+    custom_questions = Column(JSON, default=list)  # [{label, type, required}]
+
+    # Meeting location
+    location_type = Column(String(20), default="google_meet")  # google_meet, zoom, phone, custom
+    custom_location = Column(String(500), nullable=True)  # For custom location
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    booking_config = relationship("BookingConfig", back_populates="meeting_types")
+    bookings = relationship("Booking", back_populates="meeting_type", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        # Unique slug per booking config
+        {"sqlite_autoincrement": True},
+    )
+
+
+class AvailabilityRule(Base):
+    """Weekly availability rules (working hours)."""
+
+    __tablename__ = "availability_rules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    booking_config_id = Column(
+        Integer,
+        ForeignKey("booking_configs.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    day_of_week = Column(Integer, nullable=False)  # 0=Sunday, 1=Monday, etc.
+    start_time = Column(String(5), nullable=False)  # "09:00"
+    end_time = Column(String(5), nullable=False)  # "17:00"
+    is_available = Column(Boolean, default=True)
+
+    # Relationships
+    booking_config = relationship("BookingConfig", back_populates="availability_rules")
+
+
+class BlockedDate(Base):
+    """Blocked dates (holidays, PTO, etc.)."""
+
+    __tablename__ = "blocked_dates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    booking_config_id = Column(
+        Integer,
+        ForeignKey("booking_configs.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    blocked_date = Column(Date, nullable=False)
+    reason = Column(String(255), nullable=True)
+
+    # Relationships
+    booking_config = relationship("BookingConfig", back_populates="blocked_dates")
+
+
+class Booking(Base):
+    """Actual scheduled meetings/bookings."""
+
+    __tablename__ = "bookings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    meeting_type_id = Column(
+        Integer,
+        ForeignKey("meeting_types.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    lead_id = Column(
+        Integer,
+        ForeignKey("leads.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    # Guest info
+    guest_name = Column(String(255), nullable=False)
+    guest_email = Column(String(255), nullable=False)
+    guest_phone = Column(String(50), nullable=True)
+    guest_company = Column(String(255), nullable=True)
+    guest_notes = Column(Text, nullable=True)
+    custom_answers = Column(JSON, default=dict)  # Answers to custom questions
+
+    # Scheduling
+    scheduled_at = Column(DateTime, nullable=False)
+    duration_minutes = Column(Integer, nullable=False)
+    timezone = Column(String(50), nullable=False)
+
+    # Status
+    status = Column(String(20), default="confirmed")  # confirmed, cancelled, completed, no_show
+    cancelled_at = Column(DateTime, nullable=True)
+    cancellation_reason = Column(Text, nullable=True)
+
+    # Google Calendar integration
+    google_event_id = Column(String(255), nullable=True)
+    meeting_link = Column(String(500), nullable=True)  # Google Meet / Zoom link
+
+    # Tracking
+    source = Column(String(50), default="booking_page")  # booking_page, chat_widget, embed
+    cancel_token = Column(String(64), nullable=True, index=True)  # For cancel/reschedule links
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    meeting_type = relationship("MeetingType", back_populates="bookings")
+    lead = relationship("Lead", backref="bookings")
+    reminders = relationship("BookingReminder", back_populates="booking", cascade="all, delete-orphan")
+
+
+class BookingReminder(Base):
+    """Track reminder emails sent for bookings."""
+
+    __tablename__ = "booking_reminders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    booking_id = Column(
+        Integer,
+        ForeignKey("bookings.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    reminder_type = Column(String(20), nullable=False)  # "24hr", "1hr", "15min"
+    sent_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    booking = relationship("Booking", back_populates="reminders")

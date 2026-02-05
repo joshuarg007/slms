@@ -266,6 +266,9 @@ interface ExtendedFormState {
   attention_effect: string;
   shadow_style: string;
   entry_animation: string;
+  // Booking integration
+  booking_enabled: boolean;
+  booking_config_id: number | null;
 }
 
 const EMPTY_FORM: ExtendedFormState = {
@@ -314,6 +317,9 @@ const EMPTY_FORM: ExtendedFormState = {
   attention_effect: "none",
   shadow_style: "elevated",
   entry_animation: "scale",
+  // Booking integration
+  booking_enabled: false,
+  booking_config_id: null,
 };
 
 const BUTTON_SIZES = [
@@ -566,6 +572,9 @@ export default function ChatWidgetPage() {
       attention_effect: w.attention_effect || "none",
       shadow_style: w.shadow_style || "elevated",
       entry_animation: w.entry_animation || "scale",
+      // Booking integration
+      booking_enabled: w.booking_enabled ?? false,
+      booking_config_id: w.booking_config_id || null,
     });
     setSelectedWidget(widget);
     setIsEditing(true);
@@ -788,17 +797,73 @@ export default function ChatWidgetPage() {
               </div>
             </div>
 
-            {(form.primary_goal === "book_demo" || form.primary_goal === "start_trial") && (
+            {form.primary_goal === "book_demo" && (
+              <div className="space-y-4">
+                {/* Booking integration toggle */}
+                <div className="p-4 bg-indigo-50 dark:bg-indigo-950/30 rounded-xl border border-indigo-200 dark:border-indigo-800">
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
+                        <svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-gray-100">Use Site2CRM Booking Page</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          Direct visitors to your built-in booking page with auto-generated calendar events
+                        </div>
+                      </div>
+                    </div>
+                    <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.booking_enabled ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                      <input
+                        type="checkbox"
+                        checked={form.booking_enabled}
+                        onChange={(e) => setForm({ ...form, booking_enabled: e.target.checked, goal_url: e.target.checked ? null : form.goal_url })}
+                        className="sr-only"
+                      />
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.booking_enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </div>
+                  </label>
+                  {form.booking_enabled && (
+                    <p className="mt-3 text-sm text-indigo-700 dark:text-indigo-300 flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      The AI will direct visitors to your booking page at <a href="/app/booking" className="underline">Settings → Booking</a>
+                    </p>
+                  )}
+                </div>
+
+                {/* External URL fallback */}
+                {!form.booking_enabled && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      External Calendar URL (Calendly, Cal.com, etc.)
+                    </label>
+                    <input
+                      type="url"
+                      value={form.goal_url || ""}
+                      onChange={(e) => setForm({ ...form, goal_url: e.target.value || null })}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                      placeholder="https://calendly.com/yourname"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {form.primary_goal === "start_trial" && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {form.primary_goal === "book_demo" ? "Calendar URL (Calendly, Cal.com, etc.)" : "Signup URL"}
+                  Signup URL
                 </label>
                 <input
                   type="url"
                   value={form.goal_url || ""}
                   onChange={(e) => setForm({ ...form, goal_url: e.target.value || null })}
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                  placeholder={form.primary_goal === "book_demo" ? "https://calendly.com/yourname" : "https://yoursite.com/signup"}
+                  placeholder="https://yoursite.com/signup"
                 />
               </div>
             )}
@@ -1966,42 +2031,42 @@ export default function ChatWidgetPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleViewConversations(widget)}
-                        className="p-2.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors"
-                        title="View conversations"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-700 dark:hover:text-indigo-300 rounded-lg transition-all"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
                         </svg>
+                        <span className="hidden sm:inline">Chats</span>
                       </button>
                       <button
                         onClick={() => handleViewEmbed(widget)}
-                        className="p-2.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors"
-                        title="Get embed code"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-700 dark:hover:text-indigo-300 rounded-lg transition-all"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                         </svg>
+                        <span className="hidden sm:inline">Embed</span>
                       </button>
                       <button
                         onClick={() => handleEditWidget(widget)}
-                        className="p-2.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors"
-                        title="Edit widget"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-all shadow-sm"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
+                        <span className="hidden sm:inline">Edit</span>
                       </button>
                       <button
                         onClick={() => handleDelete(widget)}
-                        className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg transition-colors"
-                        title="Delete widget"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-all"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
+                        <span className="hidden sm:inline">Delete</span>
                       </button>
                     </div>
                   </div>

@@ -401,6 +401,11 @@ class PublicWidgetConfigResponse(BaseModel):
     # Quick replies
     quick_replies: Optional[list[str]]
 
+    # Booking integration
+    booking_enabled: bool = False
+    booking_url: Optional[str] = None
+    booking_meeting_types: Optional[list[dict]] = None
+
 
 class ChatMessageRequest(BaseModel):
     """Request to send a message to the chat widget."""
@@ -1104,8 +1109,11 @@ def get_public_widget_config(
     db: Session = Depends(get_db),
 ):
     """Get public widget configuration (for widget initialization)."""
+    from sqlalchemy.orm import joinedload
+
     config = (
         db.query(models.ChatWidgetConfig)
+        .options(joinedload(models.ChatWidgetConfig.booking_config))
         .filter(models.ChatWidgetConfig.widget_key == widget_key)
         .first()
     )
@@ -1126,6 +1134,36 @@ def get_public_widget_config(
             "casual": f"Hey! What can I help you with today?",
         }
         greeting = greetings.get(config.tone, greetings["friendly"])
+
+    # Get booking info if enabled
+    booking_enabled = getattr(config, 'booking_enabled', False) or False
+    booking_url = None
+    booking_meeting_types = None
+
+    if booking_enabled and hasattr(config, 'booking_config') and config.booking_config:
+        booking_config = config.booking_config
+        if booking_config.is_active:
+            booking_url = f"https://site2crm.io/book/{booking_config.slug}"
+            # Get meeting types
+            meeting_types = (
+                db.query(models.MeetingType)
+                .filter(
+                    models.MeetingType.booking_config_id == booking_config.id,
+                    models.MeetingType.is_active == True,
+                )
+                .order_by(models.MeetingType.order_index)
+                .all()
+            )
+            booking_meeting_types = [
+                {
+                    "name": mt.name,
+                    "slug": mt.slug,
+                    "duration": mt.duration_minutes,
+                    "description": mt.description,
+                    "url": f"https://site2crm.io/book/{booking_config.slug}/{mt.slug}",
+                }
+                for mt in meeting_types
+            ]
 
     data = PublicWidgetConfigResponse(
         business_name=config.business_name,
@@ -1154,6 +1192,9 @@ def get_public_widget_config(
         shadow_style=getattr(config, 'shadow_style', None) or "elevated",
         entry_animation=getattr(config, 'entry_animation', None) or "scale",
         quick_replies=_parse_quick_replies(config.quick_replies),
+        booking_enabled=booking_enabled and booking_url is not None,
+        booking_url=booking_url,
+        booking_meeting_types=booking_meeting_types,
     )
     return JSONResponse(
         content=data.model_dump(),
@@ -1182,14 +1223,27 @@ async def send_chat_message(
             captured_phone=None,
         )
 
-    # Look up widget config by widget_key
+    # Look up widget config by widget_key (with booking config for AI prompt)
+    from sqlalchemy.orm import joinedload
     config = (
         db.query(models.ChatWidgetConfig)
+        .options(joinedload(models.ChatWidgetConfig.booking_config))
         .filter(models.ChatWidgetConfig.widget_key == widget_key)
         .first()
     )
     if not config or not config.is_active:
         raise HTTPException(status_code=404, detail="Chat widget not available")
+
+    # Load meeting types if booking is enabled (for AI context)
+    if getattr(config, 'booking_enabled', False) and config.booking_config:
+        config.booking_config.meeting_types = (
+            db.query(models.MeetingType)
+            .filter(
+                models.MeetingType.booking_config_id == config.booking_config.id,
+                models.MeetingType.is_active == True,
+            )
+            .all()
+        )
 
     # Check if conversation exists (don't create yet - need to check limits first)
     existing_conversation = (
