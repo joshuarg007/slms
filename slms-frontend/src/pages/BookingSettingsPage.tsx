@@ -38,6 +38,15 @@ interface BookingConfigListItem {
   bookings_count: number;
 }
 
+interface ChatWidgetSummary {
+  id: number;
+  widget_key: string;
+  business_name: string;
+  is_active: boolean;
+  booking_enabled: boolean;
+  booking_config_id: number | null;
+}
+
 interface CalendarStatus {
   connected: boolean;
   calendar_id: string | null;
@@ -235,6 +244,9 @@ export default function BookingSettingsPage() {
   const [calendars, setCalendars] = useState<CalendarInfo[]>([]);
   const [loadingCalendar, setLoadingCalendar] = useState(false);
 
+  // Chat widget integration
+  const [chatWidgets, setChatWidgets] = useState<ChatWidgetSummary[]>([]);
+
   // Load data
   useEffect(() => {
     loadConfigs();
@@ -292,10 +304,11 @@ export default function BookingSettingsPage() {
     setError(null);
 
     try {
-      // Get full config details
-      const configRes = await fetch(`${API}/booking/config/${bookingKey}`, {
-        headers: getAuthHeaders(),
-      });
+      // Get full config details and chat widgets in parallel
+      const [configRes, widgetsRes] = await Promise.all([
+        fetch(`${API}/booking/config/${bookingKey}`, { headers: getAuthHeaders() }),
+        fetch(`${API}/chat-widget/configs`, { headers: getAuthHeaders() }),
+      ]);
 
       if (configRes.ok) {
         const configData = await configRes.json();
@@ -312,10 +325,63 @@ export default function BookingSettingsPage() {
         if (availRes.ok) setAvailability(await availRes.json());
         if (bookingsRes.ok) setBookings(await bookingsRes.json());
       }
+
+      if (widgetsRes.ok) {
+        const widgetsData = await widgetsRes.json();
+        setChatWidgets(widgetsData.map((w: any) => ({
+          id: w.id,
+          widget_key: w.widget_key,
+          business_name: w.business_name,
+          is_active: w.is_active,
+          booking_enabled: w.booking_enabled || false,
+          booking_config_id: w.booking_config_id,
+        })));
+      }
     } catch (err) {
       setError("Failed to load booking settings");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function toggleWidgetBookingLink(widgetKey: string, link: boolean) {
+    if (!config) return;
+
+    try {
+      // First get the full widget config
+      const getRes = await fetch(`${API}/chat-widget/config/${widgetKey}`, {
+        headers: getAuthHeaders(),
+      });
+      if (!getRes.ok) throw new Error("Failed to get widget config");
+
+      const widgetData = await getRes.json();
+
+      // Update with booking link
+      const updateRes = await fetch(`${API}/chat-widget/config/${widgetKey}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          ...widgetData,
+          booking_enabled: link,
+          booking_config_id: link ? config.id : null,
+          // If linking and goal is capture_email, switch to book_demo
+          primary_goal: link && widgetData.primary_goal === "capture_email" ? "book_demo" : widgetData.primary_goal,
+        }),
+      });
+
+      if (!updateRes.ok) throw new Error("Failed to update widget");
+
+      // Refresh widgets
+      setChatWidgets(prev => prev.map(w =>
+        w.widget_key === widgetKey
+          ? { ...w, booking_enabled: link, booking_config_id: link ? config.id : null }
+          : w
+      ));
+
+      setSuccess(link ? "Chat widget linked to booking page!" : "Chat widget unlinked");
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update widget");
     }
   }
 
@@ -1015,6 +1081,80 @@ export default function BookingSettingsPage() {
                   </svg>
                   {loadingCalendar ? "Connecting..." : "Connect Google Calendar"}
                 </button>
+              </div>
+            )}
+          </div>
+
+          {/* AI Chat Widget Integration */}
+          <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white">AI Chat Widgets</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Connect chat widgets to direct visitors to this booking page
+                </p>
+              </div>
+            </div>
+
+            {chatWidgets.length > 0 ? (
+              <div className="space-y-2">
+                {chatWidgets.map((widget) => {
+                  const isLinked = widget.booking_config_id === config.id;
+                  const isLinkedElsewhere = widget.booking_config_id && widget.booking_config_id !== config.id;
+                  return (
+                    <div
+                      key={widget.widget_key}
+                      className={cn(
+                        "flex items-center justify-between p-3 rounded-xl border",
+                        isLinked
+                          ? "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800"
+                          : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "w-2 h-2 rounded-full",
+                          widget.is_active ? "bg-green-500" : "bg-gray-400"
+                        )} />
+                        <div>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {widget.business_name}
+                          </span>
+                          {isLinkedElsewhere && (
+                            <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">
+                              (linked to another booking page)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => toggleWidgetBookingLink(widget.widget_key, !isLinked)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                          isLinked
+                            ? "bg-purple-600 text-white hover:bg-purple-700"
+                            : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600"
+                        )}
+                      >
+                        {isLinked ? "Linked" : "Link"}
+                      </button>
+                    </div>
+                  );
+                })}
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Linked widgets will use "Book Demo" as their goal and direct visitors to this booking page.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  No chat widgets found. Create a chat widget first to connect it to this booking page.
+                </p>
               </div>
             )}
           </div>
