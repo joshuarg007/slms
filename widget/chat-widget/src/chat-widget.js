@@ -107,6 +107,38 @@
 
   var sessionId = generateSessionId();
 
+  // === SAFE localStorage WRAPPER ===
+
+  function safeLSGet(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+  function safeLSSet(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) { /* ignore */ }
+  }
+
+  // === GDPR CONSENT ===
+
+  // null = not decided, "1" = accepted, "0" = declined
+  var gdprConsent = safeLSGet("s2c_gdpr_consent");
+
+  // === CONFIG CACHING ===
+
+  var CONFIG_CACHE_TTL = 300000; // 5 minutes (matches Cache-Control: max-age=300)
+
+  function getCachedConfig() {
+    try {
+      var raw = safeLSGet("s2c_config_" + widgetKey);
+      if (!raw) return null;
+      var cached = JSON.parse(raw);
+      if (Date.now() - cached._ts < CONFIG_CACHE_TTL) return cached.data;
+    } catch (e) { /* ignore corrupt cache */ }
+    return null;
+  }
+
+  function setCachedConfig(cfg) {
+    safeLSSet("s2c_config_" + widgetKey, JSON.stringify({ data: cfg, _ts: Date.now() }));
+  }
+
   // === STATE ===
 
   var isOpen = false;
@@ -773,6 +805,56 @@
       "  clip: rect(0, 0, 0, 0);" +
       "  white-space: nowrap;" +
       "  border: 0;" +
+      "}" +
+      "" +
+      ".s2c-consent {" +
+      "  padding: 14px 18px;" +
+      "  background: rgba(255,255,255,0.06);" +
+      "  border: 1px solid rgba(255,255,255,0.1);" +
+      "  border-radius: 16px;" +
+      "  font-size: 12px;" +
+      "  color: #9ca3af;" +
+      "  line-height: 1.5;" +
+      "}" +
+      "" +
+      ".s2c-consent-text {" +
+      "  margin-bottom: 10px;" +
+      "}" +
+      "" +
+      ".s2c-consent-btns {" +
+      "  display: flex;" +
+      "  gap: 8px;" +
+      "}" +
+      "" +
+      ".s2c-consent-btn {" +
+      "  flex: 1;" +
+      "  padding: 8px 12px;" +
+      "  border: none;" +
+      "  border-radius: 10px;" +
+      "  font-size: 12px;" +
+      "  font-weight: 600;" +
+      "  cursor: pointer;" +
+      "  transition: all 0.2s ease;" +
+      "}" +
+      "" +
+      ".s2c-consent-btn.accept {" +
+      "  background: " + primaryColor + ";" +
+      "  color: white;" +
+      "}" +
+      "" +
+      ".s2c-consent-btn.accept:hover {" +
+      "  filter: brightness(1.1);" +
+      "}" +
+      "" +
+      ".s2c-consent-btn.decline {" +
+      "  background: rgba(255,255,255,0.08);" +
+      "  color: #9ca3af;" +
+      "  border: 1px solid rgba(255,255,255,0.1);" +
+      "}" +
+      "" +
+      ".s2c-consent-btn.decline:hover {" +
+      "  background: rgba(255,255,255,0.12);" +
+      "  color: #d1d5db;" +
       "}"
     );
   }
@@ -812,7 +894,11 @@
     for (var i = 0; i <= retries; i++) {
       try {
         var res = await fetch(API_BASE + "/config/" + widgetKey);
-        if (res.ok) return await res.json();
+        if (res.ok) {
+          var cfg = await res.json();
+          setCachedConfig(cfg);
+          return cfg;
+        }
         if (res.status >= 400 && res.status < 500) return null;
       } catch (err) {
         if (i === retries) return null;
@@ -828,7 +914,16 @@
 
   async function init() {
     try {
-      config = await fetchConfig(2);
+      // Stale-while-revalidate: use cache immediately, refresh in background
+      var cached = getCachedConfig();
+      if (cached) {
+        config = cached;
+        // Background refresh — updates cache for next page load
+        fetchConfig(2);
+      } else {
+        config = await fetchConfig(2);
+      }
+
       if (!config) {
         console.warn("Site2CRM Chat Widget: Unable to load config");
         return;
@@ -985,6 +1080,42 @@
     if (config.greeting) {
       addMessage("assistant", config.greeting);
     }
+
+    // GDPR consent banner — show if user hasn't decided yet
+    if (gdprConsent === null) {
+      showConsentBanner();
+    }
+  }
+
+  // === GDPR CONSENT BANNER ===
+
+  function showConsentBanner() {
+    var banner = document.createElement("div");
+    banner.className = "s2c-consent";
+    banner.setAttribute("role", "alert");
+    banner.innerHTML =
+      '<div class="s2c-consent-text">This chat uses cookies and local storage to remember your session. You can decline and still chat anonymously.</div>' +
+      '<div class="s2c-consent-btns">' +
+      '  <button class="s2c-consent-btn accept">Accept</button>' +
+      '  <button class="s2c-consent-btn decline">Decline</button>' +
+      '</div>';
+
+    messagesContainer.appendChild(banner);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    banner.querySelector(".accept").addEventListener("click", function () {
+      gdprConsent = "1";
+      safeLSSet("s2c_gdpr_consent", "1");
+      banner.remove();
+    });
+
+    banner.querySelector(".decline").addEventListener("click", function () {
+      gdprConsent = "0";
+      safeLSSet("s2c_gdpr_consent", "0");
+      // Clear any existing session data
+      safeStorage("set", "s2c_chat_session", "");
+      banner.remove();
+    });
   }
 
   // === ACCESSIBILITY ===
@@ -1213,17 +1344,22 @@
     }, 15000);
 
     try {
+      // If consent declined, use ephemeral session and omit tracking fields
+      var reqBody = { message: message };
+      if (gdprConsent === "0") {
+        reqBody.session_id = "s2c_ephemeral_" + Date.now().toString(36) + "_" + Math.random().toString(36).substr(2, 6);
+      } else {
+        reqBody.session_id = sessionId;
+        reqBody.page_url = window.location.href;
+        reqBody.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      }
+
       var res = await fetch(
         API_BASE + "/message?widget_key=" + widgetKey,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            session_id: sessionId,
-            message: message,
-            page_url: window.location.href,
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          }),
+          body: JSON.stringify(reqBody),
           signal: controller.signal,
         }
       );

@@ -1406,6 +1406,38 @@ async def send_chat_message(
                         source="chat_widget",
                         background_tasks=None,
                     )
+
+                    # Send email notification to org users (same pattern as leads.py)
+                    try:
+                        from app.services.email import send_new_lead_notification
+                        from app.api.routes.integrations_notifications import get_org_notification_settings
+
+                        notification_settings = get_org_notification_settings(db, config.organization_id)
+                        should_notify = (
+                            notification_settings is None
+                            or notification_settings.new_lead
+                        )
+
+                        if should_notify:
+                            recipients = [
+                                u.email
+                                for u in db.query(models.User)
+                                .filter(models.User.organization_id == config.organization_id)
+                                .all()
+                                if u.email
+                            ]
+                            if recipients:
+                                lead_display = created_lead.first_name or created_lead.email or "New lead"
+                                send_new_lead_notification(
+                                    recipients,
+                                    lead_display,
+                                    created_lead.email,
+                                    created_lead.company,
+                                    "AI Chat",
+                                    config.business_name,
+                                )
+                    except Exception as email_err:
+                        logger.error(f"Failed to send lead notification email: {email_err}")
         except Exception as e:
             # Log but don't fail the chat - lead creation is secondary
             logger.error(f"Failed to create lead from conversation: {e}")

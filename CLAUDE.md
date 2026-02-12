@@ -9,18 +9,17 @@
 
 ## SESSION STATE
 **Last Updated:** 2026-02-11
-**Status:** LAUNCHED (v1.0.0) + CHAT WIDGET v3.0 FULLY DEPLOYED
+**Status:** LAUNCHED (v1.0.0) + CHAT WIDGET v3.1 + NOTIFICATION WIRING
 
 ### Where We Left Off:
-- **Chat Widget v3.0 COMPLETE + PUSHED** — All 3 rounds deployed to production
-- Round 1: SPA awareness, GTM support, duplicate guard, retry, z-index (`2ae4fe2`, `237222e`, `43e9861`)
-- Round 2: Shadow DOM, accessibility, message timeout, sessionStorage safety, font fallback, send throttle (`da0fdaf`)
-- Round 3: iOS safe area insets, visualViewport keyboard handler, session-based rate limiting (`0886677`)
+- **Chat Widget v3.1** — GDPR consent banner + config caching added (not yet pushed)
+- **Notification Settings wired** — SettingsPage now reads/writes real API
+- **Chat lead email notifications** — Backend sends email when AI chat captures a lead
 - **Zapier Integration** — Code complete but NOT deployed (unchanged from Feb 2)
 
-### RESUME HERE - Chat Widget Hardening:
+### RESUME HERE - Widget Polish + Notifications:
 
-**All hardening DONE and DEPLOYED:**
+**All widget hardening DONE:**
 - ✅ SPA route detection (pushState/replaceState/popstate)
 - ✅ GTM/tag manager compatibility (fallback `script[data-widget-key]` query)
 - ✅ Duplicate widget prevention, async Google Fonts, retry with backoff, configurable z-index
@@ -33,10 +32,13 @@
 - ✅ **Typing indicator** — `role="status"` + data-attribute query (shadow DOM compatible)
 - ✅ **iOS safe area insets** — `env(safe-area-inset-bottom)` on bubble, window, input area + `visualViewport` keyboard handler
 - ✅ **Session rate limiting** — 10 msgs/min per session_id, layered with 20 msgs/min per IP
+- ✅ **GDPR consent banner** — Accept/Decline in chat window, localStorage-backed, ephemeral sessions when declined
+- ✅ **Config caching** — localStorage with 5-min TTL, stale-while-revalidate pattern
 
-**Remaining "Fix Later":**
-1. GDPR consent banner (EU sessionStorage consent)
-2. Config caching (localStorage with TTL)
+**Notification wiring DONE:**
+- ✅ SettingsPage fetches `GET /api/integrations/notifications` on mount
+- ✅ SettingsPage saves via `POST /api/integrations/notifications` (replaced mock)
+- ✅ Chat widget lead capture sends email notification (same pattern as form leads)
 
 ### Zapier Integration (unchanged from Feb 2):
 - Code complete, NOT deployed — see deploy steps below
@@ -99,9 +101,13 @@ EOF
 ### Phase 1: Stickiness (Reduce Churn) 🎯 CURRENT FOCUS
 | Feature | Priority | Status | Notes |
 |---------|----------|--------|-------|
-| **Chat Widget Hardening** | P0 | ✅ Complete | v3.0 deployed — Shadow DOM, a11y, iOS safe areas, session rate limit |
+| **Chat Widget Hardening** | P0 | ✅ Complete | v3.1 — Shadow DOM, a11y, iOS, GDPR consent, config cache |
 | **Zapier Integration** | P0 | Code Complete | Webhooks + OAuth done, needs deploy |
 | Webhooks API | P1 | ✅ Complete | POST/GET/DELETE /api/webhooks + firing service |
+| Lead Source Tracking | P1 | ✅ Complete | UTM, referrer, landing page, display, filters, charts |
+| Email Notifications | P1 | ✅ Complete | Form + chat lead notifications, settings wired in UI |
+| GDPR Consent Banner | P1 | ✅ Complete | Accept/Decline in widget, ephemeral sessions |
+| Config Caching | P2 | ✅ Complete | localStorage 5-min TTL, stale-while-revalidate |
 | Email sequences | P2 | Not Started | Auto follow-up after lead capture |
 
 ### Phase 2: Growth (New Revenue)
@@ -244,7 +250,24 @@ Build a Zapier integration to connect Site2CRM to 5000+ apps. This is the #1 fea
 
 ---
 
-### Recent Changes (2026-02-11):
+### Recent Changes (2026-02-11 PM):
+**Widget Polish + Notification Wiring:**
+- `widget/chat-widget/src/chat-widget.js` — GDPR consent banner + config caching:
+  - `safeLSGet()`/`safeLSSet()` localStorage wrappers
+  - GDPR consent: Accept/Decline banner in messages, `s2c_gdpr_consent` localStorage key
+  - Declined consent: ephemeral session IDs, no page_url/timezone tracking
+  - Config caching: `getCachedConfig()`/`setCachedConfig()` with 5-min TTL
+  - `init()` uses stale-while-revalidate: cache → render immediately, fetch in background
+- `widget/chat-widget/dist/chat-widget.min.js` — Rebuilt (28KB minified)
+- `slms-frontend/src/pages/SettingsPage.tsx` — Wired notification settings:
+  - Fetches `GET /api/integrations/notifications` on mount
+  - Saves via `POST /api/integrations/notifications` (replaced mock `setTimeout`)
+- `app/api/routes/chat_widget.py` — Email notification on chat lead capture:
+  - After webhook firing, checks `notification_settings.new_lead`
+  - Sends `send_new_lead_notification()` to all org users
+  - Wrapped in try/except so failures never block chat
+
+### Recent Changes (2026-02-11 AM):
 **Chat Widget v3.0 — Shadow DOM + Full Hardening:**
 - `widget/chat-widget/src/chat-widget.js` — Complete rewrite:
   - Shadow DOM encapsulation (all DOM + styles in shadow root)

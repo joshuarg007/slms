@@ -127,6 +127,21 @@ export default function SettingsPage() {
       }
     }
     loadSettings();
+
+    // Fetch notification settings
+    async function loadNotificationSettings() {
+      try {
+        const res = await authFetch(`${getApiBase()}/integrations/notifications`);
+        if (res.ok) {
+          const data = await res.json();
+          setLeadNotifications(data.settings?.new_lead ?? true);
+          setWeeklyReports(data.settings?.weekly_digest ?? true);
+        }
+      } catch {
+        // Silently fail — defaults are already set
+      }
+    }
+    loadNotificationSettings();
   }, []);
 
   async function rotateOrgKey() {
@@ -179,8 +194,26 @@ export default function SettingsPage() {
 
   async function handleDataSave() {
     setDataSaveState("saving");
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    setDataSaveState("saved");
+    try {
+      const res = await authFetch(`${getApiBase()}/integrations/notifications`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channel: "email",
+          settings: {
+            new_lead: leadNotifications,
+            crm_error: true,
+            daily_digest: false,
+            weekly_digest: weeklyReports,
+            salesperson_digest: false,
+          },
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setDataSaveState("saved");
+    } catch {
+      setDataSaveState("error");
+    }
     setTimeout(() => setDataSaveState("idle"), 2000);
   }
 
