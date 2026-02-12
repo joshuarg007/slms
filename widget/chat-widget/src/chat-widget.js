@@ -1280,8 +1280,10 @@
     // 3. URLs without protocol (www.example.com or example.com/path)
     result = result.replace(
       /((?:www\.)?[a-zA-Z0-9][-a-zA-Z0-9]*\.(?:com|io|co|org|net|ai|app|dev)(?:\/[^\s<]*[^\s<.,;:'")\]])?)/gi,
-      function (match) {
+      function (match, _p1, offset) {
         if (match.includes("@")) return match;
+        // Skip if preceded by @ (part of an email address)
+        if (offset > 0 && result[offset - 1] === "@") return match;
         return createPlaceholder(match);
       }
     );
