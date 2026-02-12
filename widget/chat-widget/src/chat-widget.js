@@ -18,31 +18,28 @@
     return;
   }
 
-  // Check for excluded paths (comma-separated list or patterns)
-  const excludePaths = script?.getAttribute("data-exclude-paths");
-  if (excludePaths) {
-    const currentPath = window.location.pathname;
-    const patterns = excludePaths.split(",").map(p => p.trim());
-    for (const pattern of patterns) {
+  // Parse excluded paths (comma-separated list or glob patterns)
+  const excludePathsAttr = script?.getAttribute("data-exclude-paths");
+  const excludePatterns = excludePathsAttr ? excludePathsAttr.split(",").map(p => p.trim()) : [];
+
+  function isExcludedPath(path) {
+    for (const pattern of excludePatterns) {
       if (pattern.endsWith("*")) {
-        const prefix = pattern.slice(0, -1);
-        if (currentPath.startsWith(prefix)) {
-          console.log("Site2CRM Chat Widget: Hidden on excluded path", currentPath);
-          return;
-        }
-      } else if (currentPath === pattern) {
-        console.log("Site2CRM Chat Widget: Hidden on excluded path", currentPath);
-        return;
+        if (path.startsWith(pattern.slice(0, -1))) return true;
+      } else if (path === pattern) {
+        return true;
       }
     }
+    return false;
   }
 
-  // Check for auth cookie/localStorage - if set, hide widget
-  const hideFromStorage = localStorage.getItem("site2crm_hide_chat") === "true";
-  const hideFromCookie = document.cookie.includes("site2crm_hide_chat=true");
-  if (hideFromStorage || hideFromCookie) {
-    console.log("Site2CRM Chat Widget: Hidden for authenticated user");
-    return;
+  function isHiddenByAuth() {
+    return localStorage.getItem("site2crm_hide_chat") === "true" ||
+           document.cookie.includes("site2crm_hide_chat=true");
+  }
+
+  function shouldHide() {
+    return isExcludedPath(window.location.pathname) || isHiddenByAuth();
   }
 
   // API base URL
@@ -897,6 +894,10 @@
     container.appendChild(chatWindow);
     document.body.appendChild(container);
 
+    // Set initial visibility and start watching SPA route changes
+    updateVisibility();
+    watchRouteChanges();
+
     if (config.greeting) {
       addMessage("assistant", config.greeting);
     }
@@ -1065,6 +1066,31 @@
     const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  // Update widget visibility based on current path and auth state
+  function updateVisibility() {
+    if (!container) return;
+    const hidden = shouldHide();
+    container.style.display = hidden ? "none" : "";
+    if (hidden && isOpen) {
+      toggleChat();
+    }
+  }
+
+  // Watch for SPA route changes (pushState, replaceState, popstate)
+  function watchRouteChanges() {
+    const origPushState = history.pushState;
+    history.pushState = function () {
+      origPushState.apply(this, arguments);
+      setTimeout(updateVisibility, 50);
+    };
+    const origReplaceState = history.replaceState;
+    history.replaceState = function () {
+      origReplaceState.apply(this, arguments);
+      setTimeout(updateVisibility, 50);
+    };
+    window.addEventListener("popstate", () => setTimeout(updateVisibility, 50));
   }
 
   // Start
