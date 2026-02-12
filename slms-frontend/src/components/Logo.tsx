@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import logoLight from "@/assets/site2crm_logo_vector.svg";
-import logoDark from "@/assets/site2crm_logo_vector_dark.svg";
+import logoLight from "@/assets/site2crm_logo.png";
+import logoDark from "@/assets/site2crm_logo_dark.png";
 
 // Centralized logo sizing - update here to change everywhere
 const LOGO_SIZES = {
