@@ -10,8 +10,8 @@ The AI chat widget is live and deployed. Round 2 (v3.0) complete — Shadow DOM 
 |-------|----------|-------------|
 | GDPR consent banner | MEDIUM | EU users need consent before sessionStorage/tracking |
 | Config caching | MEDIUM | Cache widget config in localStorage to avoid fetch on every page load |
-| iOS safe area insets | LOW | Input field hidden behind iOS keyboard on small screens |
-| Server-side rate limit by session | LOW | Prevent abuse of AI chat endpoint per widget session |
+| ~~iOS safe area insets~~ | ~~LOW~~ | ✅ Done — `env(safe-area-inset-bottom)` + `visualViewport` keyboard handler |
+| ~~Server-side rate limit by session~~ | ~~LOW~~ | ✅ Done — 10 msgs/min per session_id, layered with IP limit |
 
 ---
 
@@ -129,6 +129,11 @@ Short tutorial videos needed for the Help Center (`/app/support`):
 - **Send throttle**: 1-second cooldown between sends — prevents message spam
 - **Semantic HTML**: Bubble is now a `<button>` instead of `<div>` — keyboard navigable by default
 - **Typing indicator**: Uses `role="status"` + `aria-label` for screen readers; query by data attribute instead of `document.getElementById` (which doesn't work in shadow DOM)
+
+**Round 3 — iOS + Session Rate Limiting:**
+- **iOS safe area insets**: `env(safe-area-inset-bottom)` on bubble, chat window, input area, and mobile breakpoint — no more hidden input behind iOS home bar
+- **iOS keyboard handler**: `visualViewport` resize listener shifts chat window up when virtual keyboard opens, resets on close
+- **Session-based rate limiting**: 10 msgs/min per session_id (backend), layered with existing 20 msgs/min per IP — prevents per-session abuse with friendly AI messages
 
 ### 2026-01-15: Marketplace Listings & API Documentation
 - **G2 Listing** - 15 screenshots prepared and submitted

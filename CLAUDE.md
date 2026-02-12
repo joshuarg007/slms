@@ -9,17 +9,18 @@
 
 ## SESSION STATE
 **Last Updated:** 2026-02-11
-**Status:** LAUNCHED (v1.0.0) + CHAT WIDGET HARDENING IN PROGRESS
+**Status:** LAUNCHED (v1.0.0) + CHAT WIDGET v3.0 FULLY DEPLOYED
 
 ### Where We Left Off:
-- **Chat Widget v3.0 COMPLETE** — Shadow DOM + all hardening items (not yet pushed)
-- Round 1: SPA awareness, GTM support, duplicate guard, retry, z-index (pushed: `2ae4fe2`, `237222e`, `43e9861`)
-- Round 2: Shadow DOM encapsulation, full accessibility, message timeout, sessionStorage safety, font fallback, send throttle (local, ready to push)
+- **Chat Widget v3.0 COMPLETE + PUSHED** — All 3 rounds deployed to production
+- Round 1: SPA awareness, GTM support, duplicate guard, retry, z-index (`2ae4fe2`, `237222e`, `43e9861`)
+- Round 2: Shadow DOM, accessibility, message timeout, sessionStorage safety, font fallback, send throttle (`da0fdaf`)
+- Round 3: iOS safe area insets, visualViewport keyboard handler, session-based rate limiting (`0886677`)
 - **Zapier Integration** — Code complete but NOT deployed (unchanged from Feb 2)
 
-### RESUME HERE - Chat Widget v3.0:
+### RESUME HERE - Chat Widget Hardening:
 
-**All hardening DONE (Round 1 deployed, Round 2 local):**
+**All hardening DONE and DEPLOYED:**
 - ✅ SPA route detection (pushState/replaceState/popstate)
 - ✅ GTM/tag manager compatibility (fallback `script[data-widget-key]` query)
 - ✅ Duplicate widget prevention, async Google Fonts, retry with backoff, configurable z-index
@@ -30,12 +31,12 @@
 - ✅ **Font fallback** — `system-ui` in font stack
 - ✅ **Send throttle** — 1s cooldown between sends
 - ✅ **Typing indicator** — `role="status"` + data-attribute query (shadow DOM compatible)
+- ✅ **iOS safe area insets** — `env(safe-area-inset-bottom)` on bubble, window, input area + `visualViewport` keyboard handler
+- ✅ **Session rate limiting** — 10 msgs/min per session_id, layered with 20 msgs/min per IP
 
 **Remaining "Fix Later":**
 1. GDPR consent banner (EU sessionStorage consent)
 2. Config caching (localStorage with TTL)
-3. iOS safe area insets (`env(safe-area-inset-bottom)`)
-4. Server-side rate limit by session (backend)
 
 ### Zapier Integration (unchanged from Feb 2):
 - Code complete, NOT deployed — see deploy steps below
@@ -98,7 +99,7 @@ EOF
 ### Phase 1: Stickiness (Reduce Churn) 🎯 CURRENT FOCUS
 | Feature | Priority | Status | Notes |
 |---------|----------|--------|-------|
-| **Chat Widget Hardening** | P0 | In Progress | Round 1 deployed, Round 2 "Fix Now" queued |
+| **Chat Widget Hardening** | P0 | ✅ Complete | v3.0 deployed — Shadow DOM, a11y, iOS safe areas, session rate limit |
 | **Zapier Integration** | P0 | Code Complete | Webhooks + OAuth done, needs deploy |
 | Webhooks API | P1 | ✅ Complete | POST/GET/DELETE /api/webhooks + firing service |
 | Email sequences | P2 | Not Started | Auto follow-up after lead capture |
