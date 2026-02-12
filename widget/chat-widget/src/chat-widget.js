@@ -9,8 +9,20 @@
 (function () {
   "use strict";
 
-  // Get script configuration
-  const script = document.currentScript;
+  // Fix #2: Duplicate prevention — bail if already initialized
+  if (document.getElementById("site2crm-chat-widget")) {
+    return;
+  }
+
+  // Fix #1: GTM/tag manager support — fallback when document.currentScript is null
+  let script = document.currentScript;
+  if (!script) {
+    const scripts = document.querySelectorAll('script[data-widget-key]');
+    if (scripts.length > 0) {
+      script = scripts[scripts.length - 1];
+    }
+  }
+
   const widgetKey = script?.getAttribute("data-widget-key");
 
   if (!widgetKey) {
@@ -21,6 +33,11 @@
   // Parse excluded paths (comma-separated list or glob patterns)
   const excludePathsAttr = script?.getAttribute("data-exclude-paths");
   const excludePatterns = excludePathsAttr ? excludePathsAttr.split(",").map(p => p.trim()) : [];
+
+  // Fix #6: Configurable z-index (default 999998/999999) to avoid conflicts
+  const customZIndex = parseInt(script?.getAttribute("data-z-index"), 10);
+  const bubbleZIndex = customZIndex || 999998;
+  const windowZIndex = bubbleZIndex + 1;
 
   function isExcludedPath(path) {
     for (const pattern of excludePatterns) {
@@ -238,8 +255,6 @@
     }
 
     return `
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
     .s2c-widget * {
       box-sizing: border-box;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -259,7 +274,7 @@
       ${shape.layout === "icon-text" ? "gap: 8px;" : ""}
       ${shape.layout === "icon-vertical" ? "flex-direction: column;" : ""}
       transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      z-index: 999998;
+      z-index: ${bubbleZIndex};
       background: ${bubbleBg};
       opacity: ${buttonOpacity};
       box-shadow: ${bubbleShadow};
@@ -365,7 +380,7 @@
       display: none;
       flex-direction: column;
       overflow: hidden;
-      z-index: 999999;
+      z-index: ${windowZIndex};
     }
 
     .s2c-window.open {
@@ -784,15 +799,41 @@
 
   const arrowIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`;
 
+  // Fix #3: Load Google Fonts via async <link> instead of render-blocking @import
+  function loadFonts() {
+    if (document.querySelector('link[href*="fonts.googleapis.com/css2"][data-s2c]')) return;
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap";
+    link.setAttribute("data-s2c", "1");
+    document.head.appendChild(link);
+  }
+
+  // Fix #5: Retry config fetch with backoff (3 attempts)
+  async function fetchConfig(retries) {
+    for (let i = 0; i <= retries; i++) {
+      try {
+        const res = await fetch(`${API_BASE}/config/${widgetKey}`);
+        if (res.ok) return await res.json();
+        if (res.status >= 400 && res.status < 500) return null; // client error, don't retry
+      } catch (err) {
+        if (i === retries) return null;
+      }
+      await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i))); // 1s, 2s, 4s
+    }
+    return null;
+  }
+
   // Initialize widget
   async function init() {
     try {
-      const res = await fetch(`${API_BASE}/config/${widgetKey}`);
-      if (!res.ok) {
+      config = await fetchConfig(2);
+      if (!config) {
         console.warn("Site2CRM Chat Widget: Unable to load config");
         return;
       }
-      config = await res.json();
+
+      loadFonts();
 
       const styleEl = document.createElement("style");
       styleEl.textContent = generateStyles(config);
