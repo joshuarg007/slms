@@ -8,28 +8,40 @@
 ---
 
 ## SESSION STATE
-**Last Updated:** 2026-02-02 (evening)
-**Status:** LAUNCHED (v1.0.0) + ZAPIER INTEGRATION CODE COMPLETE (not deployed)
+**Last Updated:** 2026-02-11
+**Status:** LAUNCHED (v1.0.0) + CHAT WIDGET HARDENING IN PROGRESS
 
 ### Where We Left Off:
-- **Zapier Integration IN PROGRESS** - Code complete but NOT deployed
-- All changes are LOCAL ONLY - nothing pushed to production yet
-- User started Zapier integration in UI with API Key auth (WRONG) - needs to be deleted
-- Need to deploy code then recreate Zapier integration with OAuth
+- **Chat Widget v3.0 COMPLETE** — Shadow DOM + all hardening items (not yet pushed)
+- Round 1: SPA awareness, GTM support, duplicate guard, retry, z-index (pushed: `2ae4fe2`, `237222e`, `43e9861`)
+- Round 2: Shadow DOM encapsulation, full accessibility, message timeout, sessionStorage safety, font fallback, send throttle (local, ready to push)
+- **Zapier Integration** — Code complete but NOT deployed (unchanged from Feb 2)
 
-### RESUME HERE - Zapier Integration Status:
+### RESUME HERE - Chat Widget v3.0:
 
-**Code Complete (local, not deployed):**
-1. ✅ Webhook models (`app/db/models.py` - Webhook, WebhookDelivery)
-2. ✅ Webhook routes (`app/api/routes/webhooks.py`)
-3. ✅ Webhook service (`app/services/webhook_service.py`)
-4. ✅ Lead endpoints (`app/api/routes/leads.py` - PATCH, POST notes, GET activities)
-5. ✅ OAuth models (`app/db/models.py` - OAuthClient, OAuthToken)
-6. ✅ OAuth routes (`app/api/routes/oauth.py`)
-7. ✅ Migrations (`alembic/versions/l9g0h1i2j3k4_add_webhooks_tables.py`, `m0h1i2j3k4l5_add_oauth_tables.py`)
-8. ✅ Routers added to `main.py`
+**All hardening DONE (Round 1 deployed, Round 2 local):**
+- ✅ SPA route detection (pushState/replaceState/popstate)
+- ✅ GTM/tag manager compatibility (fallback `script[data-widget-key]` query)
+- ✅ Duplicate widget prevention, async Google Fonts, retry with backoff, configurable z-index
+- ✅ **Shadow DOM** — all DOM + styles encapsulated in shadow root
+- ✅ **Accessibility** — ARIA labels, `role="dialog"`, `aria-live="polite"` messages, Escape key, focus trap, `focus-visible` outlines, `<button>` for bubble
+- ✅ **Message timeout** — AbortController 15s timeout, distinct error for timeouts
+- ✅ **sessionStorage safety** — `safeStorage()` wrapper with try/catch
+- ✅ **Font fallback** — `system-ui` in font stack
+- ✅ **Send throttle** — 1s cooldown between sends
+- ✅ **Typing indicator** — `role="status"` + data-attribute query (shadow DOM compatible)
 
-**To Deploy (run these commands):**
+**Remaining "Fix Later":**
+1. GDPR consent banner (EU sessionStorage consent)
+2. Config caching (localStorage with TTL)
+3. iOS safe area insets (`env(safe-area-inset-bottom)`)
+4. Server-side rate limit by session (backend)
+
+### Zapier Integration (unchanged from Feb 2):
+- Code complete, NOT deployed — see deploy steps below
+- Need to: commit/push, SSH migrate, create OAuth client, setup in Zapier UI
+
+**Zapier Deploy Commands:**
 ```bash
 # 1. Commit and push
 git add -A && git commit -m "Add Zapier integration: webhooks + OAuth 2.0" && git push
@@ -64,23 +76,6 @@ db.close()
 EOF
 ```
 
-**Then in Zapier (delete old integration first, create new):**
-- Auth Type: OAuth 2.0
-- Authorization URL: `https://api.site2crm.io/oauth/authorize`
-- Token URL: `https://api.site2crm.io/oauth/token`
-- Test URL: `https://api.site2crm.io/oauth/me`
-- Use client_id and client_secret from step 3
-
-### Immediate Next Steps:
-1. Deploy the Zapier code (commit, push, migrate)
-2. Delete wrong Zapier integration in Zapier UI
-3. Create OAuth client in database
-4. Create fresh Zapier integration with OAuth
-5. Build triggers and actions in Zapier
-
-### Current Blockers:
-- Zapier integration code needs to be deployed before continuing Zapier setup in UI
-
 ### DO NOT:
 - Do NOT configure Zapier with API Key auth (we're using OAuth)
 - Do NOT deploy partial features - deploy webhooks + OAuth together
@@ -94,7 +89,7 @@ EOF
 | Software Advice | Pending | Same Gartner network |
 | TrustRadius | Not started | |
 | Product Hunt | Not started | |
-| Zapier | Not started | See scope below |
+| Zapier | Not started | Code complete, need deploy first |
 
 ---
 
@@ -103,7 +98,8 @@ EOF
 ### Phase 1: Stickiness (Reduce Churn) 🎯 CURRENT FOCUS
 | Feature | Priority | Status | Notes |
 |---------|----------|--------|-------|
-| **Zapier Integration** | P0 | In Progress | Webhooks complete, need Zapier platform setup |
+| **Chat Widget Hardening** | P0 | In Progress | Round 1 deployed, Round 2 "Fix Now" queued |
+| **Zapier Integration** | P0 | Code Complete | Webhooks + OAuth done, needs deploy |
 | Webhooks API | P1 | ✅ Complete | POST/GET/DELETE /api/webhooks + firing service |
 | Email sequences | P2 | Not Started | Auto follow-up after lead capture |
 
@@ -244,6 +240,33 @@ Build a Zapier integration to connect Site2CRM to 5000+ apps. This is the #1 fea
 - [ ] 10 Zap templates published
 - [ ] Approved for Zapier public beta
 - [ ] 50 active users (for full public listing)
+
+---
+
+### Recent Changes (2026-02-11):
+**Chat Widget v3.0 — Shadow DOM + Full Hardening:**
+- `widget/chat-widget/src/chat-widget.js` — Complete rewrite:
+  - Shadow DOM encapsulation (all DOM + styles in shadow root)
+  - Full ARIA accessibility (dialog role, live regions, focus trap, Escape key, focus-visible)
+  - AbortController 15s message timeout
+  - `safeStorage()` wrapper for sessionStorage in sandboxed iframes
+  - `system-ui` font fallback in CSS stack
+  - 1s send throttle cooldown
+  - Bubble changed from `<div>` to `<button>` for keyboard accessibility
+  - Typing indicator uses data-attribute query (shadow DOM compatible)
+  - Kept all Round 1 fixes: SPA awareness, GTM support, duplicate guard, retry, z-index
+- `widget/chat-widget/dist/chat-widget.min.js` — Rebuilt (25KB minified)
+- `slms-frontend/src/context/AuthProvider.tsx` — Removed `site2crm_hide_chat` localStorage mechanism
+- Also fixed made4founders embed (`made4founders/apps/web/index.html`) — always-load + route watcher
+
+**Widget Architecture Reference:**
+- Source: `widget/chat-widget/src/chat-widget.js` (vanilla JS IIFE, ~1280 lines)
+- Build: `cd widget/chat-widget && npm run build` (terser minification → 25KB)
+- Served by: `app/api/routes/chat_widget.py` at `/api/public/chat-widget/widget.js`
+- Config endpoint: `/api/public/chat-widget/config/{widget_key}`
+- AI message endpoint: `/api/public/chat-widget/{widget_key}/message`
+- Embed attributes: `data-widget-key`, `data-exclude-paths`, `data-z-index`
+- **Shadow DOM**: Styles scoped to shadow root, `position: fixed` still works from within shadow
 
 ---
 

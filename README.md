@@ -26,8 +26,11 @@ Now leads flow directly from web forms into your CRM in real-time. No copy-pasti
 
 **Core Features:**
 - Embeddable lead capture forms
+- AI chat widget with lead capture
+- Booking widget with calendar integration
 - Real-time CRM sync (HubSpot, Salesforce, Pipedrive, Nutshell)
 - AI-powered lead scoring & insights
+- Webhook API for Zapier/Make integrations
 - Multi-tenant architecture for teams
 - 14-day free trial
 
@@ -132,11 +135,11 @@ Now leads flow directly from web forms into your CRM in real-time. No copy-pasti
 - [x] Environment validation and configuration
 - [x] Request timing and correlation IDs
 
-### Phase 2 - Observability & Testing ✅ MOSTLY COMPLETE
+### Phase 2 - Observability & Testing ✅ COMPLETE
 - [x] **Sentry Integration** - Error tracking and alerting
 - [x] **Automated Test Suite** - Tests run in CI/CD before deploy
 - [x] **Request Timing Alerts** - Log slow requests (>1s)
-- [ ] **GDPR Compliance** - Data export/deletion endpoints
+- [x] **GDPR Compliance** - Data export/deletion endpoints
 
 ### Phase 3 - Scaling & Hardening
 - [ ] **Redis Rate Limiting** - For horizontal scaling
@@ -155,6 +158,27 @@ Now leads flow directly from web forms into your CRM in real-time. No copy-pasti
 
 ---
 
+## Embeddable Widgets
+
+Site2CRM provides three embeddable widgets that customers add to their websites:
+
+| Widget | Directory | Description |
+|--------|-----------|-------------|
+| **Form Widget** | `widget/form-widget/` | Lead capture forms with customizable fields and styles |
+| **Chat Widget** | `widget/chat-widget/` | AI-powered chat that captures leads conversationally |
+| **Booking Widget** | `widget/booking-widget/` | Calendar booking for scheduling meetings |
+
+All widgets are served from the API (`/api/public/chat-widget/widget.js`, etc.) and embedded via a `<script>` tag with a `data-widget-key` attribute.
+
+### Chat Widget Architecture
+- **Source**: `widget/chat-widget/src/chat-widget.js` (vanilla JS IIFE)
+- **Build**: `terser` minification → `widget/chat-widget/dist/chat-widget.min.js`
+- **Features**: SPA-aware route detection, GTM/tag manager compatible, retry with backoff, configurable z-index, async font loading, duplicate prevention
+- **Embed**: `<script src="https://api.site2crm.io/api/public/chat-widget/widget.js" data-widget-key="wgt_xxx" async></script>`
+- **Options**: `data-exclude-paths` (comma-separated paths to hide on), `data-z-index` (custom z-index)
+
+---
+
 ## Project Structure
 
 ```
@@ -164,13 +188,18 @@ site2crm/
 │   │   ├── auth.py               # JWT auth, login, logout
 │   │   ├── billing.py            # Stripe checkout, webhooks
 │   │   ├── orgs.py               # Signup, email verify, onboarding
-│   │   ├── leads.py              # Lead CRUD
-│   │   └── crm.py                # CRM sync endpoints
+│   │   ├── leads.py              # Lead CRUD + PATCH + notes
+│   │   ├── crm.py                # CRM sync endpoints
+│   │   ├── chat_widget.py        # Chat widget config + AI messages
+│   │   ├── webhooks.py           # Webhook CRUD + delivery logs
+│   │   └── oauth.py              # OAuth 2.0 provider for Zapier
 │   ├── integrations/             # CRM API clients
 │   │   ├── hubspot.py
 │   │   ├── salesforce.py
 │   │   ├── pipedrive.py
 │   │   └── nutshell.py
+│   ├── services/
+│   │   └── webhook_service.py    # Webhook firing with HMAC signatures
 │   ├── core/                     # Config, security, rate limiting
 │   └── db/                       # SQLAlchemy models
 ├── slms-frontend/                # React SPA
@@ -178,7 +207,12 @@ site2crm/
 │       ├── pages/                # Dashboard, Settings, Billing
 │       ├── components/           # Reusable UI
 │       └── context/              # Auth, CRM providers
-├── widget/                       # Embeddable form widget
+├── widget/                       # Embeddable widgets
+│   ├── chat-widget/              # AI chat widget (vanilla JS)
+│   │   ├── src/chat-widget.js    # Source
+│   │   └── dist/chat-widget.min.js # Built (terser)
+│   ├── form-widget/              # Lead capture form widget
+│   └── booking-widget/           # Calendar booking widget
 └── .github/workflows/            # CI/CD pipelines
 ```
 
