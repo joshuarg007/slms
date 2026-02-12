@@ -21,6 +21,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // On mount, if a token exists, hydrate user; otherwise mark as not loading
   useEffect(() => {
     let mounted = true;
+
+    // Clean up stale hide-chat flag (widget uses data-exclude-paths now)
+    localStorage.removeItem("site2crm_hide_chat");
+
     const token =
       typeof localStorage !== "undefined" && localStorage.getItem("access_token");
 
@@ -34,14 +38,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then((u) => {
         if (mounted) {
           setUser(u);
-          // Hide chat widget for authenticated users
-          localStorage.setItem("site2crm_hide_chat", "true");
         }
       })
       .catch(() => {
         if (mounted) {
           setUser(null);
-          localStorage.removeItem("site2crm_hide_chat");
         }
       })
       .finally(() => {
@@ -71,9 +72,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 2) fetch full user data including org
     const u = await api.me();
     setUser(u);
-
-    // Hide chat widget for authenticated users
-    localStorage.setItem("site2crm_hide_chat", "true");
   };
 
   // Clear both cookies/token and in-memory user
@@ -85,8 +83,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       api.clearToken();      // removes access_token from localStorage
       setUser(null);
       setLoading(false);
-      // Show chat widget again for unauthenticated users
-      localStorage.removeItem("site2crm_hide_chat");
     }
   };
 
