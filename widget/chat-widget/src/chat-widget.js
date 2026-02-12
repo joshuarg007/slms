@@ -373,12 +373,12 @@
       "}" +
       "" +
       ".s2c-bubble.bottom-right {" +
-      "  bottom: " + (buttonShape === "bar" ? "0" : "24px") + ";" +
+      "  bottom: calc(" + (buttonShape === "bar" ? "0px" : "24px") + " + env(safe-area-inset-bottom, 0px));" +
       "  right: " + (buttonShape === "tab" ? "0" : "24px") + ";" +
       "}" +
       "" +
       ".s2c-bubble.bottom-left {" +
-      "  bottom: " + (buttonShape === "bar" ? "0" : "24px") + ";" +
+      "  bottom: calc(" + (buttonShape === "bar" ? "0px" : "24px") + " + env(safe-area-inset-bottom, 0px));" +
       "  left: " + (buttonShape === "tab" ? "0" : "24px") + ";" +
       "}" +
       "" +
@@ -427,12 +427,12 @@
       windowKeyframes +
       "" +
       ".s2c-window.bottom-right {" +
-      "  bottom: " + (btnSize.size + 40) + "px;" +
+      "  bottom: calc(" + (btnSize.size + 40) + "px + env(safe-area-inset-bottom, 0px));" +
       "  right: 24px;" +
       "}" +
       "" +
       ".s2c-window.bottom-left {" +
-      "  bottom: " + (btnSize.size + 40) + "px;" +
+      "  bottom: calc(" + (btnSize.size + 40) + "px + env(safe-area-inset-bottom, 0px));" +
       "  left: 24px;" +
       "}" +
       "" +
@@ -441,13 +441,13 @@
       "    width: calc(100vw - 16px);" +
       "    height: 65vh !important;" +
       "    max-height: 450px !important;" +
-      "    bottom: 70px !important;" +
+      "    bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;" +
       "    right: 8px !important;" +
       "    left: 8px !important;" +
       "    border-radius: 20px;" +
       "  }" +
       "  .s2c-bubble {" +
-      "    bottom: " + (buttonShape === "bar" ? "0" : "16px") + " !important;" +
+      "    bottom: calc(" + (buttonShape === "bar" ? "0px" : "16px") + " + env(safe-area-inset-bottom, 0px)) !important;" +
       "    right: " + (buttonShape === "tab" ? "0" : "16px") + " !important;" +
       "  }" +
       "}" +
@@ -650,7 +650,7 @@
       "}" +
       "" +
       ".s2c-input-area {" +
-      "  padding: 16px 20px 20px;" +
+      "  padding: 16px 20px calc(20px + env(safe-area-inset-bottom, 0px));" +
       "  display: flex;" +
       "  gap: 12px;" +
       "  background: linear-gradient(180deg, " + chatBgColor + " 0%, #080814 100%);" +
@@ -975,6 +975,9 @@
     // Accessibility: keyboard handling
     setupAccessibility(closeBtn);
 
+    // iOS keyboard: adjust chat window when virtual keyboard opens
+    setupIOSKeyboardHandler();
+
     // Set initial visibility and start watching SPA route changes
     updateVisibility();
     watchRouteChanges();
@@ -1020,6 +1023,30 @@
           e.preventDefault();
           first.focus();
         }
+      }
+    });
+  }
+
+  // === iOS KEYBOARD HANDLING ===
+
+  function setupIOSKeyboardHandler() {
+    // visualViewport API detects iOS keyboard open/close
+    if (!window.visualViewport) return;
+
+    var initialHeight = window.visualViewport.height;
+
+    window.visualViewport.addEventListener("resize", function () {
+      if (!isOpen || !chatWindow) return;
+
+      var keyboardHeight = initialHeight - window.visualViewport.height;
+      if (keyboardHeight > 100) {
+        // Keyboard is open — shift chat window up
+        chatWindow.style.transform = "translateY(-" + keyboardHeight + "px)";
+        chatWindow.style.maxHeight = window.visualViewport.height - 80 + "px";
+      } else {
+        // Keyboard closed — reset
+        chatWindow.style.transform = "";
+        chatWindow.style.maxHeight = "";
       }
     });
   }

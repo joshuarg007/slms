@@ -90,6 +90,7 @@ RATE_LIMITS = {
     "public_form": {"max_requests": 30, "window_seconds": 60},   # 30 per minute
     "public_api": {"max_requests": 60, "window_seconds": 60},    # 60 per minute (API key based)
     "chat_widget": {"max_requests": 20, "window_seconds": 60},   # 20 messages per minute per IP
+    "chat_session": {"max_requests": 10, "window_seconds": 60},  # 10 messages per minute per session
     "default": {"max_requests": 100, "window_seconds": 60},      # 100 per minute
 }
 
@@ -115,6 +116,28 @@ def check_chat_widget_rate_limit(request: Request) -> tuple[bool, Optional[str]]
 
     config = RATE_LIMITS["chat_widget"]
     key = rate_limiter.get_client_key(request, "chat_widget")
+    is_limited, count, retry_after = rate_limiter.is_rate_limited(
+        key, config["max_requests"], config["window_seconds"]
+    )
+
+    if is_limited:
+        message = random.choice(CHAT_RATE_LIMIT_MESSAGES)
+        return True, message
+
+    return False, None
+
+
+def check_chat_session_rate_limit(session_id: str) -> tuple[bool, Optional[str]]:
+    """
+    Check rate limit for a chat session. Returns friendly AI message if limited.
+
+    Returns:
+        (is_limited, friendly_message) - message is None if not limited
+    """
+    import random
+
+    config = RATE_LIMITS["chat_session"]
+    key = f"chat_session:{session_id}"
     is_limited, count, retry_after = rate_limiter.is_rate_limited(
         key, config["max_requests"], config["window_seconds"]
     )

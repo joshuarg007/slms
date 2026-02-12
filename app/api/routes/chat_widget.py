@@ -16,7 +16,7 @@ from sqlalchemy import func
 from app.api.deps.auth import get_db, get_current_user
 from app.db import models
 from app.core.plans import get_plan_limits, validate_message_tokens, validate_conversation_turns
-from app.core.rate_limit import check_chat_widget_rate_limit
+from app.core.rate_limit import check_chat_widget_rate_limit, check_chat_session_rate_limit
 from app.services.ai_chat import (
     chat_completion,
     extract_email_from_message,
@@ -1230,6 +1230,18 @@ async def send_chat_message(
         # Return friendly AI message instead of error - better UX
         return ChatMessageResponse(
             response=friendly_message,
+            lead_captured=False,
+            captured_email=None,
+            captured_phone=None,
+        )
+
+    # =========================================================================
+    # SESSION RATE LIMITING - Prevent abuse per widget session (10 msgs/min)
+    # =========================================================================
+    is_session_limited, session_message = check_chat_session_rate_limit(req.session_id)
+    if is_session_limited:
+        return ChatMessageResponse(
+            response=session_message,
             lead_captured=False,
             captured_email=None,
             captured_phone=None,
